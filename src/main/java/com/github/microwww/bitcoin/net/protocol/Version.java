@@ -32,7 +32,8 @@ public class Version extends ProtocolAdapter {
     }
 
     @Override
-    public void write(ByteBuf buf) {
+    public int write(ByteBuf buf) {
+        int f = buf.readableBytes();
         buf.writeIntLE(settings.getProtocolVersion())
                 .writeLongLE(settings.getServices())
                 .writeLongLE(timestamp.getTime() / 1000);
@@ -44,6 +45,7 @@ public class Version extends ProtocolAdapter {
         buf.writeBytes(bytes);
         buf.writeIntLE(BlockInfo.getInstance().getHeight().intValue());
         buf.writeByte(flag);
+        return buf.readableBytes() - f;
     }
 
     public static Version read(Peer peer, byte[] payload) {

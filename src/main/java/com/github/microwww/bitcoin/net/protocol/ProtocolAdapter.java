@@ -15,8 +15,9 @@ public class ProtocolAdapter implements AbstractProtocol {
     private static final Logger logger = LoggerFactory.getLogger(ProtocolAdapter.class);
 
     @Override
-    public void write(ByteBuf buf) {
+    public int write(ByteBuf buf) {
         logger.debug("{} set nothing", this.getClass().getSimpleName());
+        return 0;
     }
 
     @Override

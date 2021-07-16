@@ -16,7 +16,7 @@ public interface AbstractProtocol {
      *
      * @param buf
      */
-    public abstract void write(ByteBuf buf);
+    public abstract int write(ByteBuf buf);
 
     /**
      * 将头 和 数据一起写出
