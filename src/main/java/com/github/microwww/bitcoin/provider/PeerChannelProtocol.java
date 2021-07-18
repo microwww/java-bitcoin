@@ -1,11 +1,9 @@
 package com.github.microwww.bitcoin.provider;
 
 import com.github.microwww.bitcoin.conf.BlockInfo;
+import com.github.microwww.bitcoin.math.Int256;
 import com.github.microwww.bitcoin.net.Peer;
-import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
-import com.github.microwww.bitcoin.net.protocol.GetAddr;
-import com.github.microwww.bitcoin.net.protocol.VerACK;
-import com.github.microwww.bitcoin.net.protocol.Version;
+import com.github.microwww.bitcoin.net.protocol.*;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +11,8 @@ import org.springframework.stereotype.Component;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class PeerChannelProtocol {
@@ -47,6 +47,17 @@ public class PeerChannelProtocol {
         peer.setRemoteReady(true);
         ctx.executor().execute(() -> {
             ctx.write(new GetAddr(peer));
+        });
+
+        ctx.executor().execute(() -> {
+            int height = BlockInfo.getInstance().getHeight().intValue();
+            int step = 1;
+            List<Int256> list = new ArrayList<>();
+            for (int i = height; i > 0; i -= step) {
+                list.add(new Int256(BlockInfo.getInstance().getHash(i), 16));
+            }
+            GetHeaders hd = new GetHeaders(peer).setList(list);
+            ctx.write(hd);
         });
     }
 }

@@ -83,4 +83,8 @@ public class BlockInfo {
     public void setHashCount(int hashCount) {
         this.hashCount = hashCount;
     }
+
+    public String getHash(int height) {// TODO : block file !
+        throw new UnsupportedOperationException();
+    }
 }
