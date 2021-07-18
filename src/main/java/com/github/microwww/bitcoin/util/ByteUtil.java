@@ -5,6 +5,10 @@ import org.springframework.util.Assert;
 
 public class ByteUtil {
 
+    public static byte[] readAll(ByteBuf buf) {
+        return readLength(buf, buf.readableBytes());
+    }
+
     public static byte[] readLength(ByteBuf buf, int len) {
         Assert.isTrue(buf.readableBytes() >= len, "not have data");
         byte[] bytes = new byte[len];

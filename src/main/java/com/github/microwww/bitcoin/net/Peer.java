@@ -12,7 +12,9 @@ public class Peer {
     private final int port;
     private Version version;
     private int blockHeight;
-    private boolean ready = false;
+
+    private boolean meReady;
+    private boolean remoteReady;
 
     public Peer(Settings me, String host, int port) {
         this.meConfig = me;
@@ -44,15 +46,27 @@ public class Peer {
         this.blockHeight = blockHeight;
     }
 
-    public boolean isReady() {
-        return ready;
-    }
-
-    public void setReady(boolean ready) {
-        this.ready = ready;
-    }
-
     public Settings getMeConfig() {
         return meConfig;
+    }
+
+    public boolean isMeReady() {
+        return meReady;
+    }
+
+    public void setMeReady(boolean meReady) {
+        this.meReady = meReady;
+    }
+
+    public boolean isRemoteReady() {
+        return remoteReady;
+    }
+
+    public void setRemoteReady(boolean remoteReady) {
+        this.remoteReady = remoteReady;
+    }
+
+    public boolean isReady() {
+        return remoteReady && meReady;
     }
 }

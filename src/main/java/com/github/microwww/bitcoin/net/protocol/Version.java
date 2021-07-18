@@ -7,6 +7,7 @@ import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandlerContext;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
@@ -64,6 +65,15 @@ public class Version extends ProtocolAdapter {
         ver.flag = buf.readByte();
         peer.setVersion(ver);
         return ver;
+    }
+
+    @Override
+    public void service(ChannelHandlerContext ctx) {
+        Peer peer = BlockInfo.getPeer(ctx);
+        peer.setVersion(this);
+        BlockInfo.getPeer(ctx).setMeReady(true);
+        // TODO :: 发送ack需要一个合适的时机
+        ctx.write(new VerACK());
     }
 
     public PeerNode getReceiveNode() {

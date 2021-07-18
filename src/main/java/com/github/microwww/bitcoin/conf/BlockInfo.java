@@ -18,6 +18,8 @@ public class BlockInfo {
     private final AtomicInteger height = new AtomicInteger(0);
     private final Map<String, Peer> peers = new ConcurrentSkipListMap<>();
     private Path dataDir;
+    private int hashCount; // number of block locator hash entries
+    Settings settings = new Settings();
 
     private static BlockInfo block = new BlockInfo();
 
@@ -64,5 +66,21 @@ public class BlockInfo {
 
     private String key(InetSocketAddress dr) {
         return dr.getHostString() + ":" + dr.getPort();
+    }
+
+    public Settings getSettings() {
+        return settings;
+    }
+
+    public void setSettings(Settings settings) {
+        this.settings = settings;
+    }
+
+    public int getHashCount() {
+        return hashCount;
+    }
+
+    public void setHashCount(int hashCount) {
+        this.hashCount = hashCount;
     }
 }

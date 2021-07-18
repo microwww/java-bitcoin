@@ -25,7 +25,6 @@ public enum NetProtocol {
     VERACK() {
         @Override
         public VerACK parse(Peer peer, byte[] buf) {
-            peer.setReady(true);
             return VerACK.readNothing(buf, VerACK.class);
         }
     },

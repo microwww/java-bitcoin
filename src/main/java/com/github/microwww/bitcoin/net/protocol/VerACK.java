@@ -13,17 +13,9 @@ public class VerACK extends ProtocolAdapter {
 
     @Override
     public void service(ChannelHandlerContext ctx) {
-        Settings settings = BlockInfo.getPeer(ctx).getMeConfig();
-        ByteBuf bf = Unpooled.buffer();
-        int len = new VerACK().write(bf);
-        ByteBuf buff = Unpooled.buffer();
-        new MessageHeader(settings.getMagic(), NetProtocol.VERACK)
-                .setPayload(ByteUtil.readLength(bf, len))
-                .writer(buff);
-        ctx.writeAndFlush(buff);
-
+        BlockInfo.getPeer(ctx).setRemoteReady(true);
         ctx.executor().execute(() -> {
-            // new MessageHeader(settings.getMagic(), NetProtocol.VERACK).setPayload(bf.array()).writer(buff);
+            ctx.write(new GetAddr()); // 请求 节点发送 已知 PEER 的地址
         });
     }
 }

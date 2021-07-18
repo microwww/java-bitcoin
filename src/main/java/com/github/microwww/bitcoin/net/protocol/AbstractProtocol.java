@@ -23,7 +23,7 @@ public interface AbstractProtocol {
      *
      * @param buf
      */
-    public void writeWithHeader(ByteBuf buf);
+    public MessageHeader writeWithHeader(ByteBuf buf);
 
     /**
      * 收到数据后 回调处理
