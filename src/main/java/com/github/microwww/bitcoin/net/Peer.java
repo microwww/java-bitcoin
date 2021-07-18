@@ -1,13 +1,8 @@
 package com.github.microwww.bitcoin.net;
 
-import com.github.microwww.bitcoin.conf.Config;
-import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.net.protocol.Version;
 
-import java.util.Set;
-
 public class Peer {
-    private final Settings meConfig;
     private final String host;
     private final int port;
     private Version version;
@@ -16,8 +11,7 @@ public class Peer {
     private boolean meReady;
     private boolean remoteReady;
 
-    public Peer(Settings me, String host, int port) {
-        this.meConfig = me;
+    public Peer(String host, int port) {
         this.host = host;
         this.port = port;
     }
@@ -46,10 +40,6 @@ public class Peer {
         this.blockHeight = blockHeight;
     }
 
-    public Settings getMeConfig() {
-        return meConfig;
-    }
-
     public boolean isMeReady() {
         return meReady;
     }
@@ -68,5 +58,16 @@ public class Peer {
 
     public boolean isReady() {
         return remoteReady && meReady;
+    }
+
+    @Override
+    public String toString() {
+        return "Peer{" +
+                "host='" + host + '\'' +
+                ", port=" + port +
+                ", blockHeight=" + blockHeight +
+                ", meReady=" + meReady +
+                ", remoteReady=" + remoteReady +
+                '}';
     }
 }

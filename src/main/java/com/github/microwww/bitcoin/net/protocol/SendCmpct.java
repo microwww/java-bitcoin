@@ -1,5 +1,10 @@
 package com.github.microwww.bitcoin.net.protocol;
 
-public class SendCmpct extends ProtocolAdapter {
+import com.github.microwww.bitcoin.net.Peer;
 
+public class SendCmpct extends AbstractProtocolAdapter<SendCmpct> {
+
+    public SendCmpct(Peer peer) {
+        super(peer);
+    }
 }

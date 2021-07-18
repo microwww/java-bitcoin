@@ -3,3 +3,8 @@
 server:
   port: 8333
 #
+conf:
+  bitcoin:
+    peers:
+      - localhost:18444
+#

@@ -119,4 +119,14 @@ public class MessageHeader {
         header.setPayload(payload);
         return header;
     }
+
+    @Override
+    public String toString() {
+        return "MessageHeader{" +
+                "magic=" + magic +
+                ", command='" + command + '\'' +
+                ", payload=" + Arrays.toString(payload) +
+                ", checksum=" + Arrays.toString(checksum) +
+                '}';
+    }
 }

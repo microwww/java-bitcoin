@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "conf")
 public class Config {
 
-    private Settings bitcoin;
+    private Settings bitcoin = new Settings();
 
     public Settings getBitcoin() {
         return bitcoin;

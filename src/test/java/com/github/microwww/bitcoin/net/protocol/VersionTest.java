@@ -16,6 +16,7 @@ import java.util.Date;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class VersionTest {
+    Peer peer = new Peer("localhost", 8333);
 
     @Test
     public void testSendVersion() {
@@ -23,7 +24,7 @@ public class VersionTest {
         ByteBuf payload = Unpooled.buffer();
         //buffer.skipBytes(MessageHeader.HEADER_SIZE);
         Date date = new Date(40 * 365 * 24 * 60 * 60 * 1000); // 1970 + 40年
-        new Version(settings, date).setNonce(123456789012345678L).write(payload);
+        Version.builder(peer, settings).setTimestamp(date).setNonce(123456789012345678L).write(payload);
         int i = payload.readableBytes();
         byte[] byts = new byte[i];
         payload.readBytes(byts);
@@ -36,19 +37,19 @@ public class VersionTest {
         String hex = HexUtil.encodeHexStr(by);
         // System.out.println(hex);
         String line3 = ClassPath.readClassPathFile("/data/line-data.txt").get(2);
-        Assert.assertEquals(line3, hex);
 
         MessageHeader read = MessageHeader.read(Unpooled.copiedBuffer(by));
         assertEquals(header.getMagic(), read.getMagic());
         assertArrayEquals(header.getPayload(), read.getPayload());
         assertEquals(header.getNetProtocol(), read.getNetProtocol());
         assertTrue(read.verifyChecksum());
+
+        Assert.assertEquals(line3, hex);
     }
 
     @Test
     public void testParseVersion() {
         Settings settings = new Settings();
-        Peer peer = new Peer(settings, "localhost", 8333);
         String line5 = ClassPath.readClassPathFile("/data/line-data.txt").get(4);
         byte[] bytes = HexUtil.decodeHex(line5);
         MessageHeader read = MessageHeader.read(Unpooled.copiedBuffer(bytes));
@@ -57,10 +58,10 @@ public class VersionTest {
         // payload length
         assertTrue(read.verifyChecksum());
         // assertEquals(header.getCommand(), read.getCommand());
-        Version ver = Version.read(peer, read.getPayload());
-        assertEquals(70016, ver.getSettings().getProtocolVersion());
+        Version ver = new Version(peer).read(read.getPayload());
+        assertEquals(70016, ver.getProtocolVersion());
         assertEquals(1626405650000L, ver.getTimestamp().getTime()); // Jul 16 2021 11:20:50 GMT+0800
-        assertEquals(1033, ver.getSettings().getServices()); // 1033 | 0x0000000000000409
+        assertEquals(1033, ver.getServices()); // 1033 | 0x0000000000000409
 
         assertEquals(0, ver.getReceiveNode().getServices());
         assertArrayEquals(new byte[PeerNode.PEER_NODE_ADDRESS_LENGTH], ver.getReceiveNode().getAddress());

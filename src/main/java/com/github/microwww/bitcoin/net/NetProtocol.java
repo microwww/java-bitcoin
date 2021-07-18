@@ -15,7 +15,7 @@ public enum NetProtocol {
     VERSION() {
         @Override
         public Version parse(Peer peer, byte[] buf) {
-            return Version.read(peer, buf);
+            return new Version(peer).read(buf);
         }
     },
     /**
@@ -24,8 +24,8 @@ public enum NetProtocol {
      */
     VERACK() {
         @Override
-        public VerACK parse(Peer peer, byte[] buf) {
-            return VerACK.readNothing(buf, VerACK.class);
+        public AbstractProtocol parse(Peer peer, byte[] buf) {
+            return new VerACK(peer).read(buf);
         }
     },
     /**

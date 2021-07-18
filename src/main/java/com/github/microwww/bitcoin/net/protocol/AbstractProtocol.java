@@ -5,7 +5,7 @@ import com.github.microwww.bitcoin.net.NetProtocol;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
-public interface AbstractProtocol {
+public interface AbstractProtocol<T extends AbstractProtocol> {
 
     public default NetProtocol support() {
         return NetProtocol.select(this.getClass().getSimpleName().toLowerCase());
@@ -18,6 +18,8 @@ public interface AbstractProtocol {
      */
     public abstract int write(ByteBuf buf);
 
+    public abstract T read(byte[] buf);
+
     /**
      * 将头 和 数据一起写出
      *
@@ -25,10 +27,4 @@ public interface AbstractProtocol {
      */
     public MessageHeader writeWithHeader(ByteBuf buf);
 
-    /**
-     * 收到数据后 回调处理
-     *
-     * @param ctx
-     */
-    public abstract void service(ChannelHandlerContext ctx);
 }

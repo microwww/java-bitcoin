@@ -2,18 +2,21 @@ package com.github.microwww.bitcoin.net.protocol;
 
 import com.github.microwww.bitcoin.conf.BlockInfo;
 import com.github.microwww.bitcoin.net.MessageHeader;
+import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.Assert;
 
-import java.lang.reflect.InvocationTargetException;
+public abstract class AbstractProtocolAdapter<T extends AbstractProtocol> implements AbstractProtocol<T> {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractProtocolAdapter.class);
 
-public class ProtocolAdapter implements AbstractProtocol {
-    private static final Logger logger = LoggerFactory.getLogger(ProtocolAdapter.class);
+    protected final Peer peer;
+
+    public AbstractProtocolAdapter(Peer peer) {
+        this.peer = peer;
+    }
 
     @Override
     public MessageHeader writeWithHeader(ByteBuf buf) {
@@ -31,17 +34,12 @@ public class ProtocolAdapter implements AbstractProtocol {
     }
 
     @Override
-    public void service(ChannelHandlerContext ctx) {
-        logger.info("DO nothing");
+    public T read(byte[] buf) {
+        logger.info("do not Reading nothing");
+        return (T) this;
     }
 
-    public static <T> T readNothing(byte[] payload, Class<T> clazz, Object... args) {
-        Assert.isTrue(payload.length == 0, "Not need message");
-        try {
-            return clazz.getDeclaredConstructor().newInstance();
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
+    public Peer getPeer() {
+        return peer;
     }
-
 }

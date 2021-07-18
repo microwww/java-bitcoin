@@ -4,16 +4,17 @@ import com.github.microwww.bitcoin.conf.BlockInfo;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
 import com.github.microwww.bitcoin.net.protocol.Version;
+import com.github.microwww.bitcoin.provider.PeerChannelProtocol;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.util.Date;
 
 public class CommandTest {
     private static final Logger logger = LoggerFactory.getLogger(CommandTest.class);
@@ -21,6 +22,7 @@ public class CommandTest {
     private static Settings settings = new Settings();
 
     @Test
+    @Disabled
     public void sendCommand() throws InterruptedException {
         EventLoopGroup executors = new NioEventLoopGroup();
         Bootstrap bootstrap = new Bootstrap()
@@ -36,7 +38,7 @@ public class CommandTest {
                     }
                 });
         // connection
-        Peer peer = new Peer(settings, "192.168.2.18", 18444);
+        Peer peer = new Peer("192.168.2.18", 18444);
         bootstrap.connect(peer.getHost(), peer.getPort())
                 .addListener((DefaultChannelPromise e) -> {
                     BlockInfo.getInstance().addPeers((InetSocketAddress) e.channel().localAddress(), peer);
@@ -53,7 +55,7 @@ public class CommandTest {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            ctx.write(new Version(settings));
+            ctx.write(Version.builder(BlockInfo.getPeer(ctx), settings));
         }
 
         @Override
@@ -66,7 +68,7 @@ public class CommandTest {
                 AbstractProtocol parse = netProtocol.parse(peer, header.getPayload());
                 logger.info("Parse data to : {}", parse.getClass().getSimpleName());
                 ctx.executor().execute(() -> {
-                    parse.service(ctx);
+                    new PeerChannelProtocol().doAction(ctx, parse);
                 });
             } catch (UnsupportedOperationException ex) {
                 logger.warn("UnsupportedOperationException : {}", header.getCommand());

@@ -7,41 +7,49 @@ import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelHandlerContext;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
-public class Version extends ProtocolAdapter {
-    protected final Settings settings;
+public class Version extends AbstractProtocolAdapter<Version> {
+
+    private int magic = 0xfabfb5da; // 0xf9beb4d9;
+    private String agent = "/j-bitcoin-0.18.1:0.0.1/";
+    private int protocolVersion;
+    private long services;
+
     private PeerNode receiveNode; // remote-node
     private PeerNode emittingNode;// local-node
 
     private long nonce = RandomUtil.randomLong();
     private byte flag = 1;
-    protected Date timestamp;
+    protected Date timestamp = new Date();
 
-    public Version(Settings settings) {
-        this(settings, new Date());
+    public static Version builder(Peer peer, Settings settings) {
+        Version ver = new Version(peer);
+        ver.setMagic(settings.getMagic())
+                .setProtocolVersion(settings.getProtocolVersion())
+                .setServices(settings.getServices())
+                .setAgent(settings.getAgent());
+        return ver;
     }
 
-    public Version(Settings settings, Date now) {
-        this.settings = settings;
+    public Version(Peer peer) {
+        super(peer);
         receiveNode = new PeerNode(0L, (short) 0);
-        emittingNode = new PeerNode(settings.getServices(), (short) 0);
-        this.timestamp = now;
+        emittingNode = new PeerNode(0L, (short) 0);
     }
 
     @Override
     public int write(ByteBuf buf) {
         int f = buf.readableBytes();
-        buf.writeIntLE(settings.getProtocolVersion())
-                .writeLongLE(settings.getServices())
+        buf.writeIntLE(this.getProtocolVersion())
+                .writeLongLE(this.getServices())
                 .writeLongLE(timestamp.getTime() / 1000);
         receiveNode.write(buf);
-        emittingNode.write(buf);
+        emittingNode.setServices(this.services).write(buf);
         buf.writeLongLE(nonce);
-        byte[] bytes = settings.getAgent().getBytes(StandardCharsets.ISO_8859_1);
+        byte[] bytes = this.getAgent().getBytes(StandardCharsets.ISO_8859_1);
         buf.writeByte(bytes.length);
         buf.writeBytes(bytes);
         buf.writeIntLE(BlockInfo.getInstance().getHeight().intValue());
@@ -49,31 +57,22 @@ public class Version extends ProtocolAdapter {
         return buf.readableBytes() - f;
     }
 
-    public static Version read(Peer peer, byte[] payload) {
+    public Version read(byte[] payload) {
         ByteBuf buf = Unpooled.copiedBuffer(payload);
-        Version ver = new Version(new Settings());
-        ver.settings.setProtocolVersion(buf.readIntLE());
-        ver.settings.setServices(buf.readLongLE());
+        Version ver = new Version(peer);
+        ver.setProtocolVersion(buf.readIntLE());
+        ver.setServices(buf.readLongLE());
         ver.timestamp = new Date(buf.readLongLE() * 1000);
         ver.receiveNode = PeerNode.read(buf);
         ver.emittingNode = PeerNode.read(buf);
         ver.nonce = buf.readLongLE();
         byte len = buf.readByte();
         byte[] chs = ByteUtil.readLength(buf, len);
-        ver.settings.setAgent(new String(chs, StandardCharsets.ISO_8859_1));
+        ver.setAgent(new String(chs, StandardCharsets.ISO_8859_1));
         peer.setBlockHeight(buf.readIntLE());
         ver.flag = buf.readByte();
         peer.setVersion(ver);
         return ver;
-    }
-
-    @Override
-    public void service(ChannelHandlerContext ctx) {
-        Peer peer = BlockInfo.getPeer(ctx);
-        peer.setVersion(this);
-        BlockInfo.getPeer(ctx).setMeReady(true);
-        // TODO :: 发送ack需要一个合适的时机
-        ctx.write(new VerACK());
     }
 
     public PeerNode getReceiveNode() {
@@ -116,7 +115,59 @@ public class Version extends ProtocolAdapter {
         return this;
     }
 
-    public Settings getSettings() {
-        return settings;
+    public int getMagic() {
+        return magic;
+    }
+
+    public Version setMagic(int magic) {
+        this.magic = magic;
+        return this;
+    }
+
+    public String getAgent() {
+        return agent;
+    }
+
+    public Version setAgent(String agent) {
+        this.agent = agent;
+        return this;
+    }
+
+    public int getProtocolVersion() {
+        return protocolVersion;
+    }
+
+    public Version setProtocolVersion(int protocolVersion) {
+        this.protocolVersion = protocolVersion;
+        return this;
+    }
+
+    public long getServices() {
+        return services;
+    }
+
+    public Version setServices(long services) {
+        this.services = services;
+        return this;
+    }
+
+    public Version setTimestamp(Date timestamp) {
+        this.timestamp = timestamp;
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        return "Version{" +
+                "magic=" + magic +
+                ", agent='" + agent + '\'' +
+                ", protocolVersion=" + protocolVersion +
+                ", services=" + services +
+                ", receiveNode=" + receiveNode +
+                ", emittingNode=" + emittingNode +
+                ", nonce=" + nonce +
+                ", flag=" + flag +
+                ", timestamp=" + timestamp +
+                '}';
     }
 }
