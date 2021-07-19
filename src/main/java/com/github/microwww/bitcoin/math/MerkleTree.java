@@ -1,9 +1,11 @@
 package com.github.microwww.bitcoin.math;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /*     WARNING! If you're reading this because you're learning about crypto
        and/or designing a new system that will use merkle trees, keep in mind
@@ -40,35 +42,66 @@ import java.util.function.Supplier;
        known ways of changing the transactions without affecting the merkle
        root.
 */
-public class MerkleTree<T, U> {
+public class MerkleTree<U, T> {
     private T hash;
-    private MerkleTree<T, U> left;
-    private MerkleTree<T, U> right;
-    private U leaf;
+    private MerkleTree<U, T> left;
+    private MerkleTree<U, T> right;
+    private U data;
 
-    public static <T, U> MerkleTree merkleTree(List<U> list, Function<U, T> hash0, BiFunction<T, T, T> hash) {
+    public static <T, U> MerkleTree merkleTree(List<U> list, Function<U, T> mapper, BiFunction<T, T, T> reducer) {
+        if (list.isEmpty()) {
+            throw new IllegalArgumentException("NOT EMPTY");
+        }
+
+        List<MerkleTree<U, T>> trees = list.stream().map(u -> {
+            MerkleTree<U, T> leaf = new MerkleTree();
+            leaf.hash = mapper.apply(u);
+            leaf.data = u;
+            return leaf;
+        }).collect(Collectors.toList());
+        while (trees.size() > 1) {
+            ArrayList<MerkleTree<U, T>> tr = new ArrayList<>();
+            for (int i = 0; i < trees.size(); i += 2) {
+                int next = i + 1;
+                if (next >= trees.size()) next = i;
+                MerkleTree<U, T> node = new MerkleTree();
+                node.left = trees.get(i);
+                node.right = trees.get(next);
+                node.hash = reducer.apply(node.left.hash, node.right.hash);
+                tr.add(node);
+            }
+            trees = tr;
+        }
+        return trees.get(0);
+    }
+
+    public static <T, U> MerkleTree merkleTree1(List<U> list, Function<U, T> mapper, BiFunction<T, T, T> reducer) {
         if (list.isEmpty()) {
             throw new IllegalArgumentException("NOT EMPTY");
         }
         if (list.size() == 1) {
             MerkleTree merkleTree = new MerkleTree();
             U leaf = list.get(0);
-            merkleTree.hash = hash0.apply(leaf);
-            merkleTree.leaf = leaf;
+            merkleTree.hash = mapper.apply(leaf);
+            merkleTree.data = leaf;
             return merkleTree;
         }
-        int left = list.size() / 2 * 2;
-        if (left == 2) {
-            left = 1;
-        }
-        MerkleTree<T, U> tree = merkleTree(list.subList(0, left), hash0, hash);
-        if (left < list.size()) {
-            MerkleTree tr = new MerkleTree();
-            tr.left = tree;
-            tr.right = merkleTree(list.subList(left, list.size()), hash0, hash);
-            tree = tr;
-        }
-        tree.hash = hash.apply(tree.left.hash, tree.right.hash);
+        int left = (list.size() + 1) / 2;
+        MerkleTree<U, T> tree = new MerkleTree();
+
+        List<U> L = list.subList(0, left);
+        tree.left = merkleTree1(L, mapper, reducer);
+
+        List<U> r = list.subList(left, list.size());
+        tree.right = merkleTree1(r, u -> {
+            T apply = mapper.apply(u);
+            if (r.size() < L.size()) {
+                return reducer.apply(apply, apply);
+            }
+            return apply;
+        }, reducer);
+
+        tree.hash = reducer.apply(tree.left.hash, tree.right.hash);
         return tree;
     }
 
@@ -80,37 +113,49 @@ public class MerkleTree<T, U> {
         this.hash = hash;
     }
 
-    public MerkleTree<T, U> getLeft() {
+    public MerkleTree<U, T> getLeft() {
         return left;
     }
 
-    public void setLeft(MerkleTree<T, U> left) {
+    public void setLeft(MerkleTree<U, T> left) {
         this.left = left;
     }
 
-    public MerkleTree<T, U> getRight() {
+    public MerkleTree<U, T> getRight() {
         return right;
     }
 
-    public void setRight(MerkleTree<T, U> right) {
+    public void setRight(MerkleTree<U, T> right) {
         this.right = right;
     }
 
-    public U getLeaf() {
-        return leaf;
+    public U getData() {
+        return data;
     }
 
-    public void setLeaf(U leaf) {
-        this.leaf = leaf;
+    public void setData(U data) {
+        this.data = data;
     }
 
     @Override
     public String toString() {
-        return "MerkleTree{" +
-                "hash=" + hash +
-                ", left=" + left +
-                ", right=" + right +
-                ", leaf=" + leaf +
-                '}';
+        return this.toString("").toString();
+    }
+
+    public StringBuilder toString(final String prefix) {
+        StringBuilder join = new StringBuilder();
+        join.append("{ MerkleTree").append("\n");
+        join.append(prefix).append("    hash  = ").append(hash).append(", data = ").append(data).append("\n")
+                .append(prefix).append("    left  = ");
+        if (left != null) {
+            join.append(left.toString(prefix + "    "));
+        }
+        join.append("\n")
+                .append(prefix).append("    right = ");
+        if (right != null) {
+            join.append(right.toString(prefix + "    ")).append("\n");
+        } else join.append("\n");
+
+        return join.append(prefix).append("}");
     }
 }
