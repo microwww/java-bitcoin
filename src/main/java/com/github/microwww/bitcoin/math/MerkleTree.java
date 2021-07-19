@@ -1,7 +1,5 @@
 package com.github.microwww.bitcoin.math;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -54,87 +52,62 @@ public class MerkleTree<U, T> {
         }
 
         List<MerkleTree<U, T>> trees = list.stream().map(u -> {
-            MerkleTree<U, T> leaf = new MerkleTree();
-            leaf.hash = mapper.apply(u);
-            leaf.data = u;
-            return leaf;
+            T hash = mapper.apply(u);
+            return new MerkleTree<U, T>().setHash(hash).setData(u);
         }).collect(Collectors.toList());
-        while (trees.size() > 1) {
-            ArrayList<MerkleTree<U, T>> tr = new ArrayList<>();
-            for (int i = 0; i < trees.size(); i += 2) {
+        int len = trees.size();
+        trees.add(null); // 方便后面可以直接 set 不用 add
+        while (len > 1) {
+            if (1 == (len & 1)) { // 如果是奇数 +1, 所以 tree总是偶数个元素
+                trees.set(len, trees.get(len - 1));
+            }
+            for (int i = 0; i < len; i += 2) {
                 int next = i + 1;
-                if (next >= trees.size()) next = i;
                 MerkleTree<U, T> node = new MerkleTree();
                 node.left = trees.get(i);
                 node.right = trees.get(next);
                 node.hash = reducer.apply(node.left.hash, node.right.hash);
-                tr.add(node);
+                trees.set(i / 2, node);
             }
-            trees = tr;
+            len = (len + 1) / 2;
         }
         return trees.get(0);
-    }
-
-    public static <T, U> MerkleTree merkleTree1(List<U> list, Function<U, T> mapper, BiFunction<T, T, T> reducer) {
-        if (list.isEmpty()) {
-            throw new IllegalArgumentException("NOT EMPTY");
-        }
-        if (list.size() == 1) {
-            MerkleTree merkleTree = new MerkleTree();
-            U leaf = list.get(0);
-            merkleTree.hash = mapper.apply(leaf);
-            merkleTree.data = leaf;
-            return merkleTree;
-        }
-        int left = (list.size() + 1) / 2;
-        MerkleTree<U, T> tree = new MerkleTree();
-
-        List<U> L = list.subList(0, left);
-        tree.left = merkleTree1(L, mapper, reducer);
-
-        List<U> r = list.subList(left, list.size());
-        tree.right = merkleTree1(r, u -> {
-            T apply = mapper.apply(u);
-            if (r.size() < L.size()) {
-                return reducer.apply(apply, apply);
-            }
-            return apply;
-        }, reducer);
-
-        tree.hash = reducer.apply(tree.left.hash, tree.right.hash);
-        return tree;
     }
 
     public T getHash() {
         return hash;
     }
 
-    public void setHash(T hash) {
+    public MerkleTree<U, T> setHash(T hash) {
         this.hash = hash;
+        return this;
     }
 
     public MerkleTree<U, T> getLeft() {
         return left;
     }
 
-    public void setLeft(MerkleTree<U, T> left) {
+    public MerkleTree<U, T> setLeft(MerkleTree<U, T> left) {
         this.left = left;
+        return this;
     }
 
     public MerkleTree<U, T> getRight() {
         return right;
     }
 
-    public void setRight(MerkleTree<U, T> right) {
+    public MerkleTree<U, T> setRight(MerkleTree<U, T> right) {
         this.right = right;
+        return this;
     }
 
     public U getData() {
         return data;
     }
 
-    public void setData(U data) {
+    public MerkleTree<U, T> setData(U data) {
         this.data = data;
+        return this;
     }
 
     @Override
@@ -144,7 +117,7 @@ public class MerkleTree<U, T> {
 
     public StringBuilder toString(final String prefix) {
         StringBuilder join = new StringBuilder();
-        join.append("{ MerkleTree").append("\n");
+        join.append("{ MerkleTree#").append(System.identityHashCode(this)).append("\n");
         join.append(prefix).append("    hash  = ").append(hash).append(", data = ").append(data).append("\n")
                 .append(prefix).append("    left  = ");
         if (left != null) {

@@ -29,12 +29,22 @@ public abstract class AbstractProtocolAdapter<T extends AbstractProtocol> implem
 
     @Override
     public int write(ByteBuf buf) {
+        int i = buf.readableBytes();
+        write0(buf);
+        return buf.readableBytes() - i;
+    }
+
+    protected void write0(ByteBuf buf) {
         logger.debug("{} set nothing", this.getClass().getSimpleName());
-        return 0;
     }
 
     @Override
     public T read(byte[] buf) {
+        ByteBuf bf = Unpooled.copiedBuffer(buf);
+        return this.read0(bf);
+    }
+
+    protected T read0(ByteBuf buf) {
         logger.info("do not Reading nothing");
         return (T) this;
     }
