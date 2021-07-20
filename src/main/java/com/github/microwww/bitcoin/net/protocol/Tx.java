@@ -58,8 +58,8 @@ public class Tx extends AbstractProtocolAdapter<Tx> {
 
     public static class TxOut {
         long val;
-        byte scriptLenth;
-        byte[] script;
+        // byte scriptLenth;
+        byte[] scriptPubKey;
 
         public void write(ByteBuf buf) {
             throw new UnsupportedOperationException();
@@ -68,9 +68,26 @@ public class Tx extends AbstractProtocolAdapter<Tx> {
         public TxOut read(ByteBuf buf) {
             throw new UnsupportedOperationException();
         }
+
+        public long getVal() {
+            return val;
+        }
+
+        public void setVal(long val) {
+            this.val = val;
+        }
+
+        public byte[] getScriptPubKey() {
+            return scriptPubKey;
+        }
+
+        public void setScriptPubKey(byte[] scriptPubKey) {
+            this.scriptPubKey = scriptPubKey;
+        }
     }
 
     public static class TxIn {
+        private byte[] scriptSig;
         public void write(ByteBuf buf) {
             throw new UnsupportedOperationException();
         }
@@ -78,5 +95,61 @@ public class Tx extends AbstractProtocolAdapter<Tx> {
         public TxIn read(ByteBuf buf) {
             throw new UnsupportedOperationException();
         }
+
+        public byte[] getScriptSig() {
+            return scriptSig;
+        }
+
+        public void setScriptSig(byte[] scriptSig) {
+            this.scriptSig = scriptSig;
+        }
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
+    }
+
+    public byte getInputCount() {
+        return inputCount;
+    }
+
+    public void setInputCount(byte inputCount) {
+        this.inputCount = inputCount;
+    }
+
+    public byte getOutputCount() {
+        return outputCount;
+    }
+
+    public void setOutputCount(byte outputCount) {
+        this.outputCount = outputCount;
+    }
+
+    public List<TxIn> getTxIn() {
+        return txIn;
+    }
+
+    public void setTxIn(List<TxIn> txIn) {
+        this.txIn = txIn;
+    }
+
+    public List<TxOut> getTxOut() {
+        return txOut;
+    }
+
+    public void setTxOut(List<TxOut> txOut) {
+        this.txOut = txOut;
+    }
+
+    public Uint32 getLockTimeOrBlockId() {
+        return lockTimeOrBlockId;
+    }
+
+    public void setLockTimeOrBlockId(Uint32 lockTimeOrBlockId) {
+        this.lockTimeOrBlockId = lockTimeOrBlockId;
     }
 }
