@@ -6,6 +6,9 @@ import cn.hutool.crypto.digest.DigestUtil;
 import io.netty.buffer.ByteBuf;
 import org.springframework.util.Assert;
 
+/**
+ * 外部的工具方法放到一个地方, 方便之后更换
+ */
 public class ByteUtil {
 
     public static byte[] readAll(ByteBuf buf) {
@@ -30,11 +33,23 @@ public class ByteUtil {
         return HexUtil.encodeHexStr(val);
     }
 
+    public static byte[] hex(String val) {
+        return HexUtil.decodeHex(val);
+    }
+
     public static String hexReverse(byte[] val) {
         return HexUtil.encodeHexStr(ArrayUtil.reverse(val));
     }
 
     public static byte[] sha256sha256(byte[]... val) {
         return sha256sha256(ArrayUtil.addAll(val));
+    }
+
+    public static byte[] reverse(byte[] bytes) {
+        return ArrayUtil.reverse(bytes);
+    }
+
+    public static byte[] concat(byte[]... bytes) {
+        return ArrayUtil.addAll(bytes);
     }
 }

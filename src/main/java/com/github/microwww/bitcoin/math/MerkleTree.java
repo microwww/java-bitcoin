@@ -143,7 +143,7 @@ public class MerkleTree<U, T> {
             return "N-U-L-L";
         }
         if (data instanceof byte[]) {
-            return new BigInteger((byte[]) data).abs().toString(16);
+            return new BigInteger(1, (byte[]) data).toString(16);
         }
         return data.toString();
     }

@@ -1,8 +1,6 @@
 package com.github.microwww.bitcoin.math;
 
-import cn.hutool.core.util.ArrayUtil;
-import cn.hutool.core.util.HexUtil;
-import cn.hutool.crypto.digest.DigestUtil;
+import com.github.microwww.bitcoin.util.ByteUtil;
 
 import java.math.BigInteger;
 
@@ -14,6 +12,10 @@ public class Int256 extends BigInteger {
         super(val);
     }
 
+    public Int256(int s, byte[] val) {
+        super(s, val);
+    }
+
     public Int256(String val, int radix) {
         super(val, radix);
     }
@@ -22,15 +24,24 @@ public class Int256 extends BigInteger {
         super(val);
     }
 
-    public static Int256 uint256(BigInteger val) {
-        return new Int256(val.abs().toByteArray());
-    }
-
     public static Int256 uint256(byte[] bytes) {
-        return new Int256(new BigInteger(bytes).abs().toByteArray());
+        return new Int256(1, bytes);
     }
 
+    /**
+     * 去掉前端的正负号
+     *
+     * @param var
+     * @param radis
+     * @return
+     */
     public static Int256 uint256(String var, int radis) {
+        if (var.length() > 1) {
+            char c = var.charAt(0);
+            if (c == '-') {
+                var = var.substring(1);
+            }
+        }
         return new Int256(new BigInteger(var, radis).abs().toByteArray());
     }
 
@@ -53,7 +64,7 @@ public class Int256 extends BigInteger {
     }
 
     public byte[] reverse256bit() {
-        return ArrayUtil.reverse(this.file256bit());
+        return ByteUtil.reverse(this.file256bit());
     }
 
     public static byte[] zero256() {
@@ -65,16 +76,16 @@ public class Int256 extends BigInteger {
     }
 
     public byte[] sha256sha256(Int256 in) {
-        byte[] b3 = ArrayUtil.addAll(this.file256bit(), in.file256bit());
-        return Hash.sha256sha256(b3);
+        byte[] b3 = ByteUtil.concat(this.file256bit(), in.file256bit());
+        return ByteUtil.sha256sha256(b3);
     }
 
     @Override
     public String toString() {
-        return HexUtil.encodeHexStr(this.file256bit());
+        return ByteUtil.hex(this.file256bit());
     }
 
     public static byte[] dsha256(byte[] val) {
-        return DigestUtil.sha256(DigestUtil.sha256(val));
+        return ByteUtil.sha256sha256(val);
     }
 }

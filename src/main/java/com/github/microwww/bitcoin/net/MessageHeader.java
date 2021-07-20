@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.net;
 
-import com.github.microwww.bitcoin.math.Hash;
+import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import org.springframework.util.Assert;
 
@@ -78,14 +78,14 @@ public class MessageHeader {
     }
 
     public static byte[] checksum(byte[] payload) {
-        return Arrays.copyOf(Hash.sha256sha256(payload), CHECKSUM_SIZE);
+        return Arrays.copyOf(ByteUtil.sha256sha256(payload), CHECKSUM_SIZE);
     }
 
     public boolean verifyChecksum() {
         if (checksum == null || checksum.length != CHECKSUM_SIZE) {
             return false;
         }
-        byte[] sha256 = Hash.sha256sha256(payload);
+        byte[] sha256 = ByteUtil.sha256sha256(payload);
         for (int i = 0; i < CHECKSUM_SIZE; i++) {
             if (checksum[i] != sha256[i]) {
                 return false;
