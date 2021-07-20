@@ -1,7 +1,7 @@
 package com.github.microwww.bitcoin.provider;
 
 import com.github.microwww.bitcoin.conf.BlockInfo;
-import com.github.microwww.bitcoin.math.Int256;
+import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.net.protocol.*;
 import io.netty.channel.ChannelHandlerContext;
@@ -52,9 +52,9 @@ public class PeerChannelProtocol {
         ctx.executor().execute(() -> {
             int height = BlockInfo.getInstance().getHeight().intValue();
             int step = 1;
-            List<Int256> list = new ArrayList<>();
+            List<Uint256> list = new ArrayList<>();
             for (int i = height; i > 0; i -= step) {
-                list.add(new Int256(BlockInfo.getInstance().getHash(i), 16));
+                list.add(BlockInfo.getInstance().getHash(i));
             }
             GetHeaders hd = new GetHeaders(peer).setList(list);
             ctx.write(hd);

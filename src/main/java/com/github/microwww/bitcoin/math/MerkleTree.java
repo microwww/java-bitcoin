@@ -48,12 +48,12 @@ public class MerkleTree<U, T> {
     private U data;
 
     /**
-     * 需要注意, 大部分区块链浏览器的 交易hash都是小端的, java中是大端的这个需要注意,
+     * 需要注意, 大部分区块链浏览器的 交易hash都是小端的
      * 另外: 区块链里的交易列表!!不是!!按照交易在区块中的顺序来来排序的 所以一定要注意, 参数 List中数据的顺序
      *
-     * @param <U>     元数据类型
+     * @param <U>     原始数据类型
      * @param <T>     hash 后的数据类型
-     * @param list    元数据
+     * @param list    原始数据
      * @param mapper
      * @param reducer
      * @return

@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.net.protocol;
 
-import com.github.microwww.bitcoin.math.Int256;
+import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
@@ -9,7 +9,7 @@ import io.netty.buffer.Unpooled;
 public abstract class AbstractTypeHash<T extends AbstractTypeHash> extends AbstractProtocolAdapter<T> {
     private byte count;
     private int type;
-    private Int256 hash;
+    private Uint256 hash;
 
     public AbstractTypeHash(Peer peer) {
         super(peer);
@@ -27,7 +27,7 @@ public abstract class AbstractTypeHash<T extends AbstractTypeHash> extends Abstr
         ByteBuf bf = Unpooled.copiedBuffer(buf);
         this.count = bf.readByte();
         this.type = bf.readIntLE();
-        this.hash = new Int256(ByteUtil.readLength(bf, 32));
+        this.hash = new Uint256(ByteUtil.readLength(bf, 32));
         return (T) this;
     }
 
@@ -49,11 +49,11 @@ public abstract class AbstractTypeHash<T extends AbstractTypeHash> extends Abstr
         return this;
     }
 
-    public Int256 getHash() {
+    public Uint256 getHash() {
         return hash;
     }
 
-    public AbstractTypeHash setHash(Int256 hash) {
+    public AbstractTypeHash setHash(Uint256 hash) {
         this.hash = hash;
         return this;
     }

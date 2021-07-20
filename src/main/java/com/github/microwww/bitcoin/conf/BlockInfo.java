@@ -1,5 +1,6 @@
 package com.github.microwww.bitcoin.conf;
 
+import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.net.Peer;
 import io.netty.channel.ChannelHandlerContext;
 
@@ -84,7 +85,7 @@ public class BlockInfo {
         this.hashCount = hashCount;
     }
 
-    public String getHash(int height) {// TODO : block file !
+    public Uint256 getHash(int height) {// TODO : block file !
         throw new UnsupportedOperationException();
     }
 }

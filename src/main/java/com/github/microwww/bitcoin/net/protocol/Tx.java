@@ -1,5 +1,6 @@
 package com.github.microwww.bitcoin.net.protocol;
 
+import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.net.Peer;
 import io.netty.buffer.ByteBuf;
 
@@ -13,7 +14,7 @@ public class Tx extends AbstractProtocolAdapter<Tx> {
     byte outputCount;
     List<TxIn> txIn = Collections.emptyList();
     List<TxOut> txOut = Collections.emptyList();
-    int lockTimeOrBlockId;
+    Uint32 lockTimeOrBlockId;
 
     public Tx(Peer peer) {
         super(peer);
@@ -51,7 +52,7 @@ public class Tx extends AbstractProtocolAdapter<Tx> {
                 list.add(out);
             }
         }
-        this.lockTimeOrBlockId = buf.readIntLE();
+        this.lockTimeOrBlockId = new Uint32(buf.readIntLE());
         return this;
     }
 

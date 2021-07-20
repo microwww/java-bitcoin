@@ -20,7 +20,9 @@ class MerkleTreeTest {
                 "3b66cc8695e6fa76e49ef494cd67f57591c36e0fefe9bdbe2685f6d102b8aea2",
         };
         List<byte[]> list = Arrays.stream(trs).map(e -> ByteUtil.hex(e)).map(e1 -> ByteUtil.reverse(e1)).collect(Collectors.toList());
-        MerkleTree<byte[], byte[]> tree = MerkleTree.merkleTree(list, e -> e, (e1, e2) -> ByteUtil.sha256sha256(ByteUtil.concat(e1, e2)));
+        MerkleTree<byte[], byte[]> tree = MerkleTree.merkleTree(list,
+                e -> e,
+                (e1, e2) -> ByteUtil.sha256sha256(ByteUtil.concat(e1, e2)));
         String hex = ByteUtil.hexReverse(tree.getHash());
         Assertions.assertEquals("3b66cc8695e6fa76e49ef494cd67f57591c36e0fefe9bdbe2685f6d102b8aea2", hex);
     }
@@ -49,7 +51,7 @@ class MerkleTreeTest {
         };
         List<byte[]> list = Arrays.stream(trs).map(e -> ByteUtil.hex(e)).map(e1 -> ByteUtil.reverse(e1)).collect(Collectors.toList());
         //MerkleTree<byte[], byte[]> tree = MerkleTree.merkleTree(list, e -> e, (e1, e2) -> Hash.sha256sha256(ArrayUtil.addAll(e1, e2)));
-        MerkleTree<byte[], Int256> tree = MerkleTree.merkleTree(list, e -> new Int256(e), (e1, e2) -> new Int256(e1.sha256sha256(e2)));
+        MerkleTree<byte[], Uint256> tree = MerkleTree.merkleTree(list, e -> new Uint256(e), (e1, e2) -> new Uint256(e1.sha256sha256(e2)));
         // System.out.println(tree);
         String hex = ByteUtil.hex(tree.getHash().reverse256bit());
         Assertions.assertEquals("3ad8d9a3e530d6591e97c7c1e55ee6d0cecc4d9f798b0637135bbce7aea8c22c", hex);
@@ -61,7 +63,7 @@ class MerkleTreeTest {
                 "d417bf909bc5b5c82ac38ca2cf2f3e7fd0be1237ad4aea047902569129b66e00"
         };
         list = Arrays.stream(trs).map(e -> ByteUtil.hex(e)).map(e1 -> ByteUtil.reverse(e1)).collect(Collectors.toList());
-        tree = MerkleTree.merkleTree(list, e -> new Int256(e), (e1, e2) -> new Int256(e1.sha256sha256(e2)));
+        tree = MerkleTree.merkleTree(list, e -> new Uint256(e), (e1, e2) -> new Uint256(e1.sha256sha256(e2)));
         hex = ByteUtil.hex(tree.getHash().reverse256bit());
         Assertions.assertEquals("3ad8d9a3e530d6591e97c7c1e55ee6d0cecc4d9f798b0637135bbce7aea8c22c", hex);
     }
@@ -79,7 +81,7 @@ class MerkleTreeTest {
         List<String> list = Arrays.stream(trs).map(e -> ByteUtil.hex(e)).map(e1 -> ByteUtil.reverse(e1))
                 .map(e -> ByteUtil.hex(e)).collect(Collectors.toList());
         //MerkleTree<byte[], byte[]> tree = MerkleTree.merkleTree(list, e -> e, (e1, e2) -> Hash.sha256sha256(ArrayUtil.addAll(e1, e2)));
-        MerkleTree<byte[], Int256> tree = MerkleTree.merkleTree(list, e -> new Int256(e, 16), (e1, e2) -> new Int256(e1.sha256sha256(e2)));
+        MerkleTree<byte[], Uint256> tree = MerkleTree.merkleTree(list, e -> new Uint256(e, 16), (e1, e2) -> new Uint256(e1.sha256sha256(e2)));
         // System.out.println(tree);
         String hex = ByteUtil.hex(tree.getHash().reverse256bit());
         Assertions.assertEquals("72bb57d964febb27ec8b63f2c888d6f3bdbee657258f898cc8e04fdbef10a94e", hex);
@@ -98,7 +100,7 @@ class MerkleTreeTest {
         List<String> list = Arrays.stream(ln.split("\"")).filter(e -> e.length() == 64)
                 .map(e -> ByteUtil.hex(e)).map(e1 -> ByteUtil.reverse(e1))
                 .map(e -> ByteUtil.hex(e)).collect(Collectors.toList());
-        MerkleTree<byte[], Int256> tree = MerkleTree.merkleTree(list, e -> new Int256(e, 16), (e1, e2) -> new Int256(e1.sha256sha256(e2)));
+        MerkleTree<byte[], Uint256> tree = MerkleTree.merkleTree(list, e -> new Uint256(e, 16), (e1, e2) -> new Uint256(e1.sha256sha256(e2)));
         // System.out.println("data line " + list.size());
         // System.out.println(tree);
         String hex = ByteUtil.hex(tree.getHash().reverse256bit());
