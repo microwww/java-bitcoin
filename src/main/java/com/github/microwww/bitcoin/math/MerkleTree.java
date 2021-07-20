@@ -1,5 +1,6 @@
 package com.github.microwww.bitcoin.math;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -46,23 +47,42 @@ public class MerkleTree<U, T> {
     private MerkleTree<U, T> right;
     private U data;
 
-    public static <T, U> MerkleTree merkleTree(List<U> list, Function<U, T> mapper, BiFunction<T, T, T> reducer) {
+    /**
+     * 需要注意, 大部分区块链浏览器的 交易hash都是小端的, java中是大端的这个需要注意,
+     * 另外: 区块链里的交易列表!!不是!!按照交易在区块中的顺序来来排序的 所以一定要注意, 参数 List中数据的顺序
+     *
+     * @param <U>     元数据类型
+     * @param <T>     hash 后的数据类型
+     * @param list    元数据
+     * @param mapper
+     * @param reducer
+     * @return
+     */
+    public static <U, T> MerkleTree merkleTree(List<U> list, Function<U, T> mapper, BiFunction<T, T, T> reducer) {
         if (list.isEmpty()) {
             throw new IllegalArgumentException("NOT EMPTY");
         }
-
+        /**
+         * 算法说明:
+         * 将原数据 封装为 MerkleTree 并添加到列表(trees),
+         * len 存储长度, 每次尽可能多(len + 1) / 2)的折半,
+         * 遍历, 如果下一个(next = i+1)超出(即len为奇数), 则复制最后一个(next = i)
+         * 将计算好的结果组装为新 node, 并添加到 列表(trees) 的前半部分
+         * 每次循环都折半, 直到只有一个 len == 1 时候, 即是树根
+         *
+         * 重复使用 trees 数组, 是根据 bitcoin 源码clone而来, 新建一个数组也是可以的.
+         */
         List<MerkleTree<U, T>> trees = list.stream().map(u -> {
             T hash = mapper.apply(u);
             return new MerkleTree<U, T>().setHash(hash).setData(u);
         }).collect(Collectors.toList());
         int len = trees.size();
-        trees.add(null); // 方便后面可以直接 set 不用 add
         while (len > 1) {
-            if (1 == (len & 1)) { // 如果是奇数 +1, 所以 tree总是偶数个元素
-                trees.set(len, trees.get(len - 1));
-            }
             for (int i = 0; i < len; i += 2) {
                 int next = i + 1;
+                if (next >= len) { // 超长复制最后一个
+                    next = i;
+                }
                 MerkleTree<U, T> node = new MerkleTree();
                 node.left = trees.get(i);
                 node.right = trees.get(next);
@@ -110,6 +130,24 @@ public class MerkleTree<U, T> {
         return this;
     }
 
+    public String stringData() {
+        return toString(this.data);
+    }
+
+    public String stringHash() {
+        return toString(this.hash);
+    }
+
+    public static String toString(Object data) {
+        if (data == null) {
+            return "N-U-L-L";
+        }
+        if (data instanceof byte[]) {
+            return new BigInteger((byte[]) data).abs().toString(16);
+        }
+        return data.toString();
+    }
+
     @Override
     public String toString() {
         return this.toString("").toString();
@@ -118,7 +156,7 @@ public class MerkleTree<U, T> {
     public StringBuilder toString(final String prefix) {
         StringBuilder join = new StringBuilder();
         join.append("{ MerkleTree#").append(System.identityHashCode(this)).append("\n");
-        join.append(prefix).append("    hash  = ").append(hash).append(", data = ").append(data).append("\n")
+        join.append(prefix).append("    hash  = ").append(stringHash()).append(", data = ").append(stringData()).append("\n")
                 .append(prefix).append("    left  = ");
         if (left != null) {
             join.append(left.toString(prefix + "    "));

@@ -35,6 +35,7 @@ class MerkleTreeTest {
         List<byte[]> list = Arrays.stream(trs).map(e -> HexUtil.decodeHex(e)).map(e1 -> ArrayUtil.reverse(e1)).collect(Collectors.toList());
         MerkleTree<byte[], byte[]> tree = MerkleTree.merkleTree(list, e -> e, (e1, e2) -> Hash.sha256sha256(ArrayUtil.addAll(e1, e2)));
         String hex = Hash.hexReverse(tree.getHash());
+        // System.out.println(tree);
         Assertions.assertEquals("32ac987734f5f4ac3afc589496c5a86da74dff6e3187f64d1c6c8d5a58cd6c03", hex);
     }
 
@@ -49,7 +50,7 @@ class MerkleTreeTest {
         List<byte[]> list = Arrays.stream(trs).map(e -> HexUtil.decodeHex(e)).map(e1 -> ArrayUtil.reverse(e1)).collect(Collectors.toList());
         //MerkleTree<byte[], byte[]> tree = MerkleTree.merkleTree(list, e -> e, (e1, e2) -> Hash.sha256sha256(ArrayUtil.addAll(e1, e2)));
         MerkleTree<byte[], Int256> tree = MerkleTree.merkleTree(list, e -> new Int256(e), (e1, e2) -> new Int256(e1.sha256sha256(e2)));
-        System.out.println(tree);
+        // System.out.println(tree);
         String hex = Hash.hex(tree.getHash().reverse256bit());
         Assertions.assertEquals("3ad8d9a3e530d6591e97c7c1e55ee6d0cecc4d9f798b0637135bbce7aea8c22c", hex);
 
@@ -79,23 +80,27 @@ class MerkleTreeTest {
                 .map(e -> HexUtil.encodeHexStr(e)).collect(Collectors.toList());
         //MerkleTree<byte[], byte[]> tree = MerkleTree.merkleTree(list, e -> e, (e1, e2) -> Hash.sha256sha256(ArrayUtil.addAll(e1, e2)));
         MerkleTree<byte[], Int256> tree = MerkleTree.merkleTree(list, e -> new Int256(e, 16), (e1, e2) -> new Int256(e1.sha256sha256(e2)));
-        System.out.println(tree);
+        // System.out.println(tree);
         String hex = Hash.hex(tree.getHash().reverse256bit());
         Assertions.assertEquals("72bb57d964febb27ec8b63f2c888d6f3bdbee657258f898cc8e04fdbef10a94e", hex);
     }
 
     @Test
     void merkleTreeHeight() {
-        // 高度 150202 !
-        int start = 8;
+        for (int i = 11; i < 31; i += 3) {
+            merkleTreeHeight(i);
+        }
+    }
+
+    void merkleTreeHeight(int start) {
         List<String> strings = ClassPath.readClassPathFile("/data/line-data.txt");
         String ln = strings.get(start);
         List<String> list = Arrays.stream(ln.split("\"")).filter(e -> e.length() == 64)
                 .map(e -> HexUtil.decodeHex(e)).map(e1 -> ArrayUtil.reverse(e1))
                 .map(e -> HexUtil.encodeHexStr(e)).collect(Collectors.toList());
         MerkleTree<byte[], Int256> tree = MerkleTree.merkleTree(list, e -> new Int256(e, 16), (e1, e2) -> new Int256(e1.sha256sha256(e2)));
-        System.out.println("data line " + list.size());
-        System.out.println(tree);
+        // System.out.println("data line " + list.size());
+        // System.out.println(tree);
         String hex = Hash.hex(tree.getHash().reverse256bit());
         String res = strings.get(start + 1);
         Assertions.assertEquals(res.trim(), hex);
@@ -103,7 +108,7 @@ class MerkleTreeTest {
 
     @Test
     public void testDhash() {
-        byte[] bytes = Hash.sha256sha256("hello" .getBytes(StandardCharsets.UTF_8));
+        byte[] bytes = Hash.sha256sha256("hello".getBytes(StandardCharsets.UTF_8));
         Assertions.assertEquals("9595c9df90075148eb06860365df33584b75bff782a510c6cd4883a419833d50", HexUtil.encodeHexStr(bytes));
     }
 }
