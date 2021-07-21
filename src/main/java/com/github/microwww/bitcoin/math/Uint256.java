@@ -61,6 +61,10 @@ public class Uint256 extends BigInteger {
         return ByteUtil.reverse(this.file256bit());
     }
 
+    public String toHexReverse256() {
+        return ByteUtil.hex(ByteUtil.reverse(this.file256bit()));
+    }
+
     public static byte[] zero256() {
         return new byte[LEN];
     }

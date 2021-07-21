@@ -135,4 +135,26 @@ public class BlockHeader {
     public void setTxs(RawTransaction[] txs) {
         this.txs = txs;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder bf = new StringBuilder()
+                .append("Block {")
+                .append("  hash=").append(hash())
+                .append(", version=").append(version)
+                .append(", preHash=").append(preHash)
+                .append(", merkleRoot=").append(merkleRoot)
+                .append(", time=").append(time)
+                .append(", bits=").append(bits)
+                .append(", nonce=").append(nonce)
+                .append(", txCount=").append(txCount)
+                .append(", txs=");
+        for (RawTransaction tx : txs) {
+            bf.append("\n    ").append(tx);
+        }
+        if (txs.length > 0) {
+            bf.append("\n");
+        }
+        return bf.append('}').toString();
+    }
 }
