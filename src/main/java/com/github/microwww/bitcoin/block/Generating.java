@@ -1,9 +1,7 @@
 package com.github.microwww.bitcoin.block;
 
-import com.github.microwww.bitcoin.block.Transaction.TxIn;
-import com.github.microwww.bitcoin.block.Transaction.TxOut;
+import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
-import com.github.microwww.bitcoin.net.protocol.Block;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -30,7 +28,7 @@ public class Generating {
     }
 
     public BlockHeader createGenesisBlock(String pszTimestamp, byte[] genesisOutputScript, Uint32 nTime, Uint32 nNonce, Uint32 nBits, int nVersion, long amount) {
-        Transaction txNew = new Transaction();
+        RawTransaction txNew = new RawTransaction();
         txNew.setVersion(1);
 
         // txNew.vin[0].scriptSig = CScript() << 486604799 << CScriptNum(4) << std::vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
@@ -42,24 +40,24 @@ public class Generating {
                 .writeByte(4)
                 .writeByte(msg.length)
                 .writeBytes(msg);
-        in.setScriptSig(ByteUtil.readAll(buffer));
+        in.setScript(ByteUtil.readAll(buffer));
 
-        txNew.setTxIn(Collections.singletonList(in));
+        txNew.setTxIns(new TxIn[]{in});
 
         TxOut out = new TxOut();
-        out.setAmount(amount);
+        out.setValue(amount);
         out.setScriptPubKey(genesisOutputScript);
 
-        txNew.setTxOut(Collections.singletonList(out));
+        txNew.setTxOuts(new TxOut[]{out});
 
         BlockHeader genesis = new BlockHeader();
         genesis.setTime(nTime);
         genesis.setBits(nBits);
         genesis.setNonce(nNonce);
         genesis.setVersion(nVersion);
-        genesis.setTxs(Collections.singletonList(txNew));
-        genesis.setHashPrevBlock(null);
-        genesis.setHashMerkleRoot(BlockHeader.blockMerkleRoot(genesis));
+        genesis.setTxs(new RawTransaction[]{txNew});
+        genesis.setPreHash(Uint256.zero());
+        genesis.setMerkleRoot(BlockHeader.blockMerkleRoot(genesis));
         return genesis;
     }
 

@@ -65,6 +65,10 @@ public class Uint256 extends BigInteger {
         return new byte[LEN];
     }
 
+    public static Uint256 zero() {
+        return new Uint256(zero256());
+    }
+
     public byte[] sha256sha256() {
         return dsha256(this.file256bit());
     }
