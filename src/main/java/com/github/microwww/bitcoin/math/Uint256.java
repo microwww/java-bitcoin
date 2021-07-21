@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.math;
 
 import com.github.microwww.bitcoin.util.ByteUtil;
+import io.netty.buffer.ByteBuf;
 
 import java.math.BigInteger;
 
@@ -75,10 +76,25 @@ public class Uint256 extends BigInteger {
 
     @Override
     public String toString() {
-        return ByteUtil.hex(this.file256bit());
+        return "0x" + toHex();
     }
 
     public static byte[] dsha256(byte[] val) {
         return ByteUtil.sha256sha256(val);
+    }
+
+    public static Uint256 read(ByteBuf bf) {
+        return new Uint256(ByteUtil.readLength(bf, LEN));
+    }
+
+    public String toHex() {
+        return toHex(false);
+    }
+
+    public String toHex(boolean reverse) {
+        if (reverse) {
+            return ByteUtil.hex(this.reverse256bit());
+        }
+        return ByteUtil.hex(this.file256bit());
     }
 }

@@ -49,4 +49,9 @@ public class Uint8 extends Number implements Comparable<Uint8> {
     public int compareTo(Uint8 o) {
         return Long.compare(this.value, o.value);
     }
+
+    @Override
+    public String toString() {
+        return "0x" + Long.toUnsignedString(value, 16);
+    }
 }

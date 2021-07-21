@@ -49,4 +49,9 @@ public class Uint16 extends Number implements Comparable<Uint16> {
     public int compareTo(Uint16 o) {
         return Long.compare(this.value, o.value);
     }
+
+    @Override
+    public String toString() {
+        return "0x" + Long.toUnsignedString(value, 16);
+    }
 }

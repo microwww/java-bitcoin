@@ -53,4 +53,8 @@ public class Uint64 extends Number implements Comparable<Uint64> {
             return Long.compare(this.value, o.value);
         }
     }
+
+    public String toHex() {
+        return "0x" + Long.toUnsignedString(value, 16);
+    }
 }

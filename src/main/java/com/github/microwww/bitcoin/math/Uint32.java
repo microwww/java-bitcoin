@@ -1,5 +1,7 @@
 package com.github.microwww.bitcoin.math;
 
+import com.github.microwww.bitcoin.util.ByteUtil;
+
 /**
  * 主要是标识类
  */
@@ -48,5 +50,14 @@ public class Uint32 extends Number implements Comparable<Uint32> {
     @Override
     public int compareTo(Uint32 o) {
         return Long.compare(this.value, o.value);
+    }
+
+    public String toHex() {
+        return Long.toHexString(value);
+    }
+
+    @Override
+    public String toString() {
+        return "0x" + Long.toUnsignedString(value, 16);
     }
 }
