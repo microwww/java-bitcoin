@@ -22,7 +22,7 @@ public class GetHeaders extends AbstractProtocolAdapter<GetHeaders> {
         int ver = BlockChainContext.get().getSettings().getProtocolVersion();
         buf.writeInt(ver);
         Assert.isTrue(list.size() < 254, "size must < 254 and not set 000..000");
-        buf.writeByte(list.size() + 1);
+        buf.writeByte(list.size());
         for (Uint256 int256 : list) {
             buf.writeBytes(int256.reverse256bit());
         }

@@ -1,13 +1,13 @@
 package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.conf.Settings;
-import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.net.Peer;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,7 +21,9 @@ public class BlockChainContext {
     private final Map<String, Peer> peers = new ConcurrentSkipListMap<>();
     private Path dataDir;
     private int hashCount; // number of block locator hash entries
-    Settings settings = new Settings();
+    private Settings settings = new Settings();
+    // TODO :: 有线程安全问题  暂时不处理
+    private LinkedList<ChainBlock> blocks = new LinkedList<>();
 
     private static BlockChainContext block = new BlockChainContext();
 
@@ -86,7 +88,25 @@ public class BlockChainContext {
         this.hashCount = hashCount;
     }
 
-    public Uint256 getHash(int height) {// TODO : block file !
-        throw new UnsupportedOperationException();
+    public ChainBlock getHash(int height) {// TODO : block file !
+        return blocks.get(height);
+    }
+
+    public ChainBlock getLatestBlock() {
+        synchronized (blocks) {
+            if (blocks.isEmpty()) {
+                blocks.add(this.settings.getEnv().createGenesisBlock());
+                height.addAndGet(1);
+            }
+            return blocks.getLast();
+        }
+    }
+
+    // TODO :: 需要处理顺序
+    public BlockChainContext addBlock(ChainBlock header) {
+        synchronized (blocks) {
+            blocks.add(header);
+        }
+        return this;
     }
 }

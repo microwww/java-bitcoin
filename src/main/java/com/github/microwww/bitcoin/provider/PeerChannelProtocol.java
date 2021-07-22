@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.provider;
 
 import com.github.microwww.bitcoin.chain.BlockChainContext;
+import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.net.protocol.*;
@@ -52,12 +53,22 @@ public class PeerChannelProtocol {
         ctx.executor().execute(() -> {
             int height = BlockChainContext.get().getHeight().intValue();
             int step = 1;
+            // TODO:: 这个规则需要确认
             List<Uint256> list = new ArrayList<>();
             for (int i = height; i > 0; i -= step) {
-                list.add(BlockChainContext.get().getHash(i));
+                if (list.size() > 10) {
+                    break;
+                }
+                list.add(BlockChainContext.get().getHash(i).hash());
             }
             GetHeaders hd = new GetHeaders(peer).setList(list);
             ctx.write(hd);
         });
+    }
+
+    public void service(ChannelHandlerContext ctx, Headers headers) {
+        for (ChainBlock header : headers.getHeaders()) {
+            BlockChainContext.get().addBlock(header);
+        }
     }
 }

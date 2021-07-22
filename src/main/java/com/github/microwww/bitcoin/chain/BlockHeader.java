@@ -43,7 +43,7 @@ public class BlockHeader implements Serializable {
     }
 
     /**
-     * 在 CBlock中使用
+     * 在 CBlock中使用, TODO :: 建议缓存
      * @return
      */
     protected Uint256 hash() {

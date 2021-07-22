@@ -1,5 +1,6 @@
 package com.github.microwww.bitcoin.provider;
 
+import com.github.microwww.bitcoin.chain.BlockChainContext;
 import com.github.microwww.bitcoin.conf.Config;
 import com.github.microwww.bitcoin.event.BitcoinAddPeerEvent;
 import com.github.microwww.bitcoin.net.Peer;
@@ -36,7 +37,11 @@ public class BitcoinServer implements ApplicationListener<ApplicationReadyEvent>
             logger.debug("scan local block-link data");
             try {
                 Config conf = event.getApplicationContext().getBean(Config.class);
+                BlockChainContext context = BlockChainContext.get();
                 File file = loadLocalFile(conf);
+                context.setSettings(conf.getBitcoin());
+                // TODO: 暂时未存储, 直接在内存中
+                context.setDataDir(file.toPath());
                 future.setSuccess(null);
 
                 // TODO: 启动server
