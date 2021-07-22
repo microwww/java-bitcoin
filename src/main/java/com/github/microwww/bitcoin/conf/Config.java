@@ -1,5 +1,6 @@
 package com.github.microwww.bitcoin.conf;
 
+import com.github.microwww.bitcoin.chain.BlockChainContext;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
@@ -17,7 +18,7 @@ public class Config {
         this.bitcoin = bitcoin;
     }
 
-    public BlockInfo getBlockInfo() {
-        return BlockInfo.getInstance();
+    public BlockChainContext getBlockInfo() {
+        return BlockChainContext.get();
     }
 }

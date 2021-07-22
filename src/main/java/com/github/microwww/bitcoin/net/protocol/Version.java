@@ -1,7 +1,7 @@
 package com.github.microwww.bitcoin.net.protocol;
 
 import cn.hutool.core.util.RandomUtil;
-import com.github.microwww.bitcoin.conf.BlockInfo;
+import com.github.microwww.bitcoin.chain.BlockChainContext;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.util.ByteUtil;
@@ -52,7 +52,7 @@ public class Version extends AbstractProtocolAdapter<Version> {
         byte[] bytes = this.getAgent().getBytes(StandardCharsets.ISO_8859_1);
         buf.writeByte(bytes.length);
         buf.writeBytes(bytes);
-        buf.writeIntLE(BlockInfo.getInstance().getHeight().intValue());
+        buf.writeIntLE(BlockChainContext.get().getHeight().intValue());
         buf.writeByte(flag);
         return buf.readableBytes() - f;
     }

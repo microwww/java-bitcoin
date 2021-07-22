@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.net;
 
-import com.github.microwww.bitcoin.conf.BlockInfo;
+import com.github.microwww.bitcoin.chain.BlockChainContext;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
 import com.github.microwww.bitcoin.net.protocol.Version;
@@ -41,7 +41,7 @@ public class CommandTest {
         Peer peer = new Peer("192.168.2.18", 18444);
         bootstrap.connect(peer.getHost(), peer.getPort())
                 .addListener((DefaultChannelPromise e) -> {
-                    BlockInfo.getInstance().addPeers((InetSocketAddress) e.channel().localAddress(), peer);
+                    BlockChainContext.get().addPeers((InetSocketAddress) e.channel().localAddress(), peer);
                     logger.info("Connection FROM: " + e.channel().localAddress() + ", TO: " + e.channel().remoteAddress());
                 })
                 .sync().channel().closeFuture()
@@ -55,12 +55,12 @@ public class CommandTest {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            ctx.write(Version.builder(BlockInfo.getPeer(ctx), settings));
+            ctx.write(Version.builder(BlockChainContext.getPeer(ctx), settings));
         }
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, MessageHeader header) throws Exception {
-            Peer peer = BlockInfo.getInstance().getPeer(ctx);
+            Peer peer = BlockChainContext.get().getPeer(ctx);
             logger.info("Parse data to : {}", header.getClass().getSimpleName());
             try {
                 NetProtocol netProtocol = header.getNetProtocol();

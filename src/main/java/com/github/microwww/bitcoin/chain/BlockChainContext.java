@@ -1,5 +1,6 @@
-package com.github.microwww.bitcoin.conf;
+package com.github.microwww.bitcoin.chain;
 
+import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.net.Peer;
 import io.netty.channel.ChannelHandlerContext;
@@ -14,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * 该类中的属性不建议手动修改, key 使用本地地址, 这样可以方便发现服务是否断开.
  */
-public class BlockInfo {
+public class BlockChainContext {
 
     private final AtomicInteger height = new AtomicInteger(0);
     private final Map<String, Peer> peers = new ConcurrentSkipListMap<>();
@@ -22,13 +23,13 @@ public class BlockInfo {
     private int hashCount; // number of block locator hash entries
     Settings settings = new Settings();
 
-    private static BlockInfo block = new BlockInfo();
+    private static BlockChainContext block = new BlockChainContext();
 
-    public static BlockInfo getInstance() {
+    public static BlockChainContext get() {
         return block;
     }
 
-    private BlockInfo() {
+    private BlockChainContext() {
     }
 
     public AtomicInteger getHeight() {
@@ -39,12 +40,12 @@ public class BlockInfo {
         return Collections.unmodifiableMap(peers);
     }
 
-    public BlockInfo addPeers(InetSocketAddress address, Peer peer) {
+    public BlockChainContext addPeers(InetSocketAddress address, Peer peer) {
         this.peers.put(key(address), peer);
         return this;
     }
 
-    public BlockInfo remove(InetSocketAddress address) {
+    public BlockChainContext remove(InetSocketAddress address) {
         this.peers.remove(key(address));
         return this;
     }
@@ -62,7 +63,7 @@ public class BlockInfo {
     }
 
     public static Peer getPeer(ChannelHandlerContext ctx) {
-        return BlockInfo.getInstance().getPeer((InetSocketAddress) ctx.channel().localAddress());
+        return BlockChainContext.get().getPeer((InetSocketAddress) ctx.channel().localAddress());
     }
 
     private String key(InetSocketAddress dr) {

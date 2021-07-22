@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.provider;
 
-import com.github.microwww.bitcoin.conf.BlockInfo;
+import com.github.microwww.bitcoin.chain.BlockChainContext;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.net.protocol.*;
@@ -35,26 +35,26 @@ public class PeerChannelProtocol {
     }
 
     public void service(ChannelHandlerContext ctx, Version version) {
-        Peer peer = BlockInfo.getPeer(ctx);
+        Peer peer = BlockChainContext.getPeer(ctx);
         peer.setVersion(version);
-        BlockInfo.getPeer(ctx).setMeReady(true);
+        BlockChainContext.getPeer(ctx).setMeReady(true);
         // TODO :: 发送ack需要一个合适的时机
         ctx.write(new VerACK(peer));
     }
 
     public void service(ChannelHandlerContext ctx, VerACK ack) {
-        Peer peer = BlockInfo.getPeer(ctx);
+        Peer peer = BlockChainContext.getPeer(ctx);
         peer.setRemoteReady(true);
         ctx.executor().execute(() -> {
             ctx.write(new GetAddr(peer));
         });
 
         ctx.executor().execute(() -> {
-            int height = BlockInfo.getInstance().getHeight().intValue();
+            int height = BlockChainContext.get().getHeight().intValue();
             int step = 1;
             List<Uint256> list = new ArrayList<>();
             for (int i = height; i > 0; i -= step) {
-                list.add(BlockInfo.getInstance().getHash(i));
+                list.add(BlockChainContext.get().getHash(i));
             }
             GetHeaders hd = new GetHeaders(peer).setList(list);
             ctx.write(hd);

@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.net.protocol;
 
-import com.github.microwww.bitcoin.conf.BlockInfo;
+import com.github.microwww.bitcoin.chain.BlockChainContext;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.net.Peer;
 import io.netty.buffer.ByteBuf;
@@ -19,7 +19,7 @@ public class GetHeaders extends AbstractProtocolAdapter<GetHeaders> {
     @Override
     public int write(ByteBuf buf) {
         int size = buf.readableBytes();
-        int ver = BlockInfo.getInstance().getSettings().getProtocolVersion();
+        int ver = BlockChainContext.get().getSettings().getProtocolVersion();
         buf.writeInt(ver);
         Assert.isTrue(list.size() < 254, "size must < 254 and not set 000..000");
         buf.writeByte(list.size() + 1);

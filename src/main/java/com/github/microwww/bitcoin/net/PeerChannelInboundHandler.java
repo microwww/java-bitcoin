@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.net;
 
-import com.github.microwww.bitcoin.conf.BlockInfo;
+import com.github.microwww.bitcoin.chain.BlockChainContext;
 import com.github.microwww.bitcoin.conf.Config;
 import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
 import com.github.microwww.bitcoin.net.protocol.Version;
@@ -23,7 +23,7 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        ctx.write(Version.builder(BlockInfo.getPeer(ctx), config.getBitcoin()));
+        ctx.write(Version.builder(BlockChainContext.getPeer(ctx), config.getBitcoin()));
     }
 
     @Override
@@ -32,7 +32,7 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
         try {
             NetProtocol netProtocol = header.getNetProtocol();
             logger.debug("Get a command : {}", netProtocol.cmd());
-            AbstractProtocol parse = netProtocol.parse(BlockInfo.getPeer(ctx), header.getPayload());
+            AbstractProtocol parse = netProtocol.parse(BlockChainContext.getPeer(ctx), header.getPayload());
             logger.info("Parse data to : {}", parse.getClass().getSimpleName());
 
             peerChannelProtocol.doAction(ctx, parse);

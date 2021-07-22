@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.net;
 
-import com.github.microwww.bitcoin.conf.BlockInfo;
+import com.github.microwww.bitcoin.chain.BlockChainContext;
 import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
@@ -15,7 +15,7 @@ public class BitcoinNetEncode extends MessageToByteEncoder<AbstractProtocol> {
 
     @Override
     protected void encode(ChannelHandlerContext channelHandlerContext, AbstractProtocol data, ByteBuf byteBuf) throws Exception {
-        int magic = BlockInfo.getInstance().getSettings().getMagic();
+        int magic = BlockChainContext.get().getSettings().getMagic();
         ByteBuf buffer = Unpooled.buffer();
         data.write(buffer);
         NetProtocol protocol = data.support();

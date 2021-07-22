@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.net;
 
-import com.github.microwww.bitcoin.conf.BlockInfo;
+import com.github.microwww.bitcoin.chain.BlockChainContext;
 import com.github.microwww.bitcoin.conf.Config;
 import com.github.microwww.bitcoin.event.BitcoinAddPeerEvent;
 import io.netty.bootstrap.Bootstrap;
@@ -45,7 +45,7 @@ public class PeerConnection implements ApplicationListener<BitcoinAddPeerEvent> 
         try {
             bootstrap.connect(peer.getHost(), peer.getPort())
                     .addListener((DefaultChannelPromise e) -> {
-                        BlockInfo.getInstance().addPeers((InetSocketAddress) e.channel().localAddress(), peer);
+                        BlockChainContext.get().addPeers((InetSocketAddress) e.channel().localAddress(), peer);
                         logger.info("Connection FROM: " + e.channel().localAddress() + ", TO: " + e.channel().remoteAddress());
                     })
                     .sync().channel().closeFuture()
