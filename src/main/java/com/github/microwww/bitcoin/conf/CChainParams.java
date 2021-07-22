@@ -1,6 +1,39 @@
 package com.github.microwww.bitcoin.conf;
 
+import com.github.microwww.bitcoin.chain.ChainBlock;
+import com.github.microwww.bitcoin.chain.Generating;
+import com.github.microwww.bitcoin.math.Uint32;
+
 public class CChainParams {
+    public enum Env {
+        MAIN("/") {
+            @Override
+            public ChainBlock createGenesisBlock() {
+                return Generating.createGenesisBlock(new Uint32(1231006505), new Uint32(2083236893), new Uint32(0x1d00ffff), 1, 50 * Generating.COIN);
+            }
+        }, TEST("/test") {
+            @Override
+            public ChainBlock createGenesisBlock() {
+                return Generating.createGenesisBlock(new Uint32(1296688602), new Uint32(414098458), new Uint32(0x1d00ffff), 1, 50 * Generating.COIN);
+            }
+        }, REG_TEST("/regtest") {
+            @Override
+            public ChainBlock createGenesisBlock() {
+                return Generating.createGenesisBlock(new Uint32(1296688602), new Uint32(2), new Uint32(0x207fffff), 1, 50 * Generating.COIN);
+            }
+        };
+        private final String dataDirPrefix;
+
+        Env(String dataDirPrefix) {
+            this.dataDirPrefix = dataDirPrefix;
+        }
+
+        public abstract ChainBlock createGenesisBlock();
+
+        public String getDataDirPrefix() {
+            return dataDirPrefix;
+        }
+    }
     /*
     strNetworkID =  CBaseChainParams::REGTEST;
     consensus.signet_blocks = false;

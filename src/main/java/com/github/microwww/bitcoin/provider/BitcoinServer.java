@@ -53,7 +53,8 @@ public class BitcoinServer implements ApplicationListener<ApplicationReadyEvent>
     }
 
     public File loadLocalFile(Config conf) {
-        File root = new File(conf.getBitcoin().getDataDir());
+        String prefix = conf.getBitcoin().getEnv().getDataDirPrefix();
+        File root = new File(conf.getBitcoin().getDataDir(), prefix);
         try {
             root.mkdirs();
             if (!root.canWrite()) {

@@ -14,6 +14,8 @@ public class Settings {
     private String[] connections;
     private String[] peers;
 
+    private CChainParams.Env env = CChainParams.Env.MAIN;
+
     private int protocolVersion = ProtocolVersion.PROTOCOL_VERSION;
     private long services = ServiceFlags.join(ServiceFlags.NODE_NETWORK, ServiceFlags.NODE_WITNESS, ServiceFlags.NODE_NETWORK_LIMITED);
 
@@ -84,5 +86,13 @@ public class Settings {
 
     public void setPeers(String[] peers) {
         this.peers = peers;
+    }
+
+    public CChainParams.Env getEnv() {
+        return env;
+    }
+
+    public void setEnv(CChainParams.Env env) {
+        this.env = env;
     }
 }
