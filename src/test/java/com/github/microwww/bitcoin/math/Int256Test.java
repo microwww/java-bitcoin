@@ -13,7 +13,7 @@ public class Int256Test {
 
     @Test
     public void test() {
-        byte[] bytes = new Uint256(new byte[]{1, 2, 3, 4}).file256bit();
+        byte[] bytes = new Uint256(new byte[]{1, 2, 3, 4}).fill256bit();
         assertEquals(32, bytes.length);
         assertEquals(64, HexUtil.encodeHexStr(bytes).length());
         bytes[0] = (byte) 255;

@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.net.protocol;
 
-import com.github.microwww.bitcoin.block.BlockHeader;
+import com.github.microwww.bitcoin.chain.BlockHeader;
 import com.github.microwww.bitcoin.net.Peer;
 import io.netty.buffer.ByteBuf;
 

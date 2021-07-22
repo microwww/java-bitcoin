@@ -1,4 +1,4 @@
-package com.github.microwww.bitcoin.block;
+package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
@@ -10,12 +10,12 @@ import io.netty.buffer.Unpooled;
 import java.util.Arrays;
 
 public class RawTransaction {
-    public int version;
-    public Uint8 inputCount;
-    public TxIn[] txIns;
-    public Uint8 outputCount;
-    public TxOut[] txOuts;
-    public Uint32 lockTime;
+    private int version;
+    private Uint8 inputCount;
+    private TxIn[] txIns;
+    private Uint8 outputCount;
+    private TxOut[] txOuts;
+    private Uint32 lockTime;
 
     public void read(ByteBuf bf) {
         version = bf.readIntLE();
@@ -42,6 +42,11 @@ public class RawTransaction {
 
     public Uint256 hash() {
         ByteBuf bf = Unpooled.buffer();
+        write(bf);
+        return new Uint256(ByteUtil.sha256sha256(ByteUtil.readAll(bf)));
+    }
+
+    public void write(ByteBuf bf) {
         bf.writeIntLE(version);
         //////// IN
         bf.writeByte(txIns.length);
@@ -54,7 +59,6 @@ public class RawTransaction {
             txOut.write(bf);
         }
         bf.writeIntLE(lockTime.intValue());
-        return new Uint256(ByteUtil.sha256sha256(ByteUtil.readAll(bf)));
     }
 
     public int getVersion() {
@@ -107,14 +111,19 @@ public class RawTransaction {
 
     @Override
     public String toString() {
-        return "RawTransaction{" +
-                "  hash=" + hash() +
-                ", version=" + version +
-                ", inputCount=" + inputCount +
-                ", txIns=" + Arrays.toString(txIns) +
-                ", outputCount=" + outputCount +
-                ", txOuts=" + Arrays.toString(txOuts) +
-                ", lockTime=" + lockTime +
-                '}';
+        return toString(new StringBuilder()).toString();
+    }
+
+    public StringBuilder toString(StringBuilder builder) {
+        builder.append("RawTransaction{")
+                .append("  hash=").append(hash())
+                .append(", version=").append(version)
+                .append(", inputCount=").append(inputCount)
+                .append(", txIns=").append(Arrays.toString(txIns))
+                .append(", outputCount=").append(outputCount)
+                .append(", txOuts=").append(Arrays.toString(txOuts))
+                .append(", lockTime=").append(lockTime)
+                .append('}');
+        return builder;
     }
 }

@@ -1,4 +1,4 @@
-package com.github.microwww.bitcoin.block;
+package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.math.Uint8;
 import com.github.microwww.bitcoin.util.ByteUtil;

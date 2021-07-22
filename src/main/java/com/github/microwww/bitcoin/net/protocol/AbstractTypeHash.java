@@ -19,7 +19,7 @@ public abstract class AbstractTypeHash<T extends AbstractTypeHash> extends Abstr
     protected void write0(ByteBuf buf) {
         buf.writeByte(this.count);
         buf.writeIntLE(this.type);
-        buf.writeBytes(this.hash.file256bit());
+        buf.writeBytes(this.hash.fill256bit());
     }
 
     @Override

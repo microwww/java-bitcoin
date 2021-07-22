@@ -5,6 +5,8 @@ package com.github.microwww.bitcoin.math;
  */
 public class Uint8 extends Number implements Comparable<Uint8> {
 
+    public static final Uint8 MAX_VALUE = new Uint8(0xFF);
+    public static final Uint8 ZERO = new Uint8(0x0);
     private final long value;
 
     /**

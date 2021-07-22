@@ -8,6 +8,16 @@ import java.math.BigInteger;
 public class Uint256 extends BigInteger {
 
     public static final int LEN = 256 / 8;
+    public static final Uint256 ZERO = new Uint256(new byte[]{0});
+    public static final Uint256 MAX_VALUE;
+
+    static {
+        byte[] bytes = new byte[LEN];
+        for (int i = 0; i < LEN; i++) {
+            bytes[i] = (byte) 0xFF;
+        }
+        MAX_VALUE = new Uint256(bytes);
+    }
 
     public Uint256(byte[] val) {
         super(1, val);
@@ -44,7 +54,7 @@ public class Uint256 extends BigInteger {
      *
      * @return
      */
-    public byte[] file256bit() {
+    public byte[] fill256bit() {
         byte[] bt = super.toByteArray();
         int length = LEN;
         byte[] res = new byte[length];
@@ -58,27 +68,23 @@ public class Uint256 extends BigInteger {
     }
 
     public byte[] reverse256bit() {
-        return ByteUtil.reverse(this.file256bit());
+        return ByteUtil.reverse(this.fill256bit());
     }
 
     public String toHexReverse256() {
-        return ByteUtil.hex(ByteUtil.reverse(this.file256bit()));
+        return ByteUtil.hex(ByteUtil.reverse(this.fill256bit()));
     }
 
     public static byte[] zero256() {
         return new byte[LEN];
     }
 
-    public static Uint256 zero() {
-        return new Uint256(zero256());
-    }
-
     public byte[] sha256sha256() {
-        return dsha256(this.file256bit());
+        return dsha256(this.fill256bit());
     }
 
     public byte[] sha256sha256(Uint256 in) {
-        byte[] b3 = ByteUtil.concat(this.file256bit(), in.file256bit());
+        byte[] b3 = ByteUtil.concat(this.fill256bit(), in.fill256bit());
         return ByteUtil.sha256sha256(b3);
     }
 
@@ -103,6 +109,6 @@ public class Uint256 extends BigInteger {
         if (reverse) {
             return ByteUtil.hex(this.reverse256bit());
         }
-        return ByteUtil.hex(this.file256bit());
+        return ByteUtil.hex(this.fill256bit());
     }
 }

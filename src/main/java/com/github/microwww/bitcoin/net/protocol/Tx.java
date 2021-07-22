@@ -1,8 +1,6 @@
 package com.github.microwww.bitcoin.net.protocol;
 
-import com.github.microwww.bitcoin.block.RawTransaction;
-import com.github.microwww.bitcoin.block.TxIn;
-import com.github.microwww.bitcoin.block.TxOut;
+import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.net.Peer;
 import io.netty.buffer.ByteBuf;
 
@@ -15,15 +13,7 @@ public class Tx extends AbstractProtocolAdapter<Tx> {
 
     @Override
     protected void write0(ByteBuf buf) {
-        buf.writeIntLE(transaction.getVersion());
-        buf.writeByte(transaction.getTxIns().length);
-        buf.writeByte(transaction.getTxOuts().length);
-        for (TxIn in : transaction.getTxIns()) {
-            in.write(buf);
-        }
-        for (TxOut out : transaction.getTxOuts()) {
-            out.write(buf);
-        }
+        transaction.write(buf);
     }
 
     @Override

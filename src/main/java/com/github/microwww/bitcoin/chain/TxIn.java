@@ -1,4 +1,4 @@
-package com.github.microwww.bitcoin.block;
+package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
@@ -22,7 +22,7 @@ public class TxIn {
     }
 
     public void write(ByteBuf bf) {
-        bf.writeBytes(preTxHash.file256bit());
+        bf.writeBytes(preTxHash.fill256bit());
         bf.writeIntLE(preTxOutIndex);
         bf.writeByte(script.length);
         bf.writeBytes(script);
