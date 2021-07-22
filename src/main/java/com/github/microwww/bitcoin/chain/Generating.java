@@ -34,21 +34,30 @@ public class Generating {
         TxIn in = new TxIn();
         ByteBuf buffer = Unpooled.buffer();
         byte[] msg = pszTimestamp.getBytes(StandardCharsets.ISO_8859_1);
-        buffer.writeLong(486604799L)
+        buffer.writeByte(0x04).writeInt(0xffff001d)
                 .writeByte(1)
                 .writeByte(4)
                 .writeByte(msg.length)
                 .writeBytes(msg);
-        in.setPreTxHash(Uint256.ZERO);
-        in.setSequence(Uint32.MAX_VALUE);
         in.setScript(ByteUtil.readAll(buffer));
+        in.setPreTxHash(Uint256.ZERO);
+        in.setPreTxOutIndex(-1);
+        in.setSequence(Uint32.MAX_VALUE);
 
         txNew.setTxIns(new TxIn[]{in});
 
         TxOut out = new TxOut();
         out.setValue(amount);
-        out.setScriptPubKey(genesisOutputScript);
 
+        // TODO :: 脚本处理 , 暂时直接填内容
+        int clen = genesisOutputScript.length;
+        byte[] bytes = new byte[clen + 2];
+        bytes[0] = (byte) clen;
+        bytes[clen + 1] = (byte) 0xac;
+        System.arraycopy(genesisOutputScript, 0, bytes, 1, clen);
+        // 填充完成
+
+        out.setScriptPubKey(bytes);
         txNew.setTxOuts(new TxOut[]{out});
         txNew.setLockTime(Uint32.ZERO);
 

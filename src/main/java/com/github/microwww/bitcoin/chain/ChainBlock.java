@@ -25,11 +25,12 @@ public class ChainBlock {
         this.header = header;
     }
 
-    public void readHeader(ByteBuf bf) {
+    public ChainBlock readHeader(ByteBuf bf) {
         this.header.read(bf);
+        return this;
     }
 
-    public void readBody(ByteBuf bf) {
+    public ChainBlock readBody(ByteBuf bf) {
         _txCount = new Uint8(bf.readByte());
         int len = _txCount.intValue();
         txs = new RawTransaction[len];
@@ -38,17 +39,20 @@ public class ChainBlock {
             tr.read(bf);
             txs[i] = tr;
         }
+        return this;
     }
 
-    public void writeHeader(ByteBuf bf) {
+    public ChainBlock writeHeader(ByteBuf bf) {
         this.header.writer(bf);
+        return this;
     }
 
-    public void writeBody(ByteBuf bf) {
+    public ChainBlock writeBody(ByteBuf bf) {
         bf.writeByte(txs.length);
         for (RawTransaction tx : this.txs) {
             tx.write(bf);
         }
+        return this;
     }
 
     public Uint256 hash() {

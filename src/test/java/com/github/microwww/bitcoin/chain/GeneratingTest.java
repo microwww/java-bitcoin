@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.chain;
 
 import cn.hutool.crypto.digest.DigestUtil;
 import com.github.microwww.bitcoin.util.ByteUtil;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -11,8 +12,15 @@ class GeneratingTest {
     @Disabled
     void createGenesisBlock() {
         ChainBlock genesisBlock = new Generating().createGenesisBlock();
-        System.out.println(genesisBlock.hash());
-        System.out.println(genesisBlock.getTxs()[0].hash());
+        Assertions.assertEquals("0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206", genesisBlock.hash().toHexReverse256());
+        Assertions.assertEquals("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b", genesisBlock.getTxs()[0].hash().toHexReverse256());
+        Assertions.assertEquals("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b", genesisBlock.header.getMerkleRoot().toHexReverse256());
+        // ByteBuf buffer = Unpooled.buffer();
+        // genesisBlock.writeHeader(buffer).writeBody(buffer);
+        // String hex = ByteUtil.hex(ByteUtil.readAll(buffer));
+        // System.out.println(hex);
+
+
     }
 
     @Test
