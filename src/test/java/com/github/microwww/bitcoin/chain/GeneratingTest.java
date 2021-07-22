@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.chain;
 
 import cn.hutool.crypto.digest.DigestUtil;
+import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
@@ -11,16 +12,30 @@ class GeneratingTest {
     @Test
     @Disabled
     void createGenesisBlock() {
-        ChainBlock genesisBlock = new Generating().createGenesisBlock();
+        // REG-TEST-NET
+        ChainBlock genesisBlock;
+        genesisBlock = Generating.createGenesisBlock(new Uint32(1296688602), new Uint32(2), new Uint32(0x207fffff), 1, 50 * Generating.COIN);
         Assertions.assertEquals("0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206", genesisBlock.hash().toHexReverse256());
         Assertions.assertEquals("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b", genesisBlock.getTxs()[0].hash().toHexReverse256());
         Assertions.assertEquals("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b", genesisBlock.header.getMerkleRoot().toHexReverse256());
+
+        // MAIN-NET
+        genesisBlock = Generating.createGenesisBlock(new Uint32(1231006505), new Uint32(2083236893), new Uint32(0x1d00ffff), 1, 50 * Generating.COIN);
+        Assertions.assertEquals("000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f", genesisBlock.hash().toHexReverse256());
+        Assertions.assertEquals("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b", genesisBlock.getTxs()[0].hash().toHexReverse256());
+        Assertions.assertEquals("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b", genesisBlock.header.getMerkleRoot().toHexReverse256());
+
+        // TEST-NET
+        genesisBlock = Generating.createGenesisBlock(new Uint32(1296688602), new Uint32(414098458), new Uint32(0x1d00ffff), 1, 50 * Generating.COIN);
+        Assertions.assertEquals("000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943", genesisBlock.hash().toHexReverse256());
+        Assertions.assertEquals("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b", genesisBlock.getTxs()[0].hash().toHexReverse256());
+        Assertions.assertEquals("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b", genesisBlock.header.getMerkleRoot().toHexReverse256());
+
         // ByteBuf buffer = Unpooled.buffer();
         // genesisBlock.writeHeader(buffer).writeBody(buffer);
         // String hex = ByteUtil.hex(ByteUtil.readAll(buffer));
         // System.out.println(hex);
-
-
+        // genesis = CreateGenesisBlock(1231006505, 2083236893, 0x1d00ffff, 1, 50 * COIN);
     }
 
     @Test

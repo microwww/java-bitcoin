@@ -16,17 +16,13 @@ public class Generating {
         return (nValue >= 0 && nValue <= MAX_MONEY);
     }
 
-    public ChainBlock createGenesisBlock() {
-        return createGenesisBlock(new Uint32(1296688602), new Uint32(2), new Uint32(0x207fffff), 1, 50 * COIN);
-    }
-
-    public ChainBlock createGenesisBlock(Uint32 nTime, Uint32 nNonce, Uint32 nBits, int nVersion, long amount) {
+    public static ChainBlock createGenesisBlock(Uint32 nTime, Uint32 nNonce, Uint32 nBits, int nVersion, long amount) {
         String pszTimestamp = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
         byte[] genesisOutputScript = ByteUtil.hex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f");
         return createGenesisBlock(pszTimestamp, genesisOutputScript, nTime, nNonce, nBits, nVersion, amount);
     }
 
-    public ChainBlock createGenesisBlock(String pszTimestamp, byte[] genesisOutputScript, Uint32 nTime, Uint32 nNonce, Uint32 nBits, int nVersion, long amount) {
+    public static ChainBlock createGenesisBlock(String pszTimestamp, byte[] genesisOutputScript, Uint32 nTime, Uint32 nNonce, Uint32 nBits, int nVersion, long amount) {
         RawTransaction txNew = new RawTransaction();
         txNew.setVersion(1);
 
