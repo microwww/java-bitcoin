@@ -8,3 +8,9 @@ conf:
     peers:
       - localhost:18444
 #
+spring:
+  profiles:
+    active: regtest
+  application:
+    name: bitcoin
+#

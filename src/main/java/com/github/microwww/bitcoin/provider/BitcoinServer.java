@@ -42,6 +42,7 @@ public class BitcoinServer implements ApplicationListener<ApplicationReadyEvent>
                 context.setSettings(conf.getBitcoin());
                 // TODO: 暂时未存储, 直接在内存中
                 context.setDataDir(file.toPath());
+                context.init();
                 future.setSuccess(null);
 
                 // TODO: 启动server

@@ -3,6 +3,9 @@ package com.github.microwww.bitcoin.chain;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.net.Peer;
 import io.netty.channel.ChannelHandlerContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.Assert;
 
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
@@ -16,7 +19,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 该类中的属性不建议手动修改, key 使用本地地址, 这样可以方便发现服务是否断开.
  */
 public class BlockChainContext {
+    private static final Logger logger = LoggerFactory.getLogger(BlockChainContext.class);
 
+    private boolean init = false;
     private final AtomicInteger height = new AtomicInteger(0);
     private final Map<String, Peer> peers = new ConcurrentSkipListMap<>();
     private Path dataDir;
@@ -94,10 +99,6 @@ public class BlockChainContext {
 
     public ChainBlock getLatestBlock() {
         synchronized (blocks) {
-            if (blocks.isEmpty()) {
-                blocks.add(this.settings.getEnv().createGenesisBlock());
-                height.addAndGet(1);
-            }
             return blocks.getLast();
         }
     }
@@ -108,5 +109,20 @@ public class BlockChainContext {
             blocks.add(header);
         }
         return this;
+    }
+
+    public void init() {
+        Assert.isTrue(!init, "do not to re-init");
+        synchronized (this) {
+            if (!init) {
+                init = true;
+                if (blocks.isEmpty()) {
+                    ChainBlock genesis = this.settings.getEnv().createGenesisBlock();
+                    blocks.add(genesis);
+                    logger.info("create Genesis Block : {}", genesis.hash().toHexReverse256());
+                    height.set(0);//创世块
+                }
+            }
+        }
     }
 }

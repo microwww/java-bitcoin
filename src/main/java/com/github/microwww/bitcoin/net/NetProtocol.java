@@ -1,8 +1,11 @@
 package com.github.microwww.bitcoin.net;
 
 import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
+import com.github.microwww.bitcoin.net.protocol.Headers;
 import com.github.microwww.bitcoin.net.protocol.VerACK;
 import com.github.microwww.bitcoin.net.protocol.Version;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 
@@ -18,6 +21,7 @@ public enum NetProtocol {
             return new Version(peer).read(buf);
         }
     },
+
     /**
      * The verack message acknowledges a previously-received version message,
      * informing the connecting node that it can begin to send other messages.
@@ -83,7 +87,12 @@ public enum NetProtocol {
      *
      * @since protocol version 31800.
      */
-    HEADERS,
+    HEADERS() {
+        @Override
+        public AbstractProtocol parse(Peer peer, byte[] buf) {
+            return new Headers(peer).read(buf);
+        }
+    },
     /**
      * The block message transmits a single serialized block.
      */
@@ -234,9 +243,11 @@ public enum NetProtocol {
      */
     WTXIDRELAY;
 
+    private static final Logger logger = LoggerFactory.getLogger(NetProtocol.class);
     private final String cmd = this.name().toLowerCase();
 
     public AbstractProtocol parse(Peer peer, byte[] buf) {
+        logger.warn("Net protocol not support in : {}", NetProtocol.class.getName());
         throw new UnsupportedOperationException();
     }
 

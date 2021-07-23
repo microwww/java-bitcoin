@@ -55,9 +55,12 @@ public class PeerChannelProtocol {
             int step = 1;
             // TODO:: 这个规则需要确认
             List<Uint256> list = new ArrayList<>();
-            for (int i = height; i > 0; i -= step) {
-                if (list.size() > 10) {
+            for (int i = height; i >= 0; i -= step) {
+                if (list.size() >= 2000) {
                     break;
+                }
+                if (list.size() > 10) {
+                    step *= 2;
                 }
                 list.add(BlockChainContext.get().getHash(i).hash());
             }
@@ -66,9 +69,15 @@ public class PeerChannelProtocol {
         });
     }
 
-    public void service(ChannelHandlerContext ctx, Headers headers) {
-        for (ChainBlock header : headers.getHeaders()) {
-            BlockChainContext.get().addBlock(header);
+    public void service(ChannelHandlerContext ctx, Headers block) {
+        for (ChainBlock k : block.getHeaders()) {
+            String ok = k.hash().toHexReverse256();
+            if (ok.equalsIgnoreCase(k.header.getMerkleRoot().toHexReverse256())) {
+                logger.warn("Merkle Root can not match, block hash : {}", k.hash().toHexReverse256());
+                continue;
+            }
+            logger.info("Find new block : {}", ok);
+            BlockChainContext.get().addBlock(k);
         }
     }
 }
