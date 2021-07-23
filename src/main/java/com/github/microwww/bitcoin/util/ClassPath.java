@@ -20,6 +20,11 @@ public class ClassPath {
         return new File(ClassPath.class.getResource(path).getFile());
     }
 
+    public static File lookupFile(String path) {
+        Assert.isTrue(path.startsWith("/"), "path start with / ");
+        return new File(ClassPath.class.getResource("/").getFile(), path);
+    }
+
     public static List<String> readClassPathFile(String path) {
         Assert.isTrue(path.startsWith("/"), "path start with / ");
         try {
