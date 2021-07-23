@@ -50,7 +50,12 @@ public enum NetProtocol {
      * The inv message (inventory message) transmits one or more inventories of
      * objects known to the transmitting peer.
      */
-    INV,
+    INV() {
+        @Override
+        public Inv parse(Peer peer, byte[] buf) {
+            return new Inv(peer).read(buf);
+        }
+    },
     /**
      * The getdata message requests one or more data objects from another node.
      */

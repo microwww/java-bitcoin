@@ -25,4 +25,8 @@ public class Inv extends AbstractProtocolAdapter<Inv> {
         data.setMessages(msg);
         return this;
     }
+
+    public void validity() {
+        data.validity(this);
+    }
 }

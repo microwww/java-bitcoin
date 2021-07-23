@@ -81,6 +81,10 @@ public class ChainBlock {
         return txs;
     }
 
+    public int getTxCount() {
+        return txs == null ? 0 : txs.length;
+    }
+
     public void setTxs(RawTransaction[] txs) {
         this.txs = txs;
     }

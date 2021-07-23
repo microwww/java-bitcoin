@@ -7,6 +7,8 @@ import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 
+import java.util.Optional;
+
 public class GetData extends AbstractProtocolAdapter<GetData> {
 
     private Uint8 count;
@@ -19,6 +21,7 @@ public class GetData extends AbstractProtocolAdapter<GetData> {
     @Override
     protected GetData read0(ByteBuf buf) {
         this.count = new Uint8(buf.readByte());
+        this.messages = new Message[count.intValue()];
         for (int i = 0; i < count.intValue(); i++) {
             Message data = new Message();
             data.setTypeIn(new Uint32(buf.readIntLE()));
@@ -45,6 +48,10 @@ public class GetData extends AbstractProtocolAdapter<GetData> {
 
         public Uint32 getTypeIn() {
             return typeIn;
+        }
+
+        public Optional<GetDataType> select() {
+            return GetDataType.select(this.typeIn);
         }
 
         public Message setTypeIn(Uint32 typeIn) {
@@ -83,5 +90,17 @@ public class GetData extends AbstractProtocolAdapter<GetData> {
     public GetData setMessages(Message[] messages) {
         this.messages = messages;
         return this;
+    }
+
+    public void validity() {
+        validity(this);
+    }
+
+    public void validity(Object support) {
+        for (GetData.Message message : this.getMessages()) {
+            message.select().ifPresent(e -> {
+                e.validity(support);
+            });
+        }
     }
 }

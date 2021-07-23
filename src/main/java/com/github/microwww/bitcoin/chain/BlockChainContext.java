@@ -108,6 +108,8 @@ public class BlockChainContext {
     public BlockChainContext addBlock(ChainBlock header) {
         synchronized (blocks) {
             blocks.add(header);
+            height.incrementAndGet();
+            logger.info("Add new Block ... {}, tx: {}", header.hash().toHexReverse256(), header.getTxCount());
         }
         return this;
     }
@@ -134,12 +136,13 @@ public class BlockChainContext {
             for (int i = 0; i < blocks.size(); i++) {
                 if (blocks.get(i).hash().equals(hs)) {
                     blocks.set(i, block);
+                    logger.info("Reset a Block ... {}, tx: {}", block.hash().toHexReverse256(), block.getTxCount());
                     add = true;
                     break;
                 }
             }
             if (!add) {
-                logger.warn("Skip a block which is not find : {}", hs.toHexReverse256());
+                this.addBlock(block);
             }
         }
         return this;

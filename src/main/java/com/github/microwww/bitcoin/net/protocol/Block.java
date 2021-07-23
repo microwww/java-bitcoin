@@ -22,7 +22,6 @@ public class Block extends AbstractProtocolAdapter<Block> {
     @Override
     protected Block read0(ByteBuf buf) {
         chainBlock.readHeader(buf).readBody(buf);
-        BlockChainContext.get().setChainBlock(chainBlock);
         return this;
     }
 

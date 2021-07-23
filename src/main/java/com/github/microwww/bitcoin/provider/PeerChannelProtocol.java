@@ -16,6 +16,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class PeerChannelProtocol {
@@ -85,7 +86,7 @@ public class PeerChannelProtocol {
                 logger.warn("Merkle Root can not match, block hash : {}", k.hash().toHexReverse256());
                 continue;
             }
-            logger.info("Find new block : {}, tx: {}", ok, k.header.getTxCount());
+            logger.debug("Find new block : {}, tx: {}", ok, k.header.getTxCount());
             BlockChainContext.get().addBlock(k);
         }
         if (config.getBitcoin().isTxIndex()) {
@@ -108,5 +109,23 @@ public class PeerChannelProtocol {
     public void service(ChannelHandlerContext ctx, Block request) {
         ChainBlock cb = request.getChainBlock();
         BlockChainContext.get().setChainBlock(cb);
+    }
+
+    public void service(ChannelHandlerContext ctx, Inv request) {
+        ctx.executor().execute(() -> {
+            request.validity();
+            GetData.Message[] data = request.getData();
+            List<GetData.Message> list = new ArrayList<>();
+            for (GetData.Message msg : data) {
+                Optional<GetDataType> select = msg.select();
+                if (select.isPresent()) {
+                    list.add(msg);
+                } else {
+                    logger.warn("Unsupported Data-type : {}", msg.getTypeIn().toString());
+                }
+            }
+            GetData dt = new GetData(request.getPeer()).setMessages(list.toArray(new GetData.Message[]{}));
+            ctx.writeAndFlush(dt);
+        });
     }
 }
