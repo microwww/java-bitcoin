@@ -7,7 +7,7 @@ import io.netty.buffer.ByteBuf;
 import org.springframework.util.Assert;
 
 public class Headers extends AbstractProtocolAdapter<Headers> {
-    private ChainBlock[] headers;
+    private ChainBlock[] chainBlocks;
 
     public Headers(Peer peer) {
         super(peer);
@@ -20,24 +20,24 @@ public class Headers extends AbstractProtocolAdapter<Headers> {
         for (int i = 0; i < count; i++) {
             blocks[i] = new ChainBlock().readHeader(buf);
         }
-        this.headers = blocks;
+        this.chainBlocks = blocks;
         return this;
     }
 
     @Override
     protected void write0(ByteBuf buf) {
-        Assert.isTrue(headers.length <= 0xFF, "TO long");
-        buf.writeByte(headers.length);
-        for (ChainBlock header : headers) {
+        Assert.isTrue(chainBlocks.length <= 0xFF, "TO long");
+        buf.writeByte(chainBlocks.length);
+        for (ChainBlock header : chainBlocks) {
             header.writeHeader(buf);
         }
     }
 
-    public ChainBlock[] getHeaders() {
-        return headers;
+    public ChainBlock[] getChainBlocks() {
+        return chainBlocks;
     }
 
-    public void setHeaders(ChainBlock[] headers) {
-        this.headers = headers;
+    public void setChainBlocks(ChainBlock[] chainBlocks) {
+        this.chainBlocks = chainBlocks;
     }
 }

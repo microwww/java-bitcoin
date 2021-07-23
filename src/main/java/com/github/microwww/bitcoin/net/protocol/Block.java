@@ -1,15 +1,17 @@
 package com.github.microwww.bitcoin.net.protocol;
 
-import com.github.microwww.bitcoin.chain.BlockHeader;
+import com.github.microwww.bitcoin.chain.BlockChainContext;
+import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.net.Peer;
 import io.netty.buffer.ByteBuf;
 
 public class Block extends AbstractProtocolAdapter<Block> {
 
-    private BlockHeader blockHeader;
+    private final ChainBlock chainBlock;
 
     public Block(Peer peer) {
         super(peer);
+        chainBlock = new ChainBlock();
     }
 
     @Override
@@ -19,14 +21,12 @@ public class Block extends AbstractProtocolAdapter<Block> {
 
     @Override
     protected Block read0(ByteBuf buf) {
-        throw new UnsupportedOperationException();
+        chainBlock.readHeader(buf).readBody(buf);
+        BlockChainContext.get().setChainBlock(chainBlock);
+        return this;
     }
 
-    public BlockHeader getBlockHeader() {
-        return blockHeader;
-    }
-
-    public void setBlockHeader(BlockHeader blockHeader) {
-        this.blockHeader = blockHeader;
+    public ChainBlock getChainBlock() {
+        return chainBlock;
     }
 }

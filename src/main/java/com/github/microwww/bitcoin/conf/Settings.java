@@ -13,6 +13,7 @@ public class Settings {
     private String dataDir = "/bitcion";
     private String[] connections;
     private String[] peers;
+    private boolean txIndex = false;
 
     private CChainParams.Env env = CChainParams.Env.MAIN;
 
@@ -94,5 +95,13 @@ public class Settings {
 
     public void setEnv(CChainParams.Env env) {
         this.env = env;
+    }
+
+    public boolean isTxIndex() {
+        return txIndex;
+    }
+
+    public void setTxIndex(boolean txIndex) {
+        this.txIndex = txIndex;
     }
 }

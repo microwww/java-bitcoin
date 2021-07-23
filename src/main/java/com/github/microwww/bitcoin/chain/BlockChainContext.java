@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.conf.Settings;
+import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.net.Peer;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
@@ -28,7 +29,7 @@ public class BlockChainContext {
     private int hashCount; // number of block locator hash entries
     private Settings settings = new Settings();
     // TODO :: 有线程安全问题  暂时不处理
-    private LinkedList<ChainBlock> blocks = new LinkedList<>();
+    private final LinkedList<ChainBlock> blocks = new LinkedList<>();
 
     private static BlockChainContext block = new BlockChainContext();
 
@@ -113,7 +114,7 @@ public class BlockChainContext {
 
     public void init() {
         Assert.isTrue(!init, "do not to re-init");
-        synchronized (this) {
+        synchronized (blocks) {
             if (!init) {
                 init = true;
                 if (blocks.isEmpty()) {
@@ -124,5 +125,23 @@ public class BlockChainContext {
                 }
             }
         }
+    }
+
+    public BlockChainContext setChainBlock(ChainBlock block) {
+        Uint256 hs = block.hash();
+        synchronized (blocks) {
+            boolean add = false;
+            for (int i = 0; i < blocks.size(); i++) {
+                if (blocks.get(i).hash().equals(hs)) {
+                    blocks.set(i, block);
+                    add = true;
+                    break;
+                }
+            }
+            if (!add) {
+                logger.warn("Skip a block which is not find : {}", hs.toHexReverse256());
+            }
+        }
+        return this;
     }
 }

@@ -1,9 +1,6 @@
 package com.github.microwww.bitcoin.net;
 
-import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
-import com.github.microwww.bitcoin.net.protocol.Headers;
-import com.github.microwww.bitcoin.net.protocol.VerACK;
-import com.github.microwww.bitcoin.net.protocol.Version;
+import com.github.microwww.bitcoin.net.protocol.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,7 +93,12 @@ public enum NetProtocol {
     /**
      * The block message transmits a single serialized block.
      */
-    BLOCK,
+    BLOCK() {
+        @Override
+        public Block parse(Peer peer, byte[] buf) {
+            return new Block(peer).read(buf);
+        }
+    },
     /**
      * The getaddr message requests an addr message from the receiving node,
      * preferably one with lots of IP addresses of other receiving nodes.
@@ -247,19 +249,19 @@ public enum NetProtocol {
     private final String cmd = this.name().toLowerCase();
 
     public AbstractProtocol parse(Peer peer, byte[] buf) {
-        logger.warn("Net protocol not support in : {}", NetProtocol.class.getName());
-        throw new UnsupportedOperationException();
+        logger.warn("Net protocol parse is not support : {}", this.cmd);
+        throw new IgnoreNetProtocolException(this.cmd);
     }
 
     public String cmd() {
         return cmd;
     }
 
-    public static NetProtocol select(String cmd) throws UnsupportedOperationException {
+    public static NetProtocol select(String cmd) throws UnsupportedNetProtocolException {
         try {
             return NetProtocol.valueOf(cmd.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new UnsupportedOperationException(e);
+            throw new UnsupportedNetProtocolException(cmd);
         }
     }
 

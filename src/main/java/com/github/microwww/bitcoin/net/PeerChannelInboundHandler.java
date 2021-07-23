@@ -3,6 +3,7 @@ package com.github.microwww.bitcoin.net;
 import com.github.microwww.bitcoin.chain.BlockChainContext;
 import com.github.microwww.bitcoin.conf.Config;
 import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
+import com.github.microwww.bitcoin.net.protocol.UnsupportedNetProtocolException;
 import com.github.microwww.bitcoin.net.protocol.Version;
 import com.github.microwww.bitcoin.provider.PeerChannelProtocol;
 import io.netty.channel.ChannelHandlerContext;
@@ -38,7 +39,9 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
             peerChannelProtocol.doAction(ctx, parse);
 
         } catch (UnsupportedOperationException ex) {
-            logger.warn("UnsupportedOperationException : {}", header.getCommand());
+            logger.warn("UnsupportedOperationException service: {}", header.getCommand());
+        } catch (UnsupportedNetProtocolException ex) {
+            logger.warn("UnsupportedNetProtocolException : {}", header.getCommand());
         }
     }
 

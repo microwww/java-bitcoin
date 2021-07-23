@@ -1,5 +1,7 @@
 package com.github.microwww.bitcoin.math;
 
+import java.util.Objects;
+
 public class Uint64 extends Number implements Comparable<Uint64> {
 
     private final long value;
@@ -34,6 +36,19 @@ public class Uint64 extends Number implements Comparable<Uint64> {
     @Override
     public double doubleValue() {
         return value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Uint64 uint64 = (Uint64) o;
+        return value == uint64.value;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
     }
 
     @Override

@@ -1,5 +1,7 @@
 package com.github.microwww.bitcoin.math;
 
+import java.util.Objects;
+
 /**
  * 主要是标识类
  */
@@ -48,8 +50,27 @@ public class Uint8 extends Number implements Comparable<Uint8> {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Uint8 uint8 = (Uint8) o;
+        return value == uint8.value;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
+    }
+
+    @Override
     public int compareTo(Uint8 o) {
         return Long.compare(this.value, o.value);
+    }
+
+    public static void assertion(int v) {
+        if (v > 0xFF || v < 0) {
+            throw new IllegalArgumentException("0 <= Uint8 < 256");
+        }
     }
 
     @Override

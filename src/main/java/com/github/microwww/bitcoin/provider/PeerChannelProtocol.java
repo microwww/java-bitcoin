@@ -2,12 +2,14 @@ package com.github.microwww.bitcoin.provider;
 
 import com.github.microwww.bitcoin.chain.BlockChainContext;
 import com.github.microwww.bitcoin.chain.ChainBlock;
+import com.github.microwww.bitcoin.conf.Config;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.net.protocol.*;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.InvocationTargetException;
@@ -19,13 +21,19 @@ import java.util.List;
 public class PeerChannelProtocol {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelProtocol.class);
 
+    @Autowired
+    Config config;
+
     public void doAction(ChannelHandlerContext ctx, AbstractProtocol ver) {
         try {
             Method service = PeerChannelProtocol.class.getDeclaredMethod("service", ChannelHandlerContext.class, ver.getClass());
             service.invoke(this, ctx, ver);
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+        } catch (IllegalAccessException | InvocationTargetException e) {
             logger.warn("Request error !", e);
             throw new UnsupportedOperationException(e);
+        } catch (NoSuchMethodException e) {
+            logger.warn("Unsupported handler in {} : {}", this.getClass().getSimpleName(), e.getMessage());
+            throw new UnsupportedOperationException("" + this.getClass().getSimpleName() + " Unsupported handler", e);
         } catch (UnsupportedOperationException e) {
             throw e;
         }
@@ -69,15 +77,36 @@ public class PeerChannelProtocol {
         });
     }
 
-    public void service(ChannelHandlerContext ctx, Headers block) {
-        for (ChainBlock k : block.getHeaders()) {
+    public void service(ChannelHandlerContext ctx, Headers request) {
+        ChainBlock[] cb = request.getChainBlocks();
+        for (ChainBlock k : cb) {
             String ok = k.hash().toHexReverse256();
             if (ok.equalsIgnoreCase(k.header.getMerkleRoot().toHexReverse256())) {
                 logger.warn("Merkle Root can not match, block hash : {}", k.hash().toHexReverse256());
                 continue;
             }
-            logger.info("Find new block : {}", ok);
+            logger.info("Find new block : {}, tx: {}", ok, k.header.getTxCount());
             BlockChainContext.get().addBlock(k);
         }
+        if (config.getBitcoin().isTxIndex()) {
+            logger.info("Loading blocks from headers, count : {}", cb.length);
+            ctx.executor().execute(() -> {
+                GetData.Message[] ms = new GetData.Message[cb.length];
+                GetData data = new GetData(request.getPeer());
+                for (int i = 0; i < cb.length; i++) {
+                    ChainBlock hd = cb[i];
+                    ms[i] = new GetData.Message()
+                            .setHashIn(hd.hash())
+                            .setTypeIn(GetDataType.WITNESS_BLOCK);
+                }
+                data.setMessages(ms);
+                ctx.writeAndFlush(data);
+            });
+        }
+    }
+
+    public void service(ChannelHandlerContext ctx, Block request) {
+        ChainBlock cb = request.getChainBlock();
+        BlockChainContext.get().setChainBlock(cb);
     }
 }

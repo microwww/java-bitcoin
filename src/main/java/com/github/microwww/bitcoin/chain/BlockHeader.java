@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
+import com.github.microwww.bitcoin.math.Uint8;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -26,24 +27,29 @@ public class BlockHeader implements Serializable {
     private Uint32 nonce;
     // 上面属性 hash
 
+    private Uint8 txCount; // 这只是个标记位, 协议传输和解析的时候需要, 真实使用 txs.length 即可
+
     public BlockHeader() {
     }
 
     /**
-     * 在 CBlock中使用
+     * 在 CBlock中使用, 读取时候会读取交易数量, 写入的时候不会写入交易数量
+     *
      * @param bf
      */
-    protected void read(ByteBuf bf) { // 80 字节
+    protected void read(ByteBuf bf) { // 80 + 1 字节
         version = bf.readIntLE();
         preHash = Uint256.read(bf);
         merkleRoot = Uint256.read(bf);
         time = new Uint32(bf.readIntLE());
         bits = new Uint32(bf.readIntLE());
         nonce = new Uint32(bf.readIntLE());
+        txCount = new Uint8(bf.readByte());
     }
 
     /**
      * 在 CBlock中使用, TODO :: 建议缓存
+     *
      * @return
      */
     protected Uint256 hash() {
@@ -53,7 +59,8 @@ public class BlockHeader implements Serializable {
     }
 
     /**
-     * 在 CBlock中使用
+     * 在 CBlock中使用, 读取时候会读取交易数量, 写入的时候不会写入交易数量, 需要根据 block 的 txs.length 数据写入
+     *
      * @param bf
      * @return
      */
@@ -128,6 +135,14 @@ public class BlockHeader implements Serializable {
         return toString(new StringBuilder()).toString();
     }
 
+    public Uint8 getTxCount() {
+        return txCount;
+    }
+
+    public void setTxCount(Uint8 txCount) {
+        this.txCount = txCount;
+    }
+
     public StringBuilder toString(StringBuilder bf) {
         bf.append("Block {")
                 .append("  hash=").append(hash())
@@ -136,7 +151,8 @@ public class BlockHeader implements Serializable {
                 .append(", merkleRoot=").append(merkleRoot)
                 .append(", time=").append(time)
                 .append(", bits=").append(bits)
-                .append(", nonce=").append(nonce);
+                .append(", nonce=").append(nonce)
+                .append(", _txCount=").append(txCount);
         return bf.append('}');
     }
 }

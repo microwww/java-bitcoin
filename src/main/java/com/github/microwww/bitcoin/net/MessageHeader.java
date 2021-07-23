@@ -1,5 +1,6 @@
 package com.github.microwww.bitcoin.net;
 
+import com.github.microwww.bitcoin.net.protocol.UnsupportedNetProtocolException;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import org.springframework.util.Assert;
@@ -44,7 +45,7 @@ public class MessageHeader {
         return this;
     }
 
-    public NetProtocol getNetProtocol() {
+    public NetProtocol getNetProtocol() throws UnsupportedNetProtocolException {
         return NetProtocol.select(command);
     }
 

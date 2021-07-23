@@ -1,4 +1,5 @@
 conf:
   bitcoin:
     env: REG_TEST  ## MAIN, TEST, REG_TEST
+    tx-index: true
 #

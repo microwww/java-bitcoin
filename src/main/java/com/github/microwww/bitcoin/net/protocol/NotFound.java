@@ -8,11 +8,12 @@ import io.netty.buffer.ByteBuf;
  * sent if any requested data items could not be relayed,
  * for example, because the requested transaction was not in the memory pool or relay set.
  */
-public class NotFound extends AbstractTypeHash<NotFound> {
-    private GetData data;
+public class NotFound extends AbstractProtocolAdapter<NotFound> {
+    private final GetData data;
 
     public NotFound(Peer peer) {
         super(peer);
+        this.data = new GetData(peer);
     }
 
     @Override
@@ -22,15 +23,15 @@ public class NotFound extends AbstractTypeHash<NotFound> {
 
     @Override
     protected NotFound read0(ByteBuf buf) {
-        // nothing to do
-        return super.read0(buf);
+        this.data.read0(buf);
+        return this;
     }
 
-    public GetData getData() {
-        return data;
+    public GetData.Message[] getData() {
+        return data.getMessages();
     }
 
-    public void setData(GetData data) {
-        this.data = data;
+    public void setData(GetData.Message[] data) {
+        this.data.setMessages(data);
     }
 }

@@ -2,7 +2,6 @@ package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.math.MerkleTree;
 import com.github.microwww.bitcoin.math.Uint256;
-import com.github.microwww.bitcoin.math.Uint8;
 import io.netty.buffer.ByteBuf;
 import org.springframework.util.Assert;
 
@@ -10,8 +9,6 @@ import java.util.Arrays;
 
 public class ChainBlock {
     public final BlockHeader header;
-
-    private Uint8 _txCount; // 这只是个标记位, 协议传输和解析的时候需要, 真实使用 txs.length 即可
     private RawTransaction[] txs;
 
     public ChainBlock() {
@@ -31,8 +28,7 @@ public class ChainBlock {
     }
 
     public ChainBlock readBody(ByteBuf bf) {
-        _txCount = new Uint8(bf.readByte());
-        int len = _txCount.intValue();
+        int len = this.header.getTxCount().intValue();
         txs = new RawTransaction[len];
         for (int i = 0; i < len; i++) {
             RawTransaction tr = new RawTransaction();
@@ -47,8 +43,12 @@ public class ChainBlock {
         return this;
     }
 
-    public ChainBlock writeBody(ByteBuf bf) {
+    public ChainBlock writeTxCount(ByteBuf bf) {
         bf.writeByte(txs.length);
+        return this;
+    }
+
+    public ChainBlock writeTxBody(ByteBuf bf) {
         for (RawTransaction tx : this.txs) {
             tx.write(bf);
         }
@@ -68,7 +68,7 @@ public class ChainBlock {
     }
 
     public MerkleTree<RawTransaction, Uint256> merkleTree() {
-        Assert.isTrue(this.getTxs() != null, "Not find transaction, init it");
+        Assert.isTrue(this.getTxs() != null, "Not find any Transaction");
         MerkleTree<RawTransaction, Uint256> tree = MerkleTree.merkleTree(
                 Arrays.asList(this.getTxs()),
                 e -> e.hash(),
@@ -93,7 +93,7 @@ public class ChainBlock {
     public StringBuilder toString(StringBuilder sb) {
         sb.append("Block{")
                 .append("header=").append(header.toString(sb))
-                .append(", _txCount=").append(_txCount).append(" | ").append(txs.length)
+                .append(", _txCount=").append(header.getTxCount()).append(" -> ").append(txs.length)
                 .append(", txs="); //.append(Arrays.toString(txs))
 
         for (RawTransaction tx : txs) {

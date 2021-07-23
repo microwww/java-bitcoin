@@ -1,5 +1,7 @@
 package com.github.microwww.bitcoin.math;
 
+import java.util.Objects;
+
 /**
  * 主要是标识类
  */
@@ -43,6 +45,19 @@ public class Uint16 extends Number implements Comparable<Uint16> {
     @Override
     public double doubleValue() {
         return longValue();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Uint16 uint16 = (Uint16) o;
+        return value == uint16.value;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
     }
 
     @Override
