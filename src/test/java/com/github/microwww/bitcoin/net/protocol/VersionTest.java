@@ -1,10 +1,14 @@
 package com.github.microwww.bitcoin.net.protocol;
 
 import cn.hutool.core.util.HexUtil;
+import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.net.MessageHeader;
 import com.github.microwww.bitcoin.net.NetProtocol;
 import com.github.microwww.bitcoin.net.Peer;
+import com.github.microwww.bitcoin.provider.DiskBlock;
+import com.github.microwww.bitcoin.provider.LocalBlockChain;
+import com.github.microwww.bitcoin.provider.TxMemPool;
 import com.github.microwww.bitcoin.util.ClassPath;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -16,11 +20,12 @@ import java.util.Date;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class VersionTest {
-    Peer peer = new Peer("localhost", 8333);
+    private static LocalBlockChain localBlockChain = new LocalBlockChain(new CChainParams(new Settings()), new DiskBlock(), new TxMemPool());
+    Peer peer = new Peer(localBlockChain, "localhost", 8333);
 
     @Test
     public void testSendVersion() {
-        Settings settings = new Settings();
+        Settings settings = localBlockChain.getSettings();
         ByteBuf payload = Unpooled.buffer();
         //buffer.skipBytes(MessageHeader.HEADER_SIZE);
         Date date = new Date(40 * 365 * 24 * 60 * 60 * 1000); // 1970 + 40年

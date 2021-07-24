@@ -1,12 +1,17 @@
 package com.github.microwww.bitcoin.conf;
 
-import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.net.ServiceFlags;
 import com.github.microwww.bitcoin.net.protocol.ProtocolVersion;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+@Configuration
+@ConfigurationProperties(prefix = "conf.bitcoin")
 public class Settings {
     private int magic = 0xfabfb5da; // 0xf9beb4d9;
     private String agent = "/j-bitcoin-0.18.1:0.0.1/";
@@ -72,13 +77,13 @@ public class Settings {
         return peers;
     }
 
-    public List<Peer> toPeers() {
-        List<Peer> list = new ArrayList<>(peers.length);
+    public List<URL> toPeers() {
+        List<URL> list = new ArrayList<>(peers.length);
         for (String peer : peers) {
             String[] hp = peer.split(":");
             try {
-                list.add(new Peer(hp[0], Integer.parseInt(hp[1])));
-            } catch (RuntimeException e) {
+                list.add(new URL("bitcoin", hp[0], Integer.parseInt(hp[1]), ""));
+            } catch (MalformedURLException e) {
                 throw new RuntimeException("format error : " + peer + ", example : 8.8.8.8:8333");
             }
         }

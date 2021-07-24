@@ -1,10 +1,10 @@
 package com.github.microwww.bitcoin.provider;
 
-import com.github.microwww.bitcoin.chain.BlockChainContext;
 import com.github.microwww.bitcoin.chain.ChainBlock;
-import com.github.microwww.bitcoin.conf.Config;
+import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.net.Peer;
+import com.github.microwww.bitcoin.net.PeerConnection;
 import com.github.microwww.bitcoin.net.protocol.*;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
@@ -23,7 +23,11 @@ public class PeerChannelProtocol {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelProtocol.class);
 
     @Autowired
-    Config config;
+    Settings config;
+    @Autowired
+    PeerConnection connection;
+    @Autowired
+    DiskBlock diskBlock;
 
     public void doAction(ChannelHandlerContext ctx, AbstractProtocol ver) {
         try {
@@ -45,22 +49,22 @@ public class PeerChannelProtocol {
     }
 
     public void service(ChannelHandlerContext ctx, Version version) {
-        Peer peer = BlockChainContext.getPeer(ctx);
+        Peer peer = connection.getPeer(ctx);
         peer.setVersion(version);
-        BlockChainContext.getPeer(ctx).setMeReady(true);
+        connection.getPeer(ctx).setMeReady(true);
         // TODO :: 发送ack需要一个合适的时机
         ctx.write(new VerACK(peer));
     }
 
     public void service(ChannelHandlerContext ctx, VerACK ack) {
-        Peer peer = BlockChainContext.getPeer(ctx);
+        Peer peer = connection.getPeer(ctx);
         peer.setRemoteReady(true);
         ctx.executor().execute(() -> {
             ctx.write(new GetAddr(peer));
         });
 
         ctx.executor().execute(() -> {
-            int height = BlockChainContext.get().getHeight().intValue();
+            int height = diskBlock.getHeight().intValue();
             int step = 1;
             // TODO:: 这个规则需要确认
             List<Uint256> list = new ArrayList<>();
@@ -71,7 +75,7 @@ public class PeerChannelProtocol {
                 if (list.size() > 10) {
                     step *= 2;
                 }
-                list.add(BlockChainContext.get().getHash(i).hash());
+                list.add(diskBlock.getHash(i).hash());
             }
             GetHeaders hd = new GetHeaders(peer).setList(list);
             ctx.write(hd);
@@ -87,9 +91,9 @@ public class PeerChannelProtocol {
                 continue;
             }
             logger.debug("Find new block : {}, tx: {}", ok, k.header.getTxCount());
-            BlockChainContext.get().addBlock(k);
+            diskBlock.addBlock(k);
         }
-        if (config.getBitcoin().isTxIndex()) {
+        if (config.isTxIndex()) {
             logger.info("Loading blocks from headers, count : {}", cb.length);
             ctx.executor().execute(() -> {
                 GetData.Message[] ms = new GetData.Message[cb.length];
@@ -108,7 +112,7 @@ public class PeerChannelProtocol {
 
     public void service(ChannelHandlerContext ctx, Block request) {
         ChainBlock cb = request.getChainBlock();
-        BlockChainContext.get().setChainBlock(cb);
+        diskBlock.setChainBlock(cb);
     }
 
     public void service(ChannelHandlerContext ctx, Inv request) {

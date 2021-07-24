@@ -1,6 +1,5 @@
 package com.github.microwww.bitcoin.net.protocol;
 
-import com.github.microwww.bitcoin.chain.BlockChainContext;
 import com.github.microwww.bitcoin.net.MessageHeader;
 import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.util.ByteUtil;
@@ -20,7 +19,7 @@ public abstract class AbstractProtocolAdapter<T extends AbstractProtocol> implem
 
     @Override
     public MessageHeader writeWithHeader(ByteBuf buf) {
-        int magic = BlockChainContext.get().getSettings().getMagic();
+        int magic = peer.getMeSettings().getMagic();
         ByteBuf buffer = Unpooled.buffer();
         this.write(buffer);
         byte[] bytes = ByteUtil.readAll(buffer);

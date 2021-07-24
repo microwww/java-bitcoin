@@ -3,8 +3,16 @@ package com.github.microwww.bitcoin.conf;
 import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.chain.Generating;
 import com.github.microwww.bitcoin.math.Uint32;
+import org.springframework.stereotype.Component;
 
+@Component
 public class CChainParams {
+    private Settings settings;
+
+    public CChainParams(Settings settings) {
+        this.settings = settings;
+    }
+
     public enum Env {
         MAIN("/") {
             @Override
@@ -33,6 +41,10 @@ public class CChainParams {
         public String getDataDirPrefix() {
             return dataDirPrefix;
         }
+    }
+
+    public Settings getSettings() {
+        return settings;
     }
     /*
     strNetworkID =  CBaseChainParams::REGTEST;

@@ -1,17 +1,25 @@
 package com.github.microwww.bitcoin.net;
 
+import com.github.microwww.bitcoin.conf.ChainBlockStore;
+import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.net.protocol.Version;
+import com.github.microwww.bitcoin.provider.LocalBlockChain;
+
+import java.net.InetSocketAddress;
 
 public class Peer {
+    private final LocalBlockChain localBlockChain;
     private final String host;
     private final int port;
     private Version version;
     private int blockHeight;
 
+    private InetSocketAddress localAddress;
     private boolean meReady;
     private boolean remoteReady;
 
-    public Peer(String host, int port) {
+    public Peer(LocalBlockChain localBlockChain, String host, int port) {
+        this.localBlockChain = localBlockChain;
         this.host = host;
         this.port = port;
     }
@@ -58,6 +66,22 @@ public class Peer {
 
     public boolean isReady() {
         return remoteReady && meReady;
+    }
+
+    public Settings getMeSettings() {
+        return localBlockChain.getSettings();
+    }
+
+    public InetSocketAddress getLocalAddress() {
+        return localAddress;
+    }
+
+    public void setLocalAddress(InetSocketAddress localAddress) {
+        this.localAddress = localAddress;
+    }
+
+    public LocalBlockChain getLocalBlockChain() {
+        return localBlockChain;
     }
 
     @Override

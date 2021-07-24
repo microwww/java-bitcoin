@@ -3,6 +3,7 @@ package com.github.microwww.bitcoin.provider;
 import com.github.microwww.bitcoin.util.ClassPath;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBFactory;
+import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.Options;
 import org.iq80.leveldb.impl.Iq80DBFactory;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -33,6 +35,12 @@ class BitcoinServerTest {
         try (DB db = factory.open(file, options);) {
             db.put(key, "world".getBytes(StandardCharsets.UTF_8));
             assertEquals("world", new String(db.get(key)));
+
+            DBIterator iterator = db.iterator();
+            for (int i = 0; i < 1000 && iterator.hasNext(); i++) {
+                Map.Entry<byte[], byte[]> entry = iterator.next();
+                System.out.println(i + ",  " + new String(entry.getKey()) + "  :  " + new String(entry.getValue()));
+            }
         }
     }
 }

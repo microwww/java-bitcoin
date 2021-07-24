@@ -4,13 +4,11 @@ import cn.hutool.crypto.digest.DigestUtil;
 import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 class GeneratingTest {
 
     @Test
-    @Disabled
     void createGenesisBlock() {
         // REG-TEST-NET
         ChainBlock genesisBlock;

@@ -1,10 +1,13 @@
 package com.github.microwww.bitcoin.net;
 
-import com.github.microwww.bitcoin.chain.BlockChainContext;
+import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
 import com.github.microwww.bitcoin.net.protocol.Version;
+import com.github.microwww.bitcoin.provider.DiskBlock;
+import com.github.microwww.bitcoin.provider.LocalBlockChain;
 import com.github.microwww.bitcoin.provider.PeerChannelProtocol;
+import com.github.microwww.bitcoin.provider.TxMemPool;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -19,7 +22,8 @@ import java.net.InetSocketAddress;
 public class CommandTest {
     private static final Logger logger = LoggerFactory.getLogger(CommandTest.class);
 
-    private static Settings settings = new Settings();
+    private static LocalBlockChain localBlockChain = new LocalBlockChain(new CChainParams(new Settings()), new DiskBlock(), new TxMemPool());
+    private static PeerConnection connection = new PeerConnection();
 
     @Test
     @Disabled
@@ -32,16 +36,16 @@ public class CommandTest {
                     @Override
                     protected void initChannel(NioSocketChannel ch) {
                         ch.pipeline()
-                                .addLast(new BitcoinNetEncode())
-                                .addLast(new BitcoinNetDecode(settings))
+                                .addLast(new BitcoinNetEncode(localBlockChain.getChainParams().getSettings()))
+                                .addLast(new BitcoinNetDecode(localBlockChain.getChainParams().getSettings()))
                                 .addLast(new PrintInputChannel());
                     }
                 });
         // connection
-        Peer peer = new Peer("192.168.2.18", 18444);
+        Peer peer = new Peer(localBlockChain, "192.168.2.18", 18444);
         bootstrap.connect(peer.getHost(), peer.getPort())
                 .addListener((DefaultChannelPromise e) -> {
-                    BlockChainContext.get().addPeers((InetSocketAddress) e.channel().localAddress(), peer);
+                    connection.addPeers((InetSocketAddress) e.channel().localAddress(), peer);
                     logger.info("Connection FROM: " + e.channel().localAddress() + ", TO: " + e.channel().remoteAddress());
                 })
                 .sync().channel().closeFuture()
@@ -55,12 +59,12 @@ public class CommandTest {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            ctx.write(Version.builder(BlockChainContext.getPeer(ctx), settings));
+            ctx.write(Version.builder(connection.getPeer(ctx), localBlockChain.getChainParams().getSettings()));
         }
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, MessageHeader header) throws Exception {
-            Peer peer = BlockChainContext.get().getPeer(ctx);
+            Peer peer = connection.getPeer(ctx);
             logger.info("Parse data to : {}", header.getClass().getSimpleName());
             try {
                 NetProtocol netProtocol = header.getNetProtocol();

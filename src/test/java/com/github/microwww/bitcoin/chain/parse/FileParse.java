@@ -2,13 +2,16 @@ package com.github.microwww.bitcoin.chain.parse;
 
 import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.math.Uint256;
+import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.util.ClassPath;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,4 +46,34 @@ public class FileParse {
         Assertions.assertEquals("999e1c837c76a1b7fbb7e57baf87b309960f5ffefbf2a9b95dd890602272f644", hash.toHexReverse256());
     }
 
+    @Test
+    @Disabled
+    public void main() throws IOException {
+        File file = new File("D:\\Program\\bitcoin-0.21.1\\data\\regtest\\blocks\\rev00000.dat");
+        try (InputStream in = new BufferedInputStream(new FileInputStream(file))) {
+
+            // ByteBuf buffer = Unpooled.buffer(1024);
+            for (int i = 0; i < 1000000; i++) {
+                byte[] from = new byte[8];
+                int r = in.read(from);
+                if (r < from.length) {
+                    throw new UnsupportedOperationException("文件已经结束, 或者剩余数据太小");
+                }
+                ByteBuf buffer = Unpooled.copiedBuffer(from);
+                int marge = buffer.readInt();
+                System.out.println("skip check marge :" + new Uint32(marge).toHex());
+                int len = buffer.readIntLE();
+                byte[] bytes = new byte[len];
+                int read = in.read(bytes);
+                if (read != len) {
+                    throw new RuntimeException("文件已经结束");
+                }
+                ByteBuf bf = Unpooled.copiedBuffer(bytes);
+                ChainBlock rawBlock = new ChainBlock();
+                rawBlock.readHeader(bf);
+                rawBlock.readBody(bf);
+                System.out.println(i + "" + rawBlock);
+            }
+        }
+    }
 }
