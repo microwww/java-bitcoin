@@ -27,7 +27,7 @@ public class PeerChannelProtocol {
     @Autowired
     PeerConnection connection;
     @Autowired
-    DiskBlock diskBlock;
+    LocalBlockChain chain;
 
     public void doAction(ChannelHandlerContext ctx, AbstractProtocol ver) {
         try {
@@ -64,7 +64,7 @@ public class PeerChannelProtocol {
         });
 
         ctx.executor().execute(() -> {
-            int height = diskBlock.getHeight().intValue();
+            int height = chain.getDiskBlock().getHeight();
             int step = 1;
             // TODO:: 这个规则需要确认
             List<Uint256> list = new ArrayList<>();
@@ -75,7 +75,7 @@ public class PeerChannelProtocol {
                 if (list.size() > 10) {
                     step *= 2;
                 }
-                list.add(diskBlock.getHash(i).hash());
+                list.add(chain.getDiskBlock().getHash(i).get());
             }
             GetHeaders hd = new GetHeaders(peer).setList(list);
             ctx.write(hd);
@@ -91,7 +91,7 @@ public class PeerChannelProtocol {
                 continue;
             }
             logger.debug("Find new block : {}, tx: {}", ok, k.header.getTxCount());
-            diskBlock.addBlock(k);
+            chain.getDiskBlock().writeBlock(k, true);
         }
         if (config.isTxIndex()) {
             logger.info("Loading blocks from headers, count : {}", cb.length);
@@ -112,7 +112,7 @@ public class PeerChannelProtocol {
 
     public void service(ChannelHandlerContext ctx, Block request) {
         ChainBlock cb = request.getChainBlock();
-        diskBlock.setChainBlock(cb);
+        chain.getDiskBlock().writeBlock(cb, true);
     }
 
     public void service(ChannelHandlerContext ctx, Inv request) {

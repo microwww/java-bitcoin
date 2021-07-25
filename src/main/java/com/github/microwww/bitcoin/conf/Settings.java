@@ -4,6 +4,7 @@ import com.github.microwww.bitcoin.net.ServiceFlags;
 import com.github.microwww.bitcoin.net.protocol.ProtocolVersion;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.Assert;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -19,6 +20,8 @@ public class Settings {
     private String[] connections;
     private String[] peers;
     private boolean txIndex = false;
+    private boolean reIndex = false;
+    private int bestConfirmHeight = 6;
 
     private CChainParams.Env env = CChainParams.Env.MAIN;
 
@@ -108,5 +111,22 @@ public class Settings {
 
     public void setTxIndex(boolean txIndex) {
         this.txIndex = txIndex;
+    }
+
+    public boolean isReIndex() {
+        return reIndex;
+    }
+
+    public void setReIndex(boolean reIndex) {
+        throw new UnsupportedOperationException();
+    }
+
+    public int getBestConfirmHeight() {
+        return bestConfirmHeight;
+    }
+
+    public void setBestConfirmHeight(int bestConfirmHeight) {
+        Assert.isTrue(bestConfirmHeight >= 0, "BestConfirmHeight >= 0");
+        this.bestConfirmHeight = bestConfirmHeight;
     }
 }

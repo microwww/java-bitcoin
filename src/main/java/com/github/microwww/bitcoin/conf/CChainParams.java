@@ -7,45 +7,68 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class CChainParams {
-    private Settings settings;
+    public final Settings settings;
+    public final Env env;
 
     public CChainParams(Settings settings) {
         this.settings = settings;
+        this.env = settings.getEnv();
+    }
+
+    public Params getEnvParams() {
+        return env.params;
     }
 
     public enum Env {
-        MAIN("/") {
+        MAIN() {
             @Override
             public ChainBlock createGenesisBlock() {
                 return Generating.createGenesisBlock(new Uint32(1231006505), new Uint32(2083236893), new Uint32(0x1d00ffff), 1, 50 * Generating.COIN);
             }
-        }, TEST("/test") {
+
+            @Override
+            void init() {
+                this.params.dataDirPrefix = "/";
+                params.mergeBlockFile = new Uint32(0xf9beb4d9);
+            }
+        }, TEST() {
             @Override
             public ChainBlock createGenesisBlock() {
                 return Generating.createGenesisBlock(new Uint32(1296688602), new Uint32(414098458), new Uint32(0x1d00ffff), 1, 50 * Generating.COIN);
             }
-        }, REG_TEST("/regtest") {
+
+            @Override
+            void init() {
+                params.dataDirPrefix = "/test";
+                params.mergeBlockFile = new Uint32(0x0b110907);
+            }
+        }, REG_TEST() {
             @Override
             public ChainBlock createGenesisBlock() {
                 return Generating.createGenesisBlock(new Uint32(1296688602), new Uint32(2), new Uint32(0x207fffff), 1, 50 * Generating.COIN);
             }
-        };
-        private final String dataDirPrefix;
 
-        Env(String dataDirPrefix) {
-            this.dataDirPrefix = dataDirPrefix;
+            @Override
+            void init() {
+                params.dataDirPrefix = "/regtest";
+                params.mergeBlockFile = new Uint32(0xfabfb5da);
+            }
+        };
+        public final Params params = new Params();
+
+        Env() {
+            init();
         }
 
         public abstract ChainBlock createGenesisBlock();
 
-        public String getDataDirPrefix() {
-            return dataDirPrefix;
-        }
+        abstract void init();
     }
 
-    public Settings getSettings() {
-        return settings;
-    }
+    public static class Params {
+        private Uint32 mergeBlockFile; //  new byte[]{(byte) 0xf9, (byte) 0xbe, (byte) 0xb4, (byte) 0xd9}; //0xf9beb4d9
+        private String dataDirPrefix;
+
     /*
     strNetworkID =  CBaseChainParams::REGTEST;
     consensus.signet_blocks = false;
@@ -124,4 +147,13 @@ public class CChainParams {
 
     bech32_hrp = "bcrt";
      */
+
+        public Uint32 getMergeBlockFile() {
+            return mergeBlockFile;
+        }
+
+        public String getDataDirPrefix() {
+            return dataDirPrefix;
+        }
+    }
 }

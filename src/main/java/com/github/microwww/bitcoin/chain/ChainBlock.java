@@ -3,11 +3,13 @@ package com.github.microwww.bitcoin.chain;
 import com.github.microwww.bitcoin.math.MerkleTree;
 import com.github.microwww.bitcoin.math.Uint256;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.springframework.util.Assert;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
-public class ChainBlock {
+public class ChainBlock implements Serializable {
     public final BlockHeader header;
     private RawTransaction[] txs;
 
@@ -35,6 +37,18 @@ public class ChainBlock {
             tr.read(bf);
             txs[i] = tr;
         }
+        return this;
+    }
+
+    public ByteBuf serialization() {
+        ByteBuf buffer = Unpooled.buffer();
+        this.writeHeader(buffer).writeTxCount(buffer).writeTxBody(buffer);
+        return buffer;
+    }
+
+    public ChainBlock deserialization(byte[] bytes) {
+        ByteBuf buffer = Unpooled.copiedBuffer(bytes);
+        this.readHeader(buffer).readBody(buffer);
         return this;
     }
 

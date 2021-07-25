@@ -51,7 +51,7 @@ public class Version extends AbstractProtocolAdapter<Version> {
         byte[] bytes = this.getAgent().getBytes(StandardCharsets.ISO_8859_1);
         buf.writeByte(bytes.length);
         buf.writeBytes(bytes);
-        buf.writeIntLE(peer.getLocalBlockChain().getDiskBlock().getHeight().intValue());
+        buf.writeIntLE(peer.getLocalBlockChain().getDiskBlock().getHeight());
         buf.writeByte(flag);
         return buf.readableBytes() - f;
     }

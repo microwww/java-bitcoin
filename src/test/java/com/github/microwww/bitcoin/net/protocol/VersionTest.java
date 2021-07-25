@@ -20,7 +20,9 @@ import java.util.Date;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class VersionTest {
-    private static LocalBlockChain localBlockChain = new LocalBlockChain(new CChainParams(new Settings()), new DiskBlock(), new TxMemPool());
+    private static CChainParams cp = new CChainParams(new Settings());
+    private static LocalBlockChain localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TxMemPool());
+
     Peer peer = new Peer(localBlockChain, "localhost", 8333);
 
     @Test

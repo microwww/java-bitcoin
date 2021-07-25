@@ -21,8 +21,8 @@ import java.net.InetSocketAddress;
 
 public class CommandTest {
     private static final Logger logger = LoggerFactory.getLogger(CommandTest.class);
-
-    private static LocalBlockChain localBlockChain = new LocalBlockChain(new CChainParams(new Settings()), new DiskBlock(), new TxMemPool());
+    private static CChainParams cp = new CChainParams(new Settings());
+    private static LocalBlockChain localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TxMemPool());
     private static PeerConnection connection = new PeerConnection();
 
     @Test
@@ -36,8 +36,8 @@ public class CommandTest {
                     @Override
                     protected void initChannel(NioSocketChannel ch) {
                         ch.pipeline()
-                                .addLast(new BitcoinNetEncode(localBlockChain.getChainParams().getSettings()))
-                                .addLast(new BitcoinNetDecode(localBlockChain.getChainParams().getSettings()))
+                                .addLast(new BitcoinNetEncode(localBlockChain.getChainParams().settings))
+                                .addLast(new BitcoinNetDecode(localBlockChain.getChainParams().settings))
                                 .addLast(new PrintInputChannel());
                     }
                 });
@@ -59,7 +59,7 @@ public class CommandTest {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            ctx.write(Version.builder(connection.getPeer(ctx), localBlockChain.getChainParams().getSettings()));
+            ctx.write(Version.builder(connection.getPeer(ctx), localBlockChain.getChainParams().settings));
         }
 
         @Override

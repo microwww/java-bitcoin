@@ -86,48 +86,54 @@ public class BlockHeader implements Serializable {
         return version;
     }
 
-    public void setVersion(int version) {
+    public BlockHeader setVersion(int version) {
         this.version = version;
+        return this;
     }
 
     public Uint256 getPreHash() {
         return preHash;
     }
 
-    public void setPreHash(Uint256 preHash) {
+    public BlockHeader setPreHash(Uint256 preHash) {
         this.preHash = preHash;
+        return this;
     }
 
     public Uint256 getMerkleRoot() {
         return merkleRoot;
     }
 
-    public void setMerkleRoot(Uint256 merkleRoot) {
+    public BlockHeader setMerkleRoot(Uint256 merkleRoot) {
         this.merkleRoot = merkleRoot;
+        return this;
     }
 
     public Uint32 getTime() {
         return time;
     }
 
-    public void setTime(Uint32 time) {
+    public BlockHeader setTime(Uint32 time) {
         this.time = time;
+        return this;
     }
 
     public Uint32 getBits() {
         return bits;
     }
 
-    public void setBits(Uint32 bits) {
+    public BlockHeader setBits(Uint32 bits) {
         this.bits = bits;
+        return this;
     }
 
     public Uint32 getNonce() {
         return nonce;
     }
 
-    public void setNonce(Uint32 nonce) {
+    public BlockHeader setNonce(Uint32 nonce) {
         this.nonce = nonce;
+        return this;
     }
 
     @Override

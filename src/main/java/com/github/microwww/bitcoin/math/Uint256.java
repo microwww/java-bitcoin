@@ -4,6 +4,7 @@ import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 
 import java.math.BigInteger;
+import java.util.Arrays;
 
 public class Uint256 extends BigInteger {
 
@@ -79,6 +80,7 @@ public class Uint256 extends BigInteger {
         return new byte[LEN];
     }
 
+    // TODO 存储为属性 ?
     public byte[] sha256sha256() {
         return dsha256(this.fill256bit());
     }
@@ -110,5 +112,9 @@ public class Uint256 extends BigInteger {
             return ByteUtil.hex(this.reverse256bit());
         }
         return ByteUtil.hex(this.fill256bit());
+    }
+
+    public boolean equalsByte(byte[] x) {
+        return Arrays.equals(x, this.fill256bit());
     }
 }

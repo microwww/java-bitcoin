@@ -33,6 +33,8 @@ public class ApplicationReadyEventListener implements ApplicationListener<Applic
             try {
                 Settings conf = event.getApplicationContext().getBean(Settings.class);
 
+                localBlockChain.getDiskBlock().init();
+
                 // TODO: 启动server
                 logger.info("start bitcoin server");
 

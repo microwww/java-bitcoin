@@ -1,5 +1,7 @@
 package com.github.microwww.bitcoin.math;
 
+import io.netty.buffer.Unpooled;
+
 import java.util.Objects;
 
 /**
@@ -69,6 +71,14 @@ public class Uint32 extends Number implements Comparable<Uint32> {
 
     public String toHex() {
         return Long.toHexString(value);
+    }
+
+    public byte[] toBytes() {
+        return new byte[]{(byte) (value >> 24), (byte) (value & 0x00ff0000 >> 16), (byte) (value & 0X0000FF00 >> 8), (byte) (value & 0X000000FF)};
+    }
+
+    public byte[] toBytesLE() {
+        return new byte[]{(byte) (value & 0X000000FF), (byte) (value & 0X0000FF00 >> 8), (byte) (value & 0x00ff0000 >> 16), (byte) (value >> 24)};
     }
 
     @Override

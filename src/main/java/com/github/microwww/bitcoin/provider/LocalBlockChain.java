@@ -44,6 +44,6 @@ public class LocalBlockChain {
     }
 
     public Settings getSettings() {
-        return this.chainParams.getSettings();
+        return this.chainParams.settings;
     }
 }
