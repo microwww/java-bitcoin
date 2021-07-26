@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.conf;
 
-import com.github.microwww.bitcoin.provider.DiskBlock;
+import com.github.microwww.bitcoin.store.DiskBlock;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBFactory;
 import org.iq80.leveldb.Options;

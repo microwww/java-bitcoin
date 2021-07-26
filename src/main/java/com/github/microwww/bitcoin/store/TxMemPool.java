@@ -1,4 +1,4 @@
-package com.github.microwww.bitcoin.provider;
+package com.github.microwww.bitcoin.store;
 
 import org.springframework.stereotype.Component;
 

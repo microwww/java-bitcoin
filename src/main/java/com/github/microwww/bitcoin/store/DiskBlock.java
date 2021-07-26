@@ -1,11 +1,9 @@
-package com.github.microwww.bitcoin.provider;
+package com.github.microwww.bitcoin.store;
 
 import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.ChainBlockStore;
 import com.github.microwww.bitcoin.math.Uint256;
-import com.github.microwww.bitcoin.store.LevelDBPrefix;
-import com.github.microwww.bitcoin.store.MemBlockHeight;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

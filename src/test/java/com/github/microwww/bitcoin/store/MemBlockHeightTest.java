@@ -6,7 +6,6 @@ import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
-import com.github.microwww.bitcoin.provider.DiskBlock;
 import org.iq80.leveldb.DB;
 import org.junit.jupiter.api.Test;
 

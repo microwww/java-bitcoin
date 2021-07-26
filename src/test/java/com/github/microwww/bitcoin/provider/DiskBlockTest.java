@@ -1,5 +1,6 @@
 package com.github.microwww.bitcoin.provider;
 
+import com.github.microwww.bitcoin.store.DiskBlock;
 import org.junit.jupiter.api.Test;
 
 import java.util.regex.Matcher;

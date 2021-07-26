@@ -2,6 +2,8 @@ package com.github.microwww.bitcoin.provider;
 
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
+import com.github.microwww.bitcoin.store.DiskBlock;
+import com.github.microwww.bitcoin.store.TxMemPool;
 import org.springframework.stereotype.Component;
 
 @Component
