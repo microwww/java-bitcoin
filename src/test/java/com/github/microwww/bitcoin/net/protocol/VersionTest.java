@@ -6,13 +6,12 @@ import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.net.MessageHeader;
 import com.github.microwww.bitcoin.net.NetProtocol;
 import com.github.microwww.bitcoin.net.Peer;
-import com.github.microwww.bitcoin.store.DiskBlock;
 import com.github.microwww.bitcoin.provider.LocalBlockChain;
+import com.github.microwww.bitcoin.store.DiskBlock;
 import com.github.microwww.bitcoin.store.TxMemPool;
 import com.github.microwww.bitcoin.util.ClassPath;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 
 import java.util.Date;
@@ -20,7 +19,13 @@ import java.util.Date;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class VersionTest {
-    private static CChainParams cp = new CChainParams(new Settings());
+    private static Settings st = new Settings();
+
+    static {
+        st.setEnv(CChainParams.Env.REG_TEST);
+    }
+
+    private static CChainParams cp = new CChainParams(st);
     private static LocalBlockChain localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TxMemPool());
 
     Peer peer = new Peer(localBlockChain, "localhost", 8333);
@@ -50,7 +55,7 @@ public class VersionTest {
         assertEquals(header.getNetProtocol(), read.getNetProtocol());
         assertTrue(read.verifyChecksum());
 
-        Assert.assertEquals(line3, hex);
+        assertEquals(line3, hex);
     }
 
     @Test
