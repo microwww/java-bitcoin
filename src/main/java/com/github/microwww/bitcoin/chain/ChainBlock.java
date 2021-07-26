@@ -40,18 +40,6 @@ public class ChainBlock implements Serializable {
         return this;
     }
 
-    public ByteBuf serialization() {
-        ByteBuf buffer = Unpooled.buffer();
-        this.writeHeader(buffer).writeTxCount(buffer).writeTxBody(buffer);
-        return buffer;
-    }
-
-    public ChainBlock deserialization(byte[] bytes) {
-        ByteBuf buffer = Unpooled.copiedBuffer(bytes);
-        this.readHeader(buffer).readBody(buffer);
-        return this;
-    }
-
     public ChainBlock writeHeader(ByteBuf bf) {
         this.header.writer(bf);
         return this;

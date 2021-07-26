@@ -6,6 +6,7 @@ import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.net.PeerConnection;
 import com.github.microwww.bitcoin.net.protocol.*;
+import com.github.microwww.bitcoin.store.HeightChainBlock;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,7 +92,19 @@ public class PeerChannelProtocol {
                 continue;
             }
             logger.debug("Find new block : {}, tx: {}", ok, k.header.getTxCount());
-            chain.getDiskBlock().writeBlock(k, true);
+            Uint256 preHash = k.header.getPreHash();
+            int height = chain.getDiskBlock().getHeight(preHash);
+            if (height >= 0) {
+                chain.getDiskBlock().writeBlock(k, height + 1, true);
+            } else {
+                Optional<HeightChainBlock> hc = chain.getDiskBlock().readBlock(preHash);
+                if (hc.isPresent()) {
+                    height = hc.get().getHeight();
+                    chain.getDiskBlock().writeBlock(k, height + 1, true);
+                } else {
+                    logger.warn("Not find pre-block Hash : {} -> {}", preHash, k.hash());
+                }
+            }
         }
         if (config.isTxIndex()) {
             logger.info("Loading blocks from headers, count : {}", cb.length);

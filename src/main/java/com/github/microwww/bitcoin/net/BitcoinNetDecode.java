@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.net;
 
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
+import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ReplayingDecoder;
@@ -33,6 +34,9 @@ public class BitcoinNetDecode extends ReplayingDecoder<AbstractProtocol> {
                 MessageHeader.readBody(read, byteBuf);
                 logger.debug("Decode a command : {}", read.getCommand());
                 Assert.isTrue(read.getMagic() == magic, "Magic not match: NEED " + magic + " BUT " + read.getMagic());
+                if (logger.isDebugEnabled()) {
+                    logger.debug("get data {}, {}", read.getCommand(), ByteUtil.hex(read.getPayload()));
+                }
                 list.add(read);
             } else { // 半包
                 logger.debug("Decode a half package command : {}", read.getCommand());
