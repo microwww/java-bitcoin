@@ -11,7 +11,7 @@ import java.util.Arrays;
 
 public class ChainBlock implements Serializable {
     public final BlockHeader header;
-    private RawTransaction[] txs;
+    private RawTransaction[] txs = new RawTransaction[]{};
 
     public ChainBlock() {
         this(new BlockHeader());

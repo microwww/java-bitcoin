@@ -34,7 +34,7 @@ class MemBlockHeightTest {
             mh.tryAdd(chainBlock);
         }
         System.out.println(mh.toString());
-        assertEquals(101, mh.getHeight());
+        assertEquals(100, mh.getLatestHeight());
     }
 
     public LinkedList<ChainBlock> createChainBlock(ChainBlock genesis, int size) {
@@ -74,9 +74,9 @@ class MemBlockHeightTest {
         // -----------------------
         diskBlock = new DiskBlock(pa);
         diskBlock.init();
-        assertEquals(101, diskBlock.getHeight());
+        assertEquals(100, diskBlock.getLatestHeight());
         ChainBlock nb = createChainBlock(chains.getLast(), 1).get(0);
         diskBlock.writeBlock(nb, true);
-        diskBlock.getHeight();
+        diskBlock.getLatestHeight();
     }
 }

@@ -64,7 +64,7 @@ public class PeerChannelProtocol {
         });
 
         ctx.executor().execute(() -> {
-            int height = chain.getDiskBlock().getHeight();
+            int height = chain.getDiskBlock().getLatestHeight();
             int step = 1;
             // TODO:: 这个规则需要确认
             List<Uint256> list = new ArrayList<>();

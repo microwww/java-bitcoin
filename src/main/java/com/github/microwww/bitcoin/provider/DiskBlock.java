@@ -4,7 +4,6 @@ import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.ChainBlockStore;
 import com.github.microwww.bitcoin.math.Uint256;
-import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.store.LevelDBPrefix;
 import com.github.microwww.bitcoin.store.MemBlockHeight;
 import com.github.microwww.bitcoin.util.ByteUtil;
@@ -15,12 +14,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
-import java.io.*;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -116,14 +117,14 @@ public class DiskBlock implements Closeable {
                 heights.loadFrom(list.pollLast(), j);
             }
 
-            for (int j = heights.size(); j > 0; j++) {
+            for (int j = heights.getLatestHeight(); j >= 0; j++) {
                 Uint256 uint256 = list.pollLast();
                 if (uint256 == null) {
                     break;
                 }
                 Optional<ChainBlock> cg = this.tryReadBlock(uint256);
                 if (cg.isPresent()) {
-                    heights.loadFrom(cg.get(), j);
+                    heights.loadFrom(cg.get(), j + 1);
                 } else break;
             }
         }
@@ -179,7 +180,7 @@ public class DiskBlock implements Closeable {
     }
 
     public ChainBlock getLatestBlock() {
-        int height = heights.size();
+        int height = heights.getLatestHeight();
         if (height > bestConfirmHeight) {
             height -= bestConfirmHeight;
         } else {
@@ -201,6 +202,12 @@ public class DiskBlock implements Closeable {
         return Optional.of(new ChainBlock().deserialization(bytes));
     }
 
+    public boolean containsBlock(Uint256 hash) {
+        byte[] key = ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hash.fill256bit());
+        byte[] bytes = levelDB.get(key);
+        return bytes != null && bytes.length > 0;
+    }
+
     /**
      * 只能顺序写
      *
@@ -218,7 +225,7 @@ public class DiskBlock implements Closeable {
         ByteBuf buffer = Unpooled.buffer();
         ByteBuf serialization = block.serialization();
         int len = serialization.readableBytes();
-        buffer.writeInt(chainParams.getEnvParams().getMergeBlockFile().intValue())
+        buffer.writeInt(chainParams.getEnvParams().getMagic())
                 .writeIntLE(len).writeBytes(serialization);
         try {
             FileChannel ch = tryRollingFile();
@@ -226,7 +233,7 @@ public class DiskBlock implements Closeable {
             for (int i = 0; i < len; ) {
                 i += ch.write(buffer.nioBuffer());
             }
-            logger.info("Add levelDB: {} , {}", block.hash(), block.header.getPreHash());
+            logger.debug("Add levelDB: {} , {}", block.hash(), block.header.getPreHash());
             buffer.clear().writeInt((int) filePoint).writeInt(len).writeBytes(currentFile.getName().getBytes(StandardCharsets.UTF_8));
             levelDB.put(
                     ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, block.hash().fill256bit()),
@@ -265,7 +272,7 @@ public class DiskBlock implements Closeable {
         Assert.isTrue(read == len, "not read All");
         v.rewind();
         ByteBuf bf = Unpooled.copiedBuffer(v);
-        Assert.isTrue(chainParams.getEnvParams().getMergeBlockFile().intValue() == bf.readInt(), "marge match !");// TODO :: 校验头
+        Assert.isTrue(chainParams.getEnvParams().getMagic() == bf.readInt(), "marge match !");// TODO :: 校验头
         bf.readInt(); // len
         return Optional.of(new ChainBlock().readHeader(bf).readBody(bf));
     }
@@ -277,8 +284,13 @@ public class DiskBlock implements Closeable {
         );
     }
 
-    public int getHeight() {
-        return heights.size();
+    /**
+     * 从 0 开始
+     *
+     * @return
+     */
+    public int getLatestHeight() {
+        return heights.getLatestHeight();
     }
 
     public DB getLevelDB() {

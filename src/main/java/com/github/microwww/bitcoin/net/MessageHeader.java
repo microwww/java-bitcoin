@@ -23,10 +23,11 @@ public class MessageHeader {
     public static final int CHECKSUM_OFFSET = MESSAGE_SIZE_OFFSET + MESSAGE_SIZE_SIZE;
     public static final int HEADER_SIZE = MESSAGE_START_SIZE + COMMAND_SIZE + MESSAGE_SIZE_SIZE + CHECKSUM_SIZE;
 
-    private int magic = 0xf9beb4d9;
+    private int magic = 0xf9beb4d9;// 0xfabfb5da
     private String command;
-    private byte[] payload;
+    private int length; // read 时候使用
     private byte[] checksum; // 4
+    private byte[] payload;
 
     public MessageHeader() {
     }
@@ -96,6 +97,11 @@ public class MessageHeader {
     }
 
     public static MessageHeader read(ByteBuf out) {
+        MessageHeader messageHeader = readHeader(out);
+        return readBody(messageHeader, out);
+    }
+
+    public static MessageHeader readHeader(ByteBuf out) {
         int length = out.readableBytes();
         Assert.isTrue(length >= HEADER_SIZE, "Head length error !");
         MessageHeader header = new MessageHeader();
@@ -104,21 +110,26 @@ public class MessageHeader {
         byte[] cmd = new byte[COMMAND_SIZE];
         out.readBytes(cmd);
         header.setCommand(NetProtocol.toType(cmd));
-
-        int len = out.readIntLE();
-        Assert.isTrue(len >= 0, "PAYLOAD length >= 0");
-        Assert.isTrue(length >= len + HEADER_SIZE, "Head + PAYLOAD length error !");
-
+        header.length = out.readIntLE();
         byte[] ck = new byte[CHECKSUM_SIZE];
         out.readBytes(ck);
         header.checksum = ck;
+        return header;
+    }
 
+    public static MessageHeader readBody(MessageHeader header, ByteBuf out) {
+        int len = header.length;
+        Assert.isTrue(len >= 0, "PAYLOAD length >= 0");
         byte[] payload = new byte[len];
         if (len > 0) {
             out.readBytes(payload);
         }
         header.setPayload(payload);
         return header;
+    }
+
+    public int getLength() {
+        return length;
     }
 
     @Override

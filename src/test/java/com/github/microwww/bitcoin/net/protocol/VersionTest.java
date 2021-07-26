@@ -27,16 +27,15 @@ public class VersionTest {
 
     @Test
     public void testSendVersion() {
-        Settings settings = localBlockChain.getSettings();
         ByteBuf payload = Unpooled.buffer();
         //buffer.skipBytes(MessageHeader.HEADER_SIZE);
         Date date = new Date(40 * 365 * 24 * 60 * 60 * 1000); // 1970 + 40年
-        Version.builder(peer, settings).setTimestamp(date).setNonce(123456789012345678L).write(payload);
+        Version.builder(peer, cp).setTimestamp(date).setNonce(123456789012345678L).write(payload);
         int i = payload.readableBytes();
         byte[] byts = new byte[i];
         payload.readBytes(byts);
         ByteBuf bf = Unpooled.buffer();
-        MessageHeader header = new MessageHeader(settings.getMagic(), NetProtocol.VERSION).setPayload(byts).writer(bf);
+        MessageHeader header = new MessageHeader(cp.getEnvParams().getMagic(), NetProtocol.VERSION).setPayload(byts).writer(bf);
         bf.writeBytes(payload);
 
         byte[] by = new byte[bf.readableBytes()];
@@ -56,11 +55,10 @@ public class VersionTest {
 
     @Test
     public void testParseVersion() {
-        Settings settings = new Settings();
         String line5 = ClassPath.readClassPathFile("/data/line-data.txt").get(4);
         byte[] bytes = HexUtil.decodeHex(line5);
         MessageHeader read = MessageHeader.read(Unpooled.copiedBuffer(bytes));
-        assertEquals(settings.getMagic(), read.getMagic());
+        assertEquals(cp.getEnvParams().getMagic(), read.getMagic());
         assertEquals(NetProtocol.VERSION, read.getNetProtocol());
         // payload length
         assertTrue(read.verifyChecksum());

@@ -29,7 +29,7 @@ public class CChainParams {
             @Override
             void init() {
                 this.params.dataDirPrefix = "/";
-                params.mergeBlockFile = new Uint32(0xf9beb4d9);
+                params.magic = 0xf9beb4d9;
             }
         }, TEST() {
             @Override
@@ -40,7 +40,7 @@ public class CChainParams {
             @Override
             void init() {
                 params.dataDirPrefix = "/test";
-                params.mergeBlockFile = new Uint32(0x0b110907);
+                params.magic = 0x0b110907;
             }
         }, REG_TEST() {
             @Override
@@ -51,7 +51,7 @@ public class CChainParams {
             @Override
             void init() {
                 params.dataDirPrefix = "/regtest";
-                params.mergeBlockFile = new Uint32(0xfabfb5da);
+                params.magic = 0xfabfb5da;
             }
         };
         public final Params params = new Params();
@@ -66,8 +66,8 @@ public class CChainParams {
     }
 
     public static class Params {
-        private Uint32 mergeBlockFile; //  new byte[]{(byte) 0xf9, (byte) 0xbe, (byte) 0xb4, (byte) 0xd9}; //0xf9beb4d9
         private String dataDirPrefix;
+        private int magic = 0xfabfb5da; // 0xf9beb4d9;
 
     /*
     strNetworkID =  CBaseChainParams::REGTEST;
@@ -148,12 +148,12 @@ public class CChainParams {
     bech32_hrp = "bcrt";
      */
 
-        public Uint32 getMergeBlockFile() {
-            return mergeBlockFile;
-        }
-
         public String getDataDirPrefix() {
             return dataDirPrefix;
+        }
+
+        public int getMagic() {
+            return magic;
         }
     }
 }

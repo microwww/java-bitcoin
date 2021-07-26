@@ -24,7 +24,7 @@ public class GetHeaders extends AbstractProtocolAdapter<GetHeaders> {
         Assert.isTrue(list.size() < 254, "size must < 254 and not set 000..000");
         buf.writeByte(list.size());
         for (Uint256 int256 : list) {
-            buf.writeBytes(int256.reverse256bit());
+            buf.writeBytes(int256.fill256bit());
         }
         buf.writeBytes(Uint256.zero256());
         return buf.readableBytes() - size;

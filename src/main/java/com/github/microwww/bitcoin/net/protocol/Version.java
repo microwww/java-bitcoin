@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.net.protocol;
 
 import cn.hutool.core.util.RandomUtil;
+import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.util.ByteUtil;
@@ -24,9 +25,10 @@ public class Version extends AbstractProtocolAdapter<Version> {
     private byte flag = 1;
     protected Date timestamp = new Date();
 
-    public static Version builder(Peer peer, Settings settings) {
+    public static Version builder(Peer peer, CChainParams params) {
         Version ver = new Version(peer);
-        ver.setMagic(settings.getMagic())
+        Settings settings = params.settings;
+        ver.setMagic(params.getEnvParams().getMagic())
                 .setProtocolVersion(settings.getProtocolVersion())
                 .setServices(settings.getServices())
                 .setAgent(settings.getAgent());
@@ -51,7 +53,7 @@ public class Version extends AbstractProtocolAdapter<Version> {
         byte[] bytes = this.getAgent().getBytes(StandardCharsets.ISO_8859_1);
         buf.writeByte(bytes.length);
         buf.writeBytes(bytes);
-        buf.writeIntLE(peer.getLocalBlockChain().getDiskBlock().getHeight());
+        buf.writeIntLE(peer.getLocalBlockChain().getDiskBlock().getLatestHeight());
         buf.writeByte(flag);
         return buf.readableBytes() - f;
     }

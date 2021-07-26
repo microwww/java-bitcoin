@@ -6,15 +6,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.Assert;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
 @ConfigurationProperties(prefix = "conf.bitcoin")
 public class Settings {
-    private int magic = 0xfabfb5da; // 0xf9beb4d9;
     private String agent = "/j-bitcoin-0.18.1:0.0.1/";
     private String dataDir = "/bitcion";
     private String[] connections;
@@ -27,14 +26,6 @@ public class Settings {
 
     private int protocolVersion = ProtocolVersion.PROTOCOL_VERSION;
     private long services = ServiceFlags.join(ServiceFlags.NODE_NETWORK, ServiceFlags.NODE_WITNESS, ServiceFlags.NODE_NETWORK_LIMITED);
-
-    public int getMagic() {
-        return magic;
-    }
-
-    public void setMagic(int magic) {
-        this.magic = magic;
-    }
 
     public String getAgent() {
         return agent;
@@ -80,14 +71,14 @@ public class Settings {
         return peers;
     }
 
-    public List<URL> toPeers() {
-        List<URL> list = new ArrayList<>(peers.length);
+    public List<URI> toPeers() {
+        List<URI> list = new ArrayList<>(peers.length);
         for (String peer : peers) {
             String[] hp = peer.split(":");
             try {
-                list.add(new URL("bitcoin", hp[0], Integer.parseInt(hp[1]), ""));
-            } catch (MalformedURLException e) {
-                throw new RuntimeException("format error : " + peer + ", example : 8.8.8.8:8333");
+                list.add(new URI("bitcoin", null, hp[0], Integer.parseInt(hp[1]), null, null, null));
+            } catch (URISyntaxException e) {
+                throw new RuntimeException("format error : " + peer + ", example : 8.8.8.8:8333", e);
             }
         }
         return list;

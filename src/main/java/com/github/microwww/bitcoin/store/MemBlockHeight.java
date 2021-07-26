@@ -108,8 +108,13 @@ public class MemBlockHeight {
         return chains.isEmpty();
     }
 
-    public synchronized int getHeight() {
-        return chains.size();
+    /**
+     * from 0
+     *
+     * @return
+     */
+    public synchronized int getLatestHeight() {
+        return chains.size() - 1;
     }
 
     static class HeightER {

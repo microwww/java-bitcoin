@@ -19,7 +19,7 @@ public abstract class AbstractProtocolAdapter<T extends AbstractProtocol> implem
 
     @Override
     public MessageHeader writeWithHeader(ByteBuf buf) {
-        int magic = peer.getMeSettings().getMagic();
+        int magic = peer.getMeParams().getMagic();
         ByteBuf buffer = Unpooled.buffer();
         this.write(buffer);
         byte[] bytes = ByteUtil.readAll(buffer);

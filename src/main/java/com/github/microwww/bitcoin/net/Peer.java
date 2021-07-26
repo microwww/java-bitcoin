@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.net;
 
-import com.github.microwww.bitcoin.conf.ChainBlockStore;
+import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.net.protocol.Version;
 import com.github.microwww.bitcoin.provider.LocalBlockChain;
@@ -70,6 +70,10 @@ public class Peer {
 
     public Settings getMeSettings() {
         return localBlockChain.getSettings();
+    }
+
+    public CChainParams.Params getMeParams() {
+        return localBlockChain.getChainParams().getEnvParams();
     }
 
     public InetSocketAddress getLocalAddress() {

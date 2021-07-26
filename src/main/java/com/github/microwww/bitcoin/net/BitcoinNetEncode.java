@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.net;
 
-import com.github.microwww.bitcoin.conf.Settings;
+import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
@@ -12,15 +12,15 @@ import org.slf4j.LoggerFactory;
 
 public class BitcoinNetEncode extends MessageToByteEncoder<AbstractProtocol> {
     private static final Logger logger = LoggerFactory.getLogger(BitcoinNetEncode.class);
-    private final Settings settings;
+    private final CChainParams params;
 
-    public BitcoinNetEncode(Settings settings) {
-        this.settings = settings;
+    public BitcoinNetEncode(CChainParams settings) {
+        this.params = settings;
     }
 
     @Override
     protected void encode(ChannelHandlerContext channelHandlerContext, AbstractProtocol data, ByteBuf byteBuf) throws Exception {
-        int magic = settings.getMagic();
+        int magic = params.getEnvParams().getMagic();
         ByteBuf buffer = Unpooled.buffer();
         data.write(buffer);
         NetProtocol protocol = data.support();

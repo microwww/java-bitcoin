@@ -37,8 +37,8 @@ public class PeerConnection implements ApplicationListener<BitcoinAddPeerEvent> 
                     @Override
                     protected void initChannel(NioSocketChannel ch) {
                         ch.pipeline()
-                                .addLast(new BitcoinNetEncode(localBlockChain.getSettings()))
-                                .addLast(new BitcoinNetDecode(localBlockChain.getSettings()))
+                                .addLast(new BitcoinNetEncode(localBlockChain.getChainParams()))
+                                .addLast(new BitcoinNetDecode(localBlockChain.getChainParams()))
                                 .addLast(peerChannelInboundHandlerEventPublisher);
                     }
                 });
@@ -47,10 +47,14 @@ public class PeerConnection implements ApplicationListener<BitcoinAddPeerEvent> 
         try {
             bootstrap.connect(peer.getHost(), peer.getPort())
                     .addListener((DefaultChannelPromise e) -> {
-                        InetSocketAddress address = (InetSocketAddress) e.channel().localAddress();
-                        peer.setLocalAddress(address);
-                        this.addPeers(address, peer);
-                        logger.info("Connection FROM: " + e.channel().localAddress() + ", TO: " + e.channel().remoteAddress());
+                        if (e.isSuccess()) {
+                            InetSocketAddress address = (InetSocketAddress) e.channel().localAddress();
+                            peer.setLocalAddress(address);
+                            this.addPeers(address, peer);
+                            logger.info("Connection FROM: " + e.channel().localAddress() + ", TO: " + e.channel().remoteAddress());
+                        } else {
+                            executors.shutdownGracefully();
+                        }
                     })
                     .sync().channel().closeFuture()
                     .sync()

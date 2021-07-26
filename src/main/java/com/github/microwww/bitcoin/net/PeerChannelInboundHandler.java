@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.net;
 
-import com.github.microwww.bitcoin.conf.Settings;
+import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
 import com.github.microwww.bitcoin.net.protocol.UnsupportedNetProtocolException;
 import com.github.microwww.bitcoin.net.protocol.Version;
@@ -17,7 +17,7 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelInboundHandler.class);
 
     @Autowired
-    Settings config;
+    CChainParams config;
     @Autowired
     PeerChannelProtocol peerChannelProtocol;
     @Autowired
@@ -30,12 +30,11 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, MessageHeader header) throws Exception {
-        logger.info("Parse data to : {}", header.getClass().getSimpleName());
         try {
             NetProtocol netProtocol = header.getNetProtocol();
             logger.debug("Get a command : {}", netProtocol.cmd());
             AbstractProtocol parse = netProtocol.parse(connection.getPeer(ctx), header.getPayload());
-            logger.info("Parse data to : {}", parse.getClass().getSimpleName());
+            logger.info("Parse command: {},  data : {}", netProtocol.cmd(), parse.getClass().getSimpleName());
 
             peerChannelProtocol.doAction(ctx, parse);
 

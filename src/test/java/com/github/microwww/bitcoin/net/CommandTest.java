@@ -36,8 +36,8 @@ public class CommandTest {
                     @Override
                     protected void initChannel(NioSocketChannel ch) {
                         ch.pipeline()
-                                .addLast(new BitcoinNetEncode(localBlockChain.getChainParams().settings))
-                                .addLast(new BitcoinNetDecode(localBlockChain.getChainParams().settings))
+                                .addLast(new BitcoinNetEncode(localBlockChain.getChainParams()))
+                                .addLast(new BitcoinNetDecode(localBlockChain.getChainParams()))
                                 .addLast(new PrintInputChannel());
                     }
                 });
@@ -59,7 +59,7 @@ public class CommandTest {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            ctx.write(Version.builder(connection.getPeer(ctx), localBlockChain.getChainParams().settings));
+            ctx.write(Version.builder(connection.getPeer(ctx), localBlockChain.getChainParams()));
         }
 
         @Override
