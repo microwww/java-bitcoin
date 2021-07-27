@@ -5,6 +5,7 @@ import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
 import com.github.microwww.bitcoin.net.protocol.UnsupportedNetProtocolException;
 import com.github.microwww.bitcoin.net.protocol.Version;
 import com.github.microwww.bitcoin.provider.PeerChannelProtocol;
+import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import org.slf4j.Logger;
@@ -32,7 +33,7 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
     protected void channelRead0(ChannelHandlerContext ctx, MessageHeader header) throws Exception {
         try {
             NetProtocol netProtocol = header.getNetProtocol();
-            logger.debug("Get a command : {}", netProtocol.cmd());
+            logger.debug("Get a command : {}, length : {}", netProtocol.cmd(), header.getPayload().length);
             AbstractProtocol parse = netProtocol.parse(connection.getPeer(ctx), header.getPayload());
             logger.info("Parse command: {},  data : {}", netProtocol.cmd(), parse.getClass().getSimpleName());
 
@@ -42,6 +43,9 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
             logger.warn("UnsupportedOperationException service: {}", header.getCommand());
         } catch (UnsupportedNetProtocolException ex) {
             logger.warn("UnsupportedNetProtocolException : {}", header.getCommand());
+        } catch (RuntimeException ex) {
+            logger.error("Request data error {}: \n{}\n", ex.getMessage(), ByteUtil.hex(header.getPayload()));
+            throw ex;
         }
     }
 

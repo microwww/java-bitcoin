@@ -2,10 +2,13 @@ package com.github.microwww.bitcoin.conf;
 
 import com.github.microwww.bitcoin.net.ServiceFlags;
 import com.github.microwww.bitcoin.net.protocol.ProtocolVersion;
+import com.github.microwww.bitcoin.util.FilesUtil;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.Assert;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -119,5 +122,16 @@ public class Settings {
     public void setBestConfirmHeight(int bestConfirmHeight) {
         Assert.isTrue(bestConfirmHeight >= 0, "BestConfirmHeight >= 0");
         this.bestConfirmHeight = bestConfirmHeight;
+    }
+
+    public File lockupRootDirectory() {
+        String prefix = this.getEnv().params.getDataDirPrefix();
+        File root = new File(this.getDataDir(), prefix);
+        try {
+            FilesUtil.createCanWriteDir(root);
+            return root;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

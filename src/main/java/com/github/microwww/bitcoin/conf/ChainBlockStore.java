@@ -44,29 +44,4 @@ public class ChainBlockStore {
         Options options = new Options();
         return factory.open(file, options);
     }
-
-    public static File lockupRootDirectory(Settings conf) {
-        String prefix = conf.getEnv().params.getDataDirPrefix();
-        File root = new File(conf.getDataDir(), prefix);
-        try {
-            createCanWriteDir(root);
-            return root;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * @param root
-     * @return 如果是新增返回 true, 否则 false
-     * @throws IOException 如果出错 或者 不可写
-     */
-    public static boolean createCanWriteDir(File root) throws IOException {
-        boolean create = root.mkdirs();
-        if (!root.canWrite()) {
-            throw new IOException("Not to writer dir : " + root.getCanonicalPath());
-        }
-        logger.info("scan local block-link data : {}", root.getCanonicalPath());
-        return create;
-    }
 }

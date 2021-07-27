@@ -21,8 +21,6 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * struct CDiskTxPos : public FlatFilePos
@@ -32,52 +30,35 @@ import java.util.regex.Pattern;
  **/
 public class DiskBlock implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(DiskBlock.class);
-    public static final Pattern pt = Pattern.compile("blk0*([0-9]+).dat");
-    public static final String sequenceFile = "blk%05d.dat"; // blk00000.dat
 
     private final int bestConfirmHeight;
-    private static int sequence = -1;
     private final CChainParams chainParams;
     private final File root;
     private final DB levelDB;
     private final MemBlockHeight heights;
-
-    private int MAX_BYTES = 128 * 1024 * 1024; // 128M
-    private FileChannel current; //
-    private File currentFile; //
+    private final AccessBlockFile fileAccess;
 
     public DiskBlock(CChainParams chainParams) {
         this.chainParams = chainParams;
         this.bestConfirmHeight = this.chainParams.settings.getBestConfirmHeight();
-        File file = ChainBlockStore.lockupRootDirectory(chainParams.settings);
-        root = new File(file, "blocks");
         try {
+            File file = chainParams.settings.lockupRootDirectory();
+            logger.info("Data-dir: {}", file.getCanonicalPath());
+            root = new File(file, "blocks");
             levelDB = ChainBlockStore.leveldb(root, "index", chainParams.settings.isReIndex());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         ChainBlock genesisBlock = chainParams.env.createGenesisBlock();
         heights = new MemBlockHeight(genesisBlock);
+        this.fileAccess = new AccessBlockFile(root);
     }
 
     public synchronized DiskBlock init() {
-        if (current != null) {
-            throw new IllegalStateException("Not re-try it");
-        }
         logger.info("Init DiskBlock, Get block-file, And init chain-height");
-        try {
-            currentFile = fetchFile();
-            current = new RandomAccessFile(currentFile, "rwd").getChannel();
-        } catch (IOException e) {
-            try {
-                if (current != null) current.close();
-            } catch (IOException ex) {
-            }
-            throw new RuntimeException(e);
-        } finally {
-        }
         byte[] bytes = levelDB.get(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes);
         ChainBlock generate = heights.getGenerate();
+        logger.info("Generate block hash : {}", generate.hash());
         if (bytes == null) { // 如果没有最新的块, 需要初始化创世块
             HeightChainBlock hc = new HeightChainBlock(generate, 0);
             this.writeBlock(hc, true);
@@ -96,8 +77,9 @@ public class DiskBlock implements Closeable {
                 if (nv.isPresent()) {
                     h--;
                     HeightChainBlock hc = nv.get();
-                    Assert.isTrue(hc.getHeight() == h, "levelDB height not match");
                     latest = hc.getBlock();
+                    logger.debug("Loding hash {}: {}, {}", h, latest.hash(), latest.header.getPreHash());
+                    Assert.isTrue(hc.getHeight() == h, "levelDB height not match");
                 } else break;
             }
 
@@ -123,51 +105,6 @@ public class DiskBlock implements Closeable {
 
     public Optional<Uint256> getHash(int height) {// TODO : block file !
         return heights.get(height);
-    }
-
-    private FileChannel tryRollingFile() throws IOException {
-        if (current == null) {
-            throw new IllegalStateException("Please init first, invoke init()");
-        }
-        while (current.position() >= MAX_BYTES) {
-            currentFile = maxSequenceFile(1);
-            long position = currentFile.length();
-            if (current != null) current.close();
-            current = new RandomAccessFile(currentFile, "rwd").getChannel().position(position);
-            logger.info("Rolling file : {}", currentFile.getCanonicalPath());
-        }
-        return current;
-    }
-
-    private File fetchFile() throws IOException {
-        return maxSequenceFile(0);
-    }
-
-    private File maxSequenceFile(int inv) throws IOException {
-        if (sequence < 0) {
-            File[] files = root.listFiles();
-            sequence = 0;
-            for (File f : files) {
-                if (f.isFile()) {
-                    String name = f.getName().toLowerCase();
-                    Matcher matcher = pt.matcher(name);
-                    if (matcher.matches()) {
-                        int nv = Integer.parseInt(matcher.group(1));
-                        if (nv > sequence) {
-                            sequence = nv;
-                        }
-                    }
-                }
-            }
-        }
-        sequence += inv;
-        File f = new File(root, String.format(sequenceFile, sequence));
-        if (!f.exists()) {
-            f.createNewFile();
-        } else if (f.isDirectory()) {
-            throw new IOException("File do not allow a directory : " + f.getCanonicalPath());
-        }
-        return f;
     }
 
     public ChainBlock getLatestBlock() {
@@ -226,7 +163,7 @@ public class DiskBlock implements Closeable {
         return Optional.ofNullable(levelDB.get(key));
     }
 
-    private void write(HeightChainBlock hc) {
+    private synchronized void write(HeightChainBlock hc) {
         ChainBlock block = hc.getBlock();
         Uint256 hash = block.hash();
         // magic + len + payload
@@ -240,15 +177,17 @@ public class DiskBlock implements Closeable {
         int len = r.readableBytes();
         r.setIntLE(4, len - 8);
         try {
-            FileChannel ch = tryRollingFile();
+            FileChannel ch = fileAccess.channel();
+            File file = fileAccess.getFile();
+            fileAccess.getFileChannel();
             long position = ch.position();
             int write = ch.write(r.nioBuffer());
             Assert.isTrue(write == len, "Not write all");
-            logger.debug("Add levelDB: {} , {} , {}", hc.getHeight(), hash, block.header.getPreHash());
+            logger.info("Add levelDB: {}, {} , {} , {}", position, hc.getHeight(), hash, block.header.getPreHash());
             Assert.isTrue(position < Integer.MAX_VALUE, "Int overflow");
 
             // height + position + len + name
-            r.clear().writeInt(hc.getHeight()).writeInt((int) position).writeInt(len).writeBytes(currentFile.getName().getBytes(StandardCharsets.UTF_8));
+            r.clear().writeInt(hc.getHeight()).writeInt((int) position).writeInt(len).writeBytes(file.getName().getBytes(StandardCharsets.UTF_8));
 
             levelDB.put(
                     ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hash.fill256bit()),
@@ -271,7 +210,7 @@ public class DiskBlock implements Closeable {
         }
     }
 
-    private Optional<HeightChainBlock> tryReadBlock(Uint256 hash) throws IOException {
+    private synchronized Optional<HeightChainBlock> tryReadBlock(Uint256 hash) throws IOException {
         Optional<byte[]> data = this.findInLevelDB(hash);
         if (!data.isPresent()) {
             return Optional.empty();
@@ -304,10 +243,7 @@ public class DiskBlock implements Closeable {
     }
 
     private void levelDBPut(byte[] k1, byte[] k2, byte[] v1, byte[] v2) {
-        levelDB.put(
-                ByteUtil.concat(k1, k2),
-                ByteUtil.concat(v1, v2)
-        );
+        levelDB.put(ByteUtil.concat(k1, k2), ByteUtil.concat(v1, v2));
     }
 
     /**
@@ -336,7 +272,7 @@ public class DiskBlock implements Closeable {
         try {
             levelDB.close();
         } finally {
-            current.close();
+            fileAccess.channel().close();
         }
     }
 

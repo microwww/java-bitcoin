@@ -39,7 +39,7 @@ public class BitcoinStarter implements ApplicationListener<ApplicationReadyEvent
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
-        File file = ChainBlockStore.lockupRootDirectory(chainParams.settings);
+        File file = chainParams.settings.lockupRootDirectory();
         lockFile(file);
         executors.execute(() -> {
             logger.debug("scan local block-link data");
