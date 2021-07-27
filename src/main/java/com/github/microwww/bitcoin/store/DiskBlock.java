@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.Optional;
@@ -46,13 +45,11 @@ public class DiskBlock implements Closeable {
     private int MAX_BYTES = 128 * 1024 * 1024; // 128M
     private FileChannel current; //
     private File currentFile; //
-    private FileLock fileLock;
 
     public DiskBlock(CChainParams chainParams) {
         this.chainParams = chainParams;
         this.bestConfirmHeight = this.chainParams.settings.getBestConfirmHeight();
         File file = ChainBlockStore.lockupRootDirectory(chainParams.settings);
-        lockFile(file);
         root = new File(file, "blocks");
         try {
             levelDB = ChainBlockStore.leveldb(root, "index", chainParams.settings.isReIndex());
@@ -61,16 +58,6 @@ public class DiskBlock implements Closeable {
         }
         ChainBlock genesisBlock = chainParams.env.createGenesisBlock();
         heights = new MemBlockHeight(genesisBlock);
-    }
-
-    private void lockFile(File root) {
-        try {
-            File lock = new File(root, "lock");
-            lock.createNewFile();
-            fileLock = new RandomAccessFile(lock, "rw").getChannel().lock();
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
     }
 
     public synchronized DiskBlock init() {
@@ -255,7 +242,7 @@ public class DiskBlock implements Closeable {
             long position = ch.position();
             int write = ch.write(r.nioBuffer());
             Assert.isTrue(write == len, "Not write all");
-            logger.info("Add levelDB: {} , {} , {}", hc.getHeight(), hash, block.header.getPreHash());
+            logger.debug("Add levelDB: {} , {} , {}", hc.getHeight(), hash, block.header.getPreHash());
             Assert.isTrue(position < Integer.MAX_VALUE, "Int overflow");
 
             // height + position + len + name
@@ -347,11 +334,7 @@ public class DiskBlock implements Closeable {
         try {
             levelDB.close();
         } finally {
-            try {
-                current.close();
-            } finally {
-                fileLock.close();
-            }
+            current.close();
         }
     }
 
