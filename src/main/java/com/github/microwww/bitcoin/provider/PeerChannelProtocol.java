@@ -3,6 +3,7 @@ package com.github.microwww.bitcoin.provider;
 import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.math.Uint256;
+import com.github.microwww.bitcoin.math.Uint64;
 import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.net.PeerConnection;
 import com.github.microwww.bitcoin.net.protocol.*;
@@ -12,13 +13,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 
+import static com.github.microwww.bitcoin.net.protocol.GetHeaders.MAX_LOCATOR_SZ;
+
+/**
+ * `net_processing.cpp`
+ */
 @Component
 public class PeerChannelProtocol {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelProtocol.class);
@@ -53,15 +61,26 @@ public class PeerChannelProtocol {
         Peer peer = connection.getPeer(ctx);
         peer.setVersion(version);
         connection.getPeer(ctx).setMeReady(true);
-        // TODO :: 发送ack需要一个合适的时机
-        ctx.write(new VerACK(peer));
     }
 
     public void service(ChannelHandlerContext ctx, VerACK ack) {
         Peer peer = connection.getPeer(ctx);
         peer.setRemoteReady(true);
         ctx.executor().execute(() -> {
+            ctx.write(new VerACK(peer));
+        });
+
+        ctx.executor().execute(() -> {
             ctx.write(new GetAddr(peer));
+        });
+        ctx.executor().execute(() -> {
+            ctx.write(new SendHeaders(peer));
+        });
+        ctx.executor().execute(() -> {
+            ctx.write(new SendCmpct(peer));
+        });
+        ctx.executor().execute(() -> {
+            ctx.write(new Ping(peer));
         });
 
         ctx.executor().execute(() -> {
@@ -70,19 +89,64 @@ public class PeerChannelProtocol {
             // TODO:: 这个规则需要确认
             List<Uint256> list = new ArrayList<>();
             for (int i = height; i >= 0; i -= step) {
-                if (list.size() >= 2000) {
+                if (list.size() >= MAX_LOCATOR_SZ) {
                     break;
                 }
-                if (list.size() > 10) {
+                if (list.size() > GetHeaders.MAX_UNCONNECTING_HEADERS) {
                     step *= 2;
                 }
                 list.add(chain.getDiskBlock().getHash(i).get());
             }
-            GetHeaders hd = new GetHeaders(peer).setList(list);
+            GetHeaders hd = new GetHeaders(peer).setStarting(list);
             ctx.write(hd);
+        });
+
+        ctx.executor().execute(() -> {
+            ctx.write(new FeeFilter(peer));
         });
     }
 
+    // if (msg_type == NetMsgType::GETHEADERS) {
+    public void service(ChannelHandlerContext ctx, GetHeaders request) {
+        List<Uint256> list = request.getStarting();
+        if (list.size() > GetHeaders.MAX_UNCONNECTING_HEADERS) {
+            return;
+        }
+        int from = -1;
+        for (Uint256 uint256 : list) {
+            from = chain.getDiskBlock().getHeight(uint256);
+            if (from > 0) {
+                break;
+            }
+        }
+        Uint256 stopping = request.getStopping();
+        if (from >= 0) {
+            for (int i = 0, j = 0; i < GetHeaders.MAX_HEADERS_RESULTS; i++) {
+                Headers headers = new Headers(request.getPeer());
+                List<ChainBlock> bs = new ArrayList<>();
+                if (j < 0xFF) { // 最大一个字节
+                    j++;
+                    Optional<Uint256> hash = chain.getDiskBlock().getHash(from + i);
+                    if (hash.isPresent()) {
+                        Optional<HeightChainBlock> cb = chain.getDiskBlock().readBlock(hash.get());
+                        Assert.isTrue(cb.isPresent(), "This hash in height , but not in local file");
+                        ChainBlock fd = cb.get().getBlock();
+                        bs.add(fd);
+                        if (fd.hash().equals(stopping)) {
+                            ctx.writeAndFlush(headers);
+                            break;
+                        }
+                    } else break;
+                } else {
+                    j = 0;
+                    ctx.writeAndFlush(headers);
+                }
+                headers.setChainBlocks(bs);
+            }
+        }
+    }
+
+    // PeerManager::ProcessHeadersMessage
     public void service(ChannelHandlerContext ctx, Headers request) {
         ChainBlock[] cb = request.getChainBlocks();
         for (ChainBlock k : cb) {
@@ -145,4 +209,42 @@ public class PeerChannelProtocol {
             ctx.writeAndFlush(dt);
         });
     }
+
+    //TODO::作用未知
+    public void service(ChannelHandlerContext ctx, WtxidRelay request) {
+        ctx.writeAndFlush(request);
+    }
+
+    //TODO::作用未知
+    public void service(ChannelHandlerContext ctx, SendAddrV2 request) {
+        ctx.writeAndFlush(request);
+    }
+
+    //TODO::作用未知
+    public void service(ChannelHandlerContext ctx, SendCmpct request) {
+        SendCmpct cmpct = new SendCmpct(request.getPeer()).setVal(request.getVal());
+        ctx.writeAndFlush(cmpct);
+    }
+
+    // TODO :: 需要坚持是否连通
+    public void service(ChannelHandlerContext ctx, Ping request) {
+        long l = ThreadLocalRandom.current().nextLong(Long.MIN_VALUE, Long.MAX_VALUE);
+        Pong pong = new Pong(request.getPeer()).setNonce(new Uint64(l));
+        ctx.writeAndFlush(pong);
+    }
+
+    // TODO :: 需要坚持是否连通
+    public void service(ChannelHandlerContext ctx, Pong request) {
+        logger.info("Get pong !");
+    }
+
+    public void service(ChannelHandlerContext ctx, FeeFilter request) {
+        FeeFilter fee = new FeeFilter(request.getPeer()).setFee(1_000);
+        ctx.writeAndFlush(fee);
+    }
+
+    public void service(ChannelHandlerContext ctx, SendHeaders request) {
+        logger.info("Get SendHeaders !");
+    }
+
 }

@@ -6,6 +6,8 @@ import com.github.microwww.bitcoin.net.Peer;
 import io.netty.buffer.ByteBuf;
 import org.springframework.util.Assert;
 
+import java.util.List;
+
 public class Headers extends AbstractProtocolAdapter<Headers> {
     private ChainBlock[] chainBlocks;
 
@@ -37,7 +39,17 @@ public class Headers extends AbstractProtocolAdapter<Headers> {
         return chainBlocks;
     }
 
-    public void setChainBlocks(ChainBlock[] chainBlocks) {
+    public Headers setChainBlocks(ChainBlock[] chainBlocks) {
         this.chainBlocks = chainBlocks;
+        return this;
+    }
+
+    public Headers setChainBlocks(List<ChainBlock> chainBlocks) {
+        ChainBlock[] cbs = new ChainBlock[chainBlocks.size()];
+        for (int i = 0; i < cbs.length; i++) {
+            cbs[i] = chainBlocks.get(i);
+        }
+        this.chainBlocks = cbs;
+        return this;
     }
 }

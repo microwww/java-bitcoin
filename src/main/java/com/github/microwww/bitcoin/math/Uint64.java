@@ -1,5 +1,6 @@
 package com.github.microwww.bitcoin.math;
 
+import java.math.BigInteger;
 import java.util.Objects;
 
 public class Uint64 extends Number implements Comparable<Uint64> {
@@ -8,6 +9,10 @@ public class Uint64 extends Number implements Comparable<Uint64> {
 
     public Uint64(long value) {
         this.value = value;
+    }
+
+    public Uint64(byte[] bt) {
+        value = new BigInteger(bt).longValue();
     }
 
     @Override

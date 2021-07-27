@@ -25,7 +25,7 @@ public enum NetProtocol {
      */
     VERACK() {
         @Override
-        public AbstractProtocol parse(Peer peer, byte[] buf) {
+        public VerACK parse(Peer peer, byte[] buf) {
             return new VerACK(peer).read(buf);
         }
     },
@@ -45,7 +45,12 @@ public enum NetProtocol {
      * It also implies that its sender can encode as ADDRV2 and would send ADDRV2
      * instead of ADDR to a peer that has signaled ADDRV2 support by sending SENDADDRV2.
      */
-    SENDADDRV2,
+    SENDADDRV2() {
+        @Override
+        public SendAddrV2 parse(Peer peer, byte[] buf) {
+            return new SendAddrV2(peer).read(buf);
+        }
+    },
     /**
      * The inv message (inventory message) transmits one or more inventories of
      * objects known to the transmitting peer.
@@ -78,7 +83,12 @@ public enum NetProtocol {
      *
      * @since protocol version 31800.
      */
-    GETHEADERS,
+    GETHEADERS() {
+        @Override
+        public GetHeaders parse(Peer peer, byte[] buf) {
+            return new GetHeaders(peer).read(buf);
+        }
+    },
     /**
      * The tx message transmits a single transaction.
      */
@@ -91,7 +101,7 @@ public enum NetProtocol {
      */
     HEADERS() {
         @Override
-        public AbstractProtocol parse(Peer peer, byte[] buf) {
+        public Headers parse(Peer peer, byte[] buf) {
             return new Headers(peer).read(buf);
         }
     },
@@ -120,14 +130,24 @@ public enum NetProtocol {
      * The ping message is sent periodically to help confirm that the receiving
      * peer is still connected.
      */
-    PING,
+    PING() {
+        @Override
+        public Ping parse(Peer peer, byte[] buf) {
+            return new Ping(peer).read(buf);
+        }
+    },
     /**
      * The pong message replies to a ping message, proving to the pinging node that
      * the ponging node is still alive.
      *
      * @since protocol version 60001 as described by BIP31.
      */
-    PONG,
+    PONG() {
+        @Override
+        public Pong parse(Peer peer, byte[] buf) {
+            return new Pong(peer).read(buf);
+        }
+    },
     /**
      * The notfound message is a reply to a getdata message which requested an
      * object the receiving node does not have available for relay.
@@ -168,14 +188,24 @@ public enum NetProtocol {
      *
      * @since protocol version 70012 as described by BIP130.
      */
-    SENDHEADERS,
+    SENDHEADERS() {
+        @Override
+        public SendHeaders parse(Peer peer, byte[] buf) {
+            return new SendHeaders(peer).read(buf);
+        }
+    },
     /**
      * The feefilter message tells the receiving peer not to inv us any txs
      * which do not meet the specified min fee rate.
      *
      * @since protocol version 70013 as described by BIP133
      */
-    FEEFILTER,
+    FEEFILTER() {
+        @Override
+        public AbstractProtocol parse(Peer peer, byte[] buf) {
+            return new FeeFilter(peer).read(buf);
+        }
+    },
     /**
      * Contains a 1-byte bool and 8-byte LE version number.
      * Indicates that a node is willing to provide blocks via "cmpctblock" messages.
@@ -184,7 +214,12 @@ public enum NetProtocol {
      *
      * @since protocol version 70014 as described by BIP 152
      */
-    SENDCMPCT,
+    SENDCMPCT() {
+        @Override
+        public SendCmpct parse(Peer peer, byte[] buf) {
+            return new SendCmpct(peer).read(buf);
+        }
+    },
     /**
      * Contains a CBlockHeaderAndShortTxIDs object - providing a header and
      * list of "short txids".
@@ -248,7 +283,12 @@ public enum NetProtocol {
      *
      * @since protocol version 70016 as described by BIP 339.
      */
-    WTXIDRELAY;
+    WTXIDRELAY() {
+        @Override
+        public WtxidRelay parse(Peer peer, byte[] buf) {
+            return new WtxidRelay(peer).read(buf);
+        }
+    };
 
     private static final Logger logger = LoggerFactory.getLogger(NetProtocol.class);
     private final String cmd = this.name().toLowerCase();

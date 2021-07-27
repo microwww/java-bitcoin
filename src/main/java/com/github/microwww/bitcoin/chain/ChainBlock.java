@@ -3,7 +3,6 @@ package com.github.microwww.bitcoin.chain;
 import com.github.microwww.bitcoin.math.MerkleTree;
 import com.github.microwww.bitcoin.math.Uint256;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import org.springframework.util.Assert;
 
 import java.io.Serializable;

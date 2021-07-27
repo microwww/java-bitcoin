@@ -145,8 +145,9 @@ public class BlockHeader implements Serializable {
         return txCount;
     }
 
-    public void setTxCount(Uint8 txCount) {
+    public BlockHeader setTxCount(Uint8 txCount) {
         this.txCount = txCount;
+        return this;
     }
 
     public StringBuilder toString(StringBuilder bf) {

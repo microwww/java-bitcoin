@@ -11,6 +11,7 @@ public class Uint32 extends Number implements Comparable<Uint32> {
 
     public static final Uint32 MAX_VALUE = new Uint32(0xFFFFFFFF);
     public static final Uint32 ZERO = new Uint32(0x0);
+    public static final Uint32 ONE = new Uint32(0x1);
     private final long value;
 
     /**

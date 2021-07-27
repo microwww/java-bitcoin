@@ -67,7 +67,7 @@ public class CChainParams {
 
     public static class Params {
         private String dataDirPrefix;
-        private int magic = 0xfabfb5da; // 0xf9beb4d9;
+        private int magic; // 0xf9beb4d9;
 
     /*
     strNetworkID =  CBaseChainParams::REGTEST;
