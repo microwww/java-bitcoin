@@ -188,13 +188,15 @@ public class DiskBlock implements Closeable {
         return this.readBlock(hash).map(h -> h.getBlock());
     }
 
-    public boolean writeBlock(ChainBlock block, boolean ifExistSkip) {
+    public int writeBlock(ChainBlock block, boolean ifExistSkip) {
         Uint256 pre = block.header.getPreHash();
         Optional<HeightChainBlock> hc = this.readBlock(pre);
         if (hc.isPresent()) {
-            return writeBlock(new HeightChainBlock(block, hc.get().getHeight() + 1), ifExistSkip);
+            int h = hc.get().getHeight() + 1;
+            writeBlock(new HeightChainBlock(block, h), ifExistSkip);
+            return h;
         }
-        return false;
+        return -1;
     }
 
     public boolean writeBlock(ChainBlock block, int height, boolean ifExistSkip) {
