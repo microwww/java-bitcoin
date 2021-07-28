@@ -171,7 +171,7 @@ public class PeerChannelProtocol {
             }
         }
         if (config.isTxIndex()) {
-            logger.info("Loading blocks from headers, count : {}", cb.length);
+            logger.info("Find blocks from headers, count : {}", cb.length);
             ctx.executor().execute(() -> {
                 GetData.Message[] ms = new GetData.Message[cb.length];
                 GetData data = new GetData(request.getPeer());
@@ -189,6 +189,7 @@ public class PeerChannelProtocol {
 
     public void service(ChannelHandlerContext ctx, Block request) {
         ChainBlock cb = request.getChainBlock();
+        logger.info("Get one blocks from peer : {}", request.getChainBlock().hash());
         chain.getDiskBlock().writeBlock(cb, true);
     }
 

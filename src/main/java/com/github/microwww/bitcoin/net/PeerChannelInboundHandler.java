@@ -34,7 +34,7 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
             NetProtocol netProtocol = header.getNetProtocol();
             logger.debug("Get a command : {}", netProtocol.cmd());
             AbstractProtocol parse = netProtocol.parse(connection.getPeer(ctx), header.getPayload());
-            logger.info("Parse command: {},  data : {}", netProtocol.cmd(), parse.getClass().getSimpleName());
+            logger.debug("Parse command: {},  data : {}", netProtocol.cmd(), parse.getClass().getSimpleName());
 
             peerChannelProtocol.doAction(ctx, parse);
 
