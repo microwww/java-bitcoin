@@ -19,13 +19,7 @@ import java.util.Date;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class VersionTest {
-    private static Settings st = new Settings();
-
-    static {
-        st.setEnv(CChainParams.Env.REG_TEST);
-    }
-
-    private static CChainParams cp = new CChainParams(st);
+    private static CChainParams cp = new CChainParams(new Settings(CChainParams.Env.REG_TEST));
     private static LocalBlockChain localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TxMemPool());
 
     Peer peer = new Peer(localBlockChain, "localhost", 8333);
