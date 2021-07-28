@@ -92,7 +92,12 @@ public enum NetProtocol {
     /**
      * The tx message transmits a single transaction.
      */
-    TX,
+    TX() {
+        @Override
+        public Tx parse(Peer peer, byte[] buf) {
+            return new Tx(peer).read(buf);
+        }
+    },
     /**
      * The headers message sends one or more block headers to a node which
      * previously requested certain headers with a getheaders message.

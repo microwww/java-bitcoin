@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 public class CommandTest {
     private static final Logger logger = LoggerFactory.getLogger(CommandTest.class);
     private static CChainParams cp = new CChainParams(new Settings(CChainParams.Env.REG_TEST));
-    private static LocalBlockChain localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TxMemPool());
+    private static LocalBlockChain localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TxMemPool(cp));
 
     @Test
     @Disabled

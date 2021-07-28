@@ -5,7 +5,7 @@ import com.github.microwww.bitcoin.net.Peer;
 import io.netty.buffer.ByteBuf;
 
 public class Tx extends AbstractProtocolAdapter<Tx> {
-    private RawTransaction transaction;
+    private RawTransaction transaction = new RawTransaction();
 
     public Tx(Peer peer) {
         super(peer);
@@ -22,4 +22,11 @@ public class Tx extends AbstractProtocolAdapter<Tx> {
         return this;
     }
 
+    public RawTransaction getTransaction() {
+        return transaction;
+    }
+
+    public void setTransaction(RawTransaction transaction) {
+        this.transaction = transaction;
+    }
 }

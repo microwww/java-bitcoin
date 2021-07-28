@@ -25,6 +25,7 @@ public class Settings {
     private boolean reIndex = false;
     private int bestConfirmHeight = 6;
     private String bind; // host:port
+    private int txPoolMax = 500;
 
     private CChainParams.Env env = CChainParams.Env.MAIN;
 
@@ -149,5 +150,13 @@ public class Settings {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public int getTxPoolMax() {
+        return txPoolMax;
+    }
+
+    public void setTxPoolMax(int txPoolMax) {
+        this.txPoolMax = txPoolMax;
     }
 }

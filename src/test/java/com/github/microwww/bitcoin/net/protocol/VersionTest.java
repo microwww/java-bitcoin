@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class VersionTest {
     private static CChainParams cp = new CChainParams(new Settings(CChainParams.Env.REG_TEST));
 
-    private LocalBlockChain localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TxMemPool());
+    private LocalBlockChain localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TxMemPool(cp));
     Peer peer = new Peer(localBlockChain, "localhost", 8333);
 
     @BeforeAll
