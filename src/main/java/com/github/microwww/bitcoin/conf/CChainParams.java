@@ -30,6 +30,7 @@ public class CChainParams {
             void init() {
                 this.params.dataDirPrefix = "/";
                 params.magic = 0xf9beb4d9;
+                params.defaultPort = 8333;
             }
         }, TEST() {
             @Override
@@ -41,6 +42,7 @@ public class CChainParams {
             void init() {
                 params.dataDirPrefix = "/test";
                 params.magic = 0x0b110907;
+                params.defaultPort = 18333;
             }
         }, REG_TEST() {
             @Override
@@ -52,6 +54,7 @@ public class CChainParams {
             void init() {
                 params.dataDirPrefix = "/regtest";
                 params.magic = 0xfabfb5da;
+                params.defaultPort = 18444;
             }
         };
         public final Params params = new Params();
@@ -68,6 +71,7 @@ public class CChainParams {
     public static class Params {
         private String dataDirPrefix;
         private int magic; // 0xf9beb4d9;
+        private int defaultPort; // 0xf9beb4d9;
 
     /*
     strNetworkID =  CBaseChainParams::REGTEST;
@@ -154,6 +158,10 @@ public class CChainParams {
 
         public int getMagic() {
             return magic;
+        }
+
+        public int getDefaultPort() {
+            return defaultPort;
         }
     }
 }

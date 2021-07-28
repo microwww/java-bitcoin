@@ -12,15 +12,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.ConcurrentSkipListMap;
 
 @Component
-public class PeerConnection implements ApplicationListener<BitcoinAddPeerEvent> {
+public class PeerConnection implements ApplicationListener<BitcoinAddPeerEvent>, Closeable {
     private static final Logger logger = LoggerFactory.getLogger(PeerConnection.class);
-    private final Map<String, Peer> peers = new ConcurrentSkipListMap<>();
+    private static EventLoopGroup executors = new NioEventLoopGroup();
 
     @Autowired
     LocalBlockChain localBlockChain;
@@ -29,13 +28,14 @@ public class PeerConnection implements ApplicationListener<BitcoinAddPeerEvent> 
 
     @Override
     public void onApplicationEvent(BitcoinAddPeerEvent event) {
-        EventLoopGroup executors = new NioEventLoopGroup();
+        Peer peer = event.getBitcoinSource();
         Bootstrap bootstrap = new Bootstrap()
                 .group(executors)
                 .channel(NioSocketChannel.class)
                 .handler(new ChannelInitializer<NioSocketChannel>() {
                     @Override
                     protected void initChannel(NioSocketChannel ch) {
+                        ch.attr(Peer.PEER).set(peer);
                         ch.pipeline()
                                 .addLast(new BitcoinNetEncode(localBlockChain.getChainParams()))
                                 .addLast(new BitcoinNetDecode(localBlockChain.getChainParams()))
@@ -43,53 +43,27 @@ public class PeerConnection implements ApplicationListener<BitcoinAddPeerEvent> 
                     }
                 });
         // connection
-        Peer peer = event.getBitcoinSource();
         try {
             bootstrap.connect(peer.getHost(), peer.getPort())
                     .addListener((DefaultChannelPromise e) -> {
                         if (e.isSuccess()) {
                             InetSocketAddress address = (InetSocketAddress) e.channel().localAddress();
                             peer.setLocalAddress(address);
-                            this.addPeers(address, peer);
                             logger.info("Connection FROM: " + e.channel().localAddress() + ", TO: " + e.channel().remoteAddress());
-                        } else {
-                            executors.shutdownGracefully();
                         }
                     })
                     .sync().channel().closeFuture()
                     .sync()
                     .addListener(e -> {
-                        executors.shutdownGracefully();
-                        peers.remove(key(peer.getLocalAddress()));
+                        logger.info("Close Peer {}:{}", peer.getHost(), peer.getPort());
                     });
         } catch (InterruptedException e) {
             logger.error("Peer error : {}", peer, e);
         }
     }
 
-    public Peer getPeer(ChannelHandlerContext ctx) {
-        return this.getPeer((InetSocketAddress) ctx.channel().localAddress());
-    }
-
-    public Map<String, Peer> getPeers() {
-        return Collections.unmodifiableMap(peers);
-    }
-
-    public PeerConnection addPeers(InetSocketAddress address, Peer peer) {
-        this.peers.put(key(address), peer);
-        return this;
-    }
-
-    public PeerConnection remove(InetSocketAddress address) {
-        this.peers.remove(key(address));
-        return this;
-    }
-
-    public Peer getPeer(InetSocketAddress address) {
-        return this.peers.get(key(address));
-    }
-
-    private String key(InetSocketAddress dr) {
-        return dr.getHostString() + ":" + dr.getPort();
+    @Override
+    public void close() throws IOException {
+        executors.shutdownGracefully();
     }
 }

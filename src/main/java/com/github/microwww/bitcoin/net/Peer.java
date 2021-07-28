@@ -4,10 +4,13 @@ import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.net.protocol.Version;
 import com.github.microwww.bitcoin.provider.LocalBlockChain;
+import io.netty.util.AttributeKey;
 
 import java.net.InetSocketAddress;
 
 public class Peer {
+    public static final AttributeKey<Peer> PEER = AttributeKey.newInstance("connection-peer");
+
     private final LocalBlockChain localBlockChain;
     private final String host;
     private final int port;

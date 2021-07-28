@@ -7,25 +7,25 @@ import com.github.microwww.bitcoin.net.protocol.Version;
 import com.github.microwww.bitcoin.provider.PeerChannelProtocol;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.util.Attribute;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 
 @Component
 public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<MessageHeader> {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelInboundHandler.class);
 
     @Autowired
-    CChainParams config;
-    @Autowired
     PeerChannelProtocol peerChannelProtocol;
-    @Autowired
-    PeerConnection connection;
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        ctx.write(Version.builder(connection.getPeer(ctx), config));
+        Peer attr = ctx.channel().attr(Peer.PEER).get();
+        Assert.isTrue(null != attr, "Not init peer in channel");
+        ctx.write(Version.builder(attr, attr.getLocalBlockChain().getChainParams()));
     }
 
     @Override
@@ -33,8 +33,9 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
         try {
             NetProtocol netProtocol = header.getNetProtocol();
             logger.debug("Get a command : {}", netProtocol.cmd());
-            AbstractProtocol parse = netProtocol.parse(connection.getPeer(ctx), header.getPayload());
-            logger.debug("Parse command: {},  data : {}", netProtocol.cmd(), parse.getClass().getSimpleName());
+            Peer peer = ctx.channel().attr(Peer.PEER).get();
+            AbstractProtocol parse = netProtocol.parse(peer, header.getPayload());
+            logger.info("Parse command: {},  data : {}", netProtocol.cmd(), parse.getClass().getSimpleName());
 
             peerChannelProtocol.doAction(ctx, parse);
 

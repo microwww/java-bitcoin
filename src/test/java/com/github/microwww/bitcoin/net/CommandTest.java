@@ -17,17 +17,15 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
-
 public class CommandTest {
     private static final Logger logger = LoggerFactory.getLogger(CommandTest.class);
-    private static CChainParams cp = new CChainParams(new Settings());
+    private static CChainParams cp = new CChainParams(new Settings(CChainParams.Env.REG_TEST));
     private static LocalBlockChain localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TxMemPool());
-    private static PeerConnection connection = new PeerConnection();
 
     @Test
     @Disabled
-    public void sendCommand() throws InterruptedException {
+    public void sendCommand() throws Exception {
+        Peer peer = new Peer(localBlockChain, "192.168.1.246", 18444);
         EventLoopGroup executors = new NioEventLoopGroup();
         Bootstrap bootstrap = new Bootstrap()
                 .group(executors)
@@ -35,6 +33,7 @@ public class CommandTest {
                 .handler(new ChannelInitializer<NioSocketChannel>() {
                     @Override
                     protected void initChannel(NioSocketChannel ch) {
+                        ch.attr(Peer.PEER).set(peer);
                         ch.pipeline()
                                 .addLast(new BitcoinNetEncode(localBlockChain.getChainParams()))
                                 .addLast(new BitcoinNetDecode(localBlockChain.getChainParams()))
@@ -42,29 +41,27 @@ public class CommandTest {
                     }
                 });
         // connection
-        Peer peer = new Peer(localBlockChain, "192.168.2.18", 18444);
         bootstrap.connect(peer.getHost(), peer.getPort())
                 .addListener((DefaultChannelPromise e) -> {
-                    connection.addPeers((InetSocketAddress) e.channel().localAddress(), peer);
                     logger.info("Connection FROM: " + e.channel().localAddress() + ", TO: " + e.channel().remoteAddress());
                 })
                 .sync().channel().closeFuture()
-                .sync()
-                .addListener(e -> {
-                    executors.shutdownGracefully();
-                });
+                .sync();
+        System.in.read();
+        executors.shutdownGracefully();
     }
 
     public static class PrintInputChannel extends SimpleChannelInboundHandler<MessageHeader> {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            ctx.write(Version.builder(connection.getPeer(ctx), localBlockChain.getChainParams()));
+            Peer peer = ctx.channel().attr(Peer.PEER).get();
+            ctx.writeAndFlush(Version.builder(peer, peer.getLocalBlockChain().getChainParams()));
         }
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, MessageHeader header) throws Exception {
-            Peer peer = connection.getPeer(ctx);
+            Peer peer = ctx.channel().attr(Peer.PEER).get();
             logger.info("Parse data to : {}", header.getClass().getSimpleName());
             try {
                 NetProtocol netProtocol = header.getNetProtocol();
