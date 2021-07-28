@@ -5,36 +5,36 @@ import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
 import com.github.microwww.bitcoin.net.protocol.UnsupportedNetProtocolException;
 import com.github.microwww.bitcoin.net.protocol.Version;
 import com.github.microwww.bitcoin.provider.PeerChannelProtocol;
-import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.util.Attribute;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 
 @Component
 public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<MessageHeader> {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelInboundHandler.class);
 
     @Autowired
-    CChainParams config;
-    @Autowired
     PeerChannelProtocol peerChannelProtocol;
-    @Autowired
-    PeerConnection connection;
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        ctx.write(Version.builder(connection.getPeer(ctx), config));
+        Peer attr = ctx.channel().attr(Peer.PEER).get();
+        Assert.isTrue(null != attr, "Not init peer in channel");
+        ctx.write(Version.builder(attr, attr.getLocalBlockChain().getChainParams()));
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, MessageHeader header) throws Exception {
         try {
             NetProtocol netProtocol = header.getNetProtocol();
-            logger.debug("Get a command : {}, length : {}", netProtocol.cmd(), header.getPayload().length);
-            AbstractProtocol parse = netProtocol.parse(connection.getPeer(ctx), header.getPayload());
+            logger.debug("Get a command : {}", netProtocol.cmd());
+            Peer peer = ctx.channel().attr(Peer.PEER).get();
+            AbstractProtocol parse = netProtocol.parse(peer, header.getPayload());
             logger.info("Parse command: {},  data : {}", netProtocol.cmd(), parse.getClass().getSimpleName());
 
             peerChannelProtocol.doAction(ctx, parse);

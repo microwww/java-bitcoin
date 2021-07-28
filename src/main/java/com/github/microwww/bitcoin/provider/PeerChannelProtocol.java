@@ -5,7 +5,6 @@ import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint64;
 import com.github.microwww.bitcoin.net.Peer;
-import com.github.microwww.bitcoin.net.PeerConnection;
 import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.store.HeightChainBlock;
 import io.netty.channel.ChannelHandlerContext;
@@ -34,8 +33,6 @@ public class PeerChannelProtocol {
     @Autowired
     Settings config;
     @Autowired
-    PeerConnection connection;
-    @Autowired
     LocalBlockChain chain;
 
     public void doAction(ChannelHandlerContext ctx, AbstractProtocol ver) {
@@ -58,13 +55,13 @@ public class PeerChannelProtocol {
     }
 
     public void service(ChannelHandlerContext ctx, Version version) {
-        Peer peer = connection.getPeer(ctx);
+        Peer peer = ctx.channel().attr(Peer.PEER).get();
         peer.setVersion(version);
-        connection.getPeer(ctx).setMeReady(true);
+        peer.setMeReady(true);
     }
 
     public void service(ChannelHandlerContext ctx, VerACK ack) {
-        Peer peer = connection.getPeer(ctx);
+        Peer peer = ctx.channel().attr(Peer.PEER).get();
         peer.setRemoteReady(true);
         ctx.executor().execute(() -> {
             ctx.write(new VerACK(peer));
@@ -171,7 +168,7 @@ public class PeerChannelProtocol {
             }
         }
         if (config.isTxIndex()) {
-            logger.info("Loading blocks from headers, count : {}", cb.length);
+            logger.info("Find blocks from headers, count : {}", cb.length);
             ctx.executor().execute(() -> {
                 GetData.Message[] ms = new GetData.Message[cb.length];
                 GetData data = new GetData(request.getPeer());
@@ -189,6 +186,7 @@ public class PeerChannelProtocol {
 
     public void service(ChannelHandlerContext ctx, Block request) {
         ChainBlock cb = request.getChainBlock();
+        logger.info("Get one blocks from peer : {}", request.getChainBlock().hash());
         chain.getDiskBlock().writeBlock(cb, true);
     }
 

@@ -44,7 +44,7 @@ public abstract class AbstractProtocolAdapter<T extends AbstractProtocol> implem
     }
 
     protected T read0(ByteBuf buf) {
-        logger.info("do not Reading nothing");
+        logger.debug("do not read anything, net-protocol : {}", this.getClass().getSimpleName());
         return (T) this;
     }
 

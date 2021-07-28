@@ -75,10 +75,10 @@ public class DiskBlock implements Closeable {
                 Uint256 next = latest.header.getPreHash();
                 Optional<HeightChainBlock> nv = this.readBlock(next);
                 if (nv.isPresent()) {
-                    h--;
                     HeightChainBlock hc = nv.get();
                     latest = hc.getBlock();
-                    logger.debug("Loding hash {}: {}, {}", h, latest.hash(), latest.header.getPreHash());
+                    logger.debug("Init from leveDB: {}, {} --> {}", latest.hash(), latest.header.getPreHash());
+                    h--;
                     Assert.isTrue(hc.getHeight() == h, "levelDB height not match");
                 } else break;
             }
@@ -215,7 +215,7 @@ public class DiskBlock implements Closeable {
         if (!data.isPresent()) {
             return Optional.empty();
         }
-        logger.debug("Get levelDB: {}", hash);
+        logger.debug("Get block from levelDB: {}", hash);
         byte[] bytes = data.get();
         Assert.isTrue(bytes.length > 12, "(height,position,length,name)Uint32 + Uint32 + Uint32 + string....");
 
@@ -225,7 +225,9 @@ public class DiskBlock implements Closeable {
         int position = byteBuf.readInt();
         int len = byteBuf.readInt();
         byte[] name = ByteUtil.readAll(byteBuf);
-        File f = new File(root, new String(name, StandardCharsets.UTF_8));
+        String fileName = new String(name, StandardCharsets.UTF_8);
+        File f = new File(root, fileName);
+        logger.debug("Load block height: {}, in {}, position: {}, length: {}", height, fileName, position, len);
         //
 
         FileChannel r = new RandomAccessFile(f, "r").getChannel();
@@ -236,8 +238,9 @@ public class DiskBlock implements Closeable {
         v.rewind();
         ByteBuf bf = Unpooled.copiedBuffer(v);
         int magic = bf.readInt();
-        Assert.isTrue(chainParams.getEnvParams().getMagic() == magic, "marge match !");// TODO :: 校验头
-        bf.readInt(); // len
+        Assert.isTrue(chainParams.getEnvParams().getMagic() == magic, "marge match !");// 校验头
+        int blockLength = bf.readIntLE();// len
+        Assert.isTrue(len == blockLength + 8, "data-length == magic + length-flag + data-size");
         ChainBlock chainBlock = new ChainBlock().readHeader(bf).readBody(bf);
         return Optional.of(new HeightChainBlock(chainBlock, height));
     }

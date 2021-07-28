@@ -24,11 +24,19 @@ public class Settings {
     private boolean txIndex = false;
     private boolean reIndex = false;
     private int bestConfirmHeight = 6;
+    private String bind; // host:port
 
     private CChainParams.Env env = CChainParams.Env.MAIN;
 
     private int protocolVersion = ProtocolVersion.PROTOCOL_VERSION;
     private long services = ServiceFlags.join(ServiceFlags.NODE_NETWORK, ServiceFlags.NODE_WITNESS, ServiceFlags.NODE_NETWORK_LIMITED);
+
+    public Settings() {
+    }
+
+    public Settings(CChainParams.Env env) {
+        this.env = env;
+    }
 
     public String getAgent() {
         return agent;
@@ -117,6 +125,14 @@ public class Settings {
 
     public int getBestConfirmHeight() {
         return bestConfirmHeight;
+    }
+
+    public String getBind() {
+        return bind;
+    }
+
+    public void setBind(String bind) {
+        this.bind = bind;
     }
 
     public void setBestConfirmHeight(int bestConfirmHeight) {

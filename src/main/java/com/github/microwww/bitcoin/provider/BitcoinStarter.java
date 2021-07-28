@@ -5,6 +5,7 @@ import com.github.microwww.bitcoin.conf.ChainBlockStore;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.event.BitcoinAddPeerEvent;
 import com.github.microwww.bitcoin.net.Peer;
+import com.github.microwww.bitcoin.net.server.ServerStarter;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultProgressivePromise;
@@ -48,8 +49,9 @@ public class BitcoinStarter implements ApplicationListener<ApplicationReadyEvent
 
                 localBlockChain.getDiskBlock().init();
 
-                // TODO: 启动server
-                logger.info("start bitcoin server");
+                // 启动server
+                ServerStarter sv = event.getApplicationContext().getBean(ServerStarter.class);
+                sv.newThreadSTART(null, null);
 
                 future.setSuccess(null);
                 conf.toPeers().forEach(e -> {
