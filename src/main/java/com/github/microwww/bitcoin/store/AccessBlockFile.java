@@ -13,7 +13,7 @@ import java.nio.channels.FileChannel;
 import java.util.regex.Pattern;
 
 public class AccessBlockFile implements Closeable {
-    private static final Logger logger = LoggerFactory.getLogger(DiskBlock.class);
+    private static final Logger logger = LoggerFactory.getLogger(AccessBlockFile.class);
     public static final Pattern pt = Pattern.compile("blk0*([0-9]+).dat");
     public static final String sequenceFile = "blk%05d.dat"; // blk00000.dat
     public static int MAX_BYTES = 128 * 1024 * 1024; // 128M
