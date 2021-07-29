@@ -13,12 +13,13 @@ import java.util.Arrays;
 
 public class RawTransaction {
     private int version;
-    private byte flag0 = 0;
-    private byte flag1 = 1;
+    private byte marker = 0;
+    private byte flag = 0;
     private UintVar inputCount;
     private TxIn[] txIns;
     private Uint8 outputCount;
     private TxOut[] txOuts;
+    private Uint8 witnessVersion;
     private byte[][] txWitness; // 隔离见证
     private Uint32 lockTime;
 
@@ -27,8 +28,9 @@ public class RawTransaction {
         bf.markReaderIndex();
         Uint8 uic = new Uint8(bf.readByte());
         if (uic.intValue() == 0) {
-            flag0 = uic.byteValue();
-            Assert.isTrue(flag1 == bf.readByte(), "Must 0x0001");
+            marker = uic.byteValue();
+            flag = bf.readByte();
+            Assert.isTrue(1 == flag, "Must 0x0001");
         } else {
             bf.resetReaderIndex();
         }
@@ -51,7 +53,10 @@ public class RawTransaction {
             out.read(bf);
             txOuts[i] = out;
         }
-        // TODO:: 隔离见证
+        // TODO:: 隔离见证, 格式??
+        if (flag == 1) {
+            witnessVersion = new Uint8(bf.readByte());
+        }
         // ByteUtil.readLength(bf, );
         lockTime = new Uint32(bf.readIntLE());
     }
@@ -66,7 +71,7 @@ public class RawTransaction {
         bf.writeIntLE(version);
         //////// IN
         if (version == 2) {
-            bf.writeBytes(new byte[]{flag0, flag1});
+            bf.writeBytes(new byte[]{marker, flag});
         }
         bf.writeByte(txIns.length);
         for (TxIn txIn : txIns) {
