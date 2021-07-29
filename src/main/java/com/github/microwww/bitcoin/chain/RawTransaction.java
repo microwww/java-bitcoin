@@ -3,24 +3,38 @@ package com.github.microwww.bitcoin.chain;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.math.Uint8;
+import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import org.springframework.util.Assert;
 
 import java.util.Arrays;
 
 public class RawTransaction {
     private int version;
-    private Uint8 inputCount;
+    private byte flag0 = 0;
+    private byte flag1 = 1;
+    private UintVar inputCount;
     private TxIn[] txIns;
     private Uint8 outputCount;
     private TxOut[] txOuts;
+    private byte[][] txWitness; // 隔离见证
     private Uint32 lockTime;
 
     public void read(ByteBuf bf) {
         version = bf.readIntLE();
+        bf.markReaderIndex();
+        Uint8 uic = new Uint8(bf.readByte());
+        if (uic.intValue() == 0) {
+            flag0 = uic.byteValue();
+            Assert.isTrue(flag1 == bf.readByte(), "Must 0x0001");
+        } else {
+            bf.resetReaderIndex();
+        }
+        inputCount = UintVar.reader(bf);
         //////// IN
-        inputCount = new Uint8(bf.readByte());
+        Assert.isTrue(inputCount.intValue() != 0, "Must > 0");
         int len = inputCount.intValue();
         txIns = new TxIn[len];
         for (int i = 0; i < len; i++) {
@@ -37,6 +51,8 @@ public class RawTransaction {
             out.read(bf);
             txOuts[i] = out;
         }
+        // TODO:: 隔离见证
+        // ByteUtil.readLength(bf, );
         lockTime = new Uint32(bf.readIntLE());
     }
 
@@ -49,6 +65,9 @@ public class RawTransaction {
     public void write(ByteBuf bf) {
         bf.writeIntLE(version);
         //////// IN
+        if (version == 2) {
+            bf.writeBytes(new byte[]{flag0, flag1});
+        }
         bf.writeByte(txIns.length);
         for (TxIn txIn : txIns) {
             txIn.write(bf);
@@ -69,12 +88,8 @@ public class RawTransaction {
         this.version = version;
     }
 
-    public Uint8 getInputCount() {
+    public UintVar getInputCount() {
         return inputCount;
-    }
-
-    public void setInputCount(Uint8 inputCount) {
-        this.inputCount = inputCount;
     }
 
     public TxIn[] getTxIns() {

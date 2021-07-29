@@ -1,5 +1,8 @@
 package com.github.microwww.bitcoin.script;
 
+import com.github.microwww.bitcoin.script.ex.ScriptDisableException;
+import org.springframework.util.Assert;
+
 public enum ScriptNames {
     // push value
     OP_0("0"),
@@ -76,24 +79,159 @@ public enum ScriptNames {
     OP_RESERVED2("OP_RESERVED2"),
 
     // numeric
-    OP_1ADD("OP_1ADD"),
-    OP_1SUB("OP_1SUB"),
-    OP_2MUL("OP_2MUL"),
-    OP_2DIV("OP_2DIV"),
-    OP_NEGATE("OP_NEGATE"),
-    OP_ABS("OP_ABS"),
-    OP_NOT("OP_NOT"),
-    OP_0NOTEQUAL("OP_0NOTEQUAL"),
-    OP_ADD("OP_ADD"),
-    OP_SUB("OP_SUB"),
-    OP_MUL("OP_MUL"),
-    OP_DIV("OP_DIV"),
-    OP_MOD("OP_MOD"),
-    OP_LSHIFT("OP_LSHIFT"),
-    OP_RSHIFT("OP_RSHIFT"),
-    OP_BOOLAND("OP_BOOLAND"),
-    OP_BOOLOR("OP_BOOLOR"),
-    OP_NUMEQUAL("OP_NUMEQUAL"),
+    OP_1ADD("OP_1ADD") {
+        @Override
+        public void opt(BytesStack stack) {
+            int v = stack.popInt() + 1;
+            stack.push(v);
+        }
+    },
+    OP_1SUB("OP_1SUB") {
+        @Override
+        public void opt(BytesStack stack) {
+            int v = stack.popInt() - 1;
+            stack.push(v);
+        }
+    },
+    OP_2MUL("OP_2MUL") {
+        @Override
+        public void opt(BytesStack stack) {
+            throw new ScriptDisableException(this.name());
+        }
+    },
+    OP_2DIV("OP_2DIV") {
+        @Override
+        public void opt(BytesStack stack) {
+            throw new ScriptDisableException(this.name());
+        }
+    },
+    OP_NEGATE("OP_NEGATE") {
+        @Override
+        public void opt(BytesStack stack) {
+            int i = stack.popInt();
+            if (i > 0) {
+                stack.push(-i);
+            } else {
+                stack.push(i);
+            }
+        }
+    },
+    OP_ABS("OP_ABS") {
+        @Override
+        public void opt(BytesStack stack) {
+            int i = stack.popInt();
+            if (i >= 0) {
+                stack.push(i);
+            } else {
+                stack.push(-i);
+            }
+        }
+    },
+    OP_NOT("OP_NOT") {
+        @Override
+        public void opt(BytesStack stack) {
+            int i = stack.popInt();
+            if (i == 0) {
+                stack.push(1);
+            } else {
+                stack.push(0);
+            }
+        }
+    },
+    OP_0NOTEQUAL("OP_0NOTEQUAL") {
+        @Override
+        public void opt(BytesStack stack) {
+            int i = stack.popInt();
+            if (i != 0) {
+                stack.push(1);
+            } else {
+                stack.push(0);
+            }
+        }
+    },
+    OP_ADD("OP_ADD") {
+        @Override
+        public void opt(BytesStack stack) {
+            Assert.isTrue(stack.size() >= 2, "stack length >= 2");
+            int a = stack.popInt();
+            int b = stack.popInt();
+            stack.push(a + b);
+        }
+    },
+    OP_SUB("OP_SUB") {
+        @Override
+        public void opt(BytesStack stack) {
+            int a = stack.popInt();
+            int b = stack.popInt();
+            stack.push(a - b);
+        }
+    },
+    OP_MUL("OP_MUL") {
+        @Override
+        public void opt(BytesStack stack) {
+            throw new ScriptDisableException(this.name());
+        }
+    },
+    OP_DIV("OP_DIV") {
+        @Override
+        public void opt(BytesStack stack) {
+            throw new ScriptDisableException(this.name());
+        }
+    },
+    OP_MOD("OP_MOD") {
+        @Override
+        public void opt(BytesStack stack) {
+            throw new ScriptDisableException(this.name());
+        }
+    },
+    OP_LSHIFT("OP_LSHIFT") {
+        @Override
+        public void opt(BytesStack stack) {
+            throw new ScriptDisableException(this.name());
+        }
+    },
+    OP_RSHIFT("OP_RSHIFT") {
+        @Override
+        public void opt(BytesStack stack) {
+            throw new ScriptDisableException(this.name());
+        }
+    },
+    OP_BOOLAND("OP_BOOLAND") {
+        @Override
+        public void opt(BytesStack stack) {
+            int a = stack.popInt();
+            int b = stack.popInt();
+            if (a != 0 && b != 0) {
+                stack.push(1);
+            } else {
+                stack.push(0);
+            }
+        }
+    },
+    OP_BOOLOR("OP_BOOLOR") {
+        @Override
+        public void opt(BytesStack stack) {
+            int a = stack.popInt();
+            int b = stack.popInt();
+            if (a != 0 || b != 0) {
+                stack.push(1);
+            } else {
+                stack.push(0);
+            }
+        }
+    },
+    OP_NUMEQUAL("OP_NUMEQUAL") {
+        @Override
+        public void opt(BytesStack stack) {
+            int a = stack.popInt();
+            int b = stack.popInt();
+            if (a == b) {
+                stack.push(1);
+            } else {
+                stack.push(0);
+            }
+        }
+    },
     OP_NUMEQUALVERIFY("OP_NUMEQUALVERIFY"),
     OP_NUMNOTEQUAL("OP_NUMNOTEQUAL"),
     OP_LESSTHAN("OP_LESSTHAN"),
@@ -140,6 +278,10 @@ public enum ScriptNames {
 
     ScriptNames(String command) {
         this.command = command;
+    }
+
+    public void opt(BytesStack stack) {
+        throw new UnsupportedOperationException();
     }
 
     public String getCommand() {

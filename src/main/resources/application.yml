@@ -6,11 +6,15 @@ server:
 conf:
   bitcoin:
     peers:
-      - localhost:18444
+      - 192.168.1.246:18444
 #
 spring:
   profiles:
     active: regtest
   application:
     name: bitcoin
+#
+logging:
+  level:
+    com.github.microwww.bitcoin: info
 #

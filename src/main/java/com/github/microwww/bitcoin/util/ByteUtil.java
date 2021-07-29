@@ -16,6 +16,7 @@ public class ByteUtil {
     }
 
     public static byte[] readLength(ByteBuf buf, int len) {
+        Assert.isTrue(len >= 0, "length > 0");
         Assert.isTrue(buf.readableBytes() >= len, "not have data");
         byte[] bytes = new byte[len];
         if (len == 0) {

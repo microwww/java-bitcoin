@@ -3,28 +3,30 @@ package com.github.microwww.bitcoin.chain;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.math.Uint8;
+import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 
 public class TxIn {
     public Uint256 preTxHash;
     public int preTxOutIndex;
-    public Uint8 scriptLength;
+    public UintVar scriptLength;
     public byte[] script;
     public Uint32 sequence;
 
     public void read(ByteBuf bf) {
         preTxHash = Uint256.read(bf);
         preTxOutIndex = bf.readIntLE();
-        scriptLength = new Uint8(bf.readByte());
-        script = ByteUtil.readLength(bf, scriptLength.intValue());
+        scriptLength = UintVar.reader(bf);
+        script = ByteUtil.readLength(bf, scriptLength.intValueExact());
         sequence = new Uint32(bf.readIntLE());
     }
 
     public void write(ByteBuf bf) {
         bf.writeBytes(preTxHash.fill256bit());
         bf.writeIntLE(preTxOutIndex);
-        bf.writeByte(script.length);
+        UintVar v = new UintVar(script.length);
+        v.write(bf);
         bf.writeBytes(script);
         bf.writeIntLE(sequence.intValue());
     }
@@ -45,12 +47,8 @@ public class TxIn {
         this.preTxOutIndex = preTxOutIndex;
     }
 
-    public Uint8 getScriptLength() {
+    public UintVar getScriptLength() {
         return scriptLength;
-    }
-
-    public void setScriptLength(Uint8 scriptLength) {
-        this.scriptLength = scriptLength;
     }
 
     public byte[] getScript() {

@@ -9,6 +9,7 @@ public class Uint8 extends Number implements Comparable<Uint8> {
 
     public static final Uint8 MAX_VALUE = new Uint8(0xFF);
     public static final Uint8 ZERO = new Uint8(0x0);
+    public static final Uint8 ONE = new Uint8(0x1);
     private final long value;
 
     /**
