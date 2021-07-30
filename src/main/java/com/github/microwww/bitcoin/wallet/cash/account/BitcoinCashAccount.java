@@ -79,6 +79,14 @@ public class BitcoinCashAccount {
         return out;
     }
 
+    public static byte[] ripemd160hash(byte[] input) {
+        RIPEMD160Digest digest = new RIPEMD160Digest();
+        digest.update(input, 0, input.length);
+        byte[] out = new byte[20];
+        digest.doFinal(out, 0);
+        return out;
+    }
+
     public static byte[] hashTwice(byte[] input, int offset, int length) {
         MessageDigest digest = newDigest();
         digest.update(input, offset, length);

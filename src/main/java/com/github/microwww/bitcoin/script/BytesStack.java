@@ -82,6 +82,18 @@ public class BytesStack {
         return stack.empty();
     }
 
+    public BytesStack assertNotEmpty() {
+        if (stack.size() > 0) {
+            return this;
+        } else throw new IllegalArgumentException("STACK SIZE not empty");
+    }
+
+    public BytesStack assertSizeGE(int size) {
+        if (stack.size() >= size) {
+            return this;
+        } else throw new IllegalArgumentException("STACK SIZE < " + size);
+    }
+
     public int size() {
         return stack.size();
     }
