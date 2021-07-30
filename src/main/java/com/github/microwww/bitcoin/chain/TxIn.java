@@ -13,6 +13,7 @@ public class TxIn {
     public UintVar scriptLength;
     public byte[] script;
     public Uint32 sequence;
+    private byte[][] txWitness;
 
     public void read(ByteBuf bf) {
         preTxHash = Uint256.read(bf);
@@ -65,6 +66,14 @@ public class TxIn {
 
     public void setSequence(Uint32 sequence) {
         this.sequence = sequence;
+    }
+
+    public byte[][] getTxWitness() {
+        return txWitness;
+    }
+
+    public void setTxWitness(byte[][] txWitness) {
+        this.txWitness = txWitness;
     }
 
     @Override

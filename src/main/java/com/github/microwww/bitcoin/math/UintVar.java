@@ -6,9 +6,11 @@ import io.netty.buffer.ByteBuf;
 import java.math.BigInteger;
 
 /**
- * 边长整数
+ * 变长的整数 小端, 最大 8 byte
  */
 public class UintVar extends BigInteger {
+
+    public static final UintVar ZERO = new UintVar((byte) 0x0);
 
     public UintVar(byte... val) {
         super(ByteUtil.concat(new byte[]{0}, val));

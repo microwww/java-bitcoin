@@ -7,11 +7,14 @@ import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import org.springframework.util.Assert;
 
 import java.util.Arrays;
 
 public class RawTransaction {
     private int version;
+    private byte marker = 0;
+    private byte flag = 0;
     private UintVar inputCount;
     private TxIn[] txIns;
     private UintVar outputCount;
@@ -20,8 +23,18 @@ public class RawTransaction {
 
     public void read(ByteBuf bf) {
         version = bf.readIntLE();
-        //////// IN
+        bf.markReaderIndex();
+        Uint8 uic = new Uint8(bf.readByte());
+        if (uic.intValue() == 0) {
+            marker = uic.byteValue();
+            flag = bf.readByte();
+            Assert.isTrue(1 == flag, "Must 0x0001");
+        } else {
+            bf.resetReaderIndex();
+        }
         inputCount = UintVar.reader(bf);
+        //////// IN
+        Assert.isTrue(inputCount.intValue() != 0, "Must > 0");
         int len = inputCount.intValue();
         txIns = new TxIn[len];
         for (int i = 0; i < len; i++) {
@@ -31,25 +44,44 @@ public class RawTransaction {
         }
         ////// OUT
         outputCount = UintVar.reader(bf);
-        len = outputCount.intValue();
+        len = outputCount.intValueExact();
         txOuts = new TxOut[len];
         for (int i = 0; i < len; i++) {
             TxOut out = new TxOut();
             out.read(bf);
             txOuts[i] = out;
         }
+        // TODO:: 隔离见证, 格式??
+        if (flag == 1) {
+            for (TxIn txIn : txIns) {
+                UintVar count = UintVar.reader(bf);
+                byte[][] v = new byte[count.intValueExact()][];
+                for (int i = 0; i < v.length; i++) {
+                    len = UintVar.reader(bf).intValueExact();
+                    v[i] = ByteUtil.readLength(bf, len);
+                }
+                txIn.setTxWitness(v);
+            }
+        }
         lockTime = new Uint32(bf.readIntLE());
     }
 
     public Uint256 hash() {
         ByteBuf bf = Unpooled.buffer();
-        write(bf);
+        write(bf, (byte) 0);
         return new Uint256(ByteUtil.sha256sha256(ByteUtil.readAll(bf)));
     }
 
     public void write(ByteBuf bf) {
+        write(bf, this.flag);
+    }
+
+    public void write(ByteBuf bf, byte witness) {
         bf.writeIntLE(version);
         //////// IN
+        if (witness != 0) {
+            bf.writeBytes(new byte[]{marker, witness});
+        }
         bf.writeByte(txIns.length);
         for (TxIn txIn : txIns) {
             txIn.write(bf);
@@ -58,6 +90,18 @@ public class RawTransaction {
         bf.writeByte(txOuts.length);
         for (TxOut txOut : txOuts) {
             txOut.write(bf);
+        }
+        if (witness != 0) for (TxIn txIn : txIns) {
+            byte[][] wt = txIn.getTxWitness();
+            if (wt == null) {
+                UintVar.ZERO.write(bf);
+                continue;
+            }
+            UintVar.valueOf(wt.length).write(bf);
+            for (byte[] bytes : wt) {
+                UintVar.valueOf(bytes.length).write(bf);
+                bf.writeBytes(bytes);
+            }
         }
         bf.writeIntLE(lockTime.intValue());
     }
@@ -100,6 +144,14 @@ public class RawTransaction {
 
     public void setLockTime(Uint32 lockTime) {
         this.lockTime = lockTime;
+    }
+
+    public byte getFlag() {
+        return flag;
+    }
+
+    public void setFlag(byte flag) {
+        this.flag = flag;
     }
 
     @Override
