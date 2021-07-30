@@ -14,8 +14,13 @@ public class UintVar extends BigInteger {
         super(ByteUtil.concat(new byte[]{0}, val));
     }
 
-    public UintVar(int val) {
-        super(new byte[]{(byte) (val >>> 24), (byte) (val << 8 >>> 24), (byte) (val << 16 >>> 24), (byte) (val << 24 >>> 24)});
+    /**
+     * java 只能接受整数个数据
+     *
+     * @param val
+     */
+    public static UintVar valueOf(int val) {
+        return new UintVar(new byte[]{(byte) (val >>> 24), (byte) (val << 8 >>> 24), (byte) (val << 16 >>> 24), (byte) (val << 24 >>> 24)});
     }
 
     public static UintVar reader(ByteBuf bf) {

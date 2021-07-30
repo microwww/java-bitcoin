@@ -1,5 +1,6 @@
 package com.github.microwww.bitcoin.net.protocol;
 
+import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.net.Peer;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -17,9 +18,9 @@ public class Addr extends AbstractProtocolAdapter<Addr> {
     @Override
     public Addr read(byte[] buf) {
         ByteBuf buffer = Unpooled.copiedBuffer(buf);
-        byte len = buffer.readByte();
+        int len = UintVar.reader(buffer).intValueExact();
         PeerNode[] ns = new PeerNode[len];
-        for (int i = 0; i < len; i++) {
+        for (int i = 0; i < len; i++) { // TODO:: 有出入, 需要真实数据验证
             long service = buffer.readLongLE();
             byte[] addr = new byte[16];
             buffer.readBytes(addr);

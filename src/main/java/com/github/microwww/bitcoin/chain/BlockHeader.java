@@ -3,6 +3,7 @@ package com.github.microwww.bitcoin.chain;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.math.Uint8;
+import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -27,7 +28,7 @@ public class BlockHeader implements Serializable {
     private Uint32 nonce;
     // 上面属性 hash
 
-    private Uint8 txCount; // 这只是个标记位, 协议传输和解析的时候需要, 真实使用 txs.length 即可
+    private UintVar txCount; // 这只是个标记位, 协议传输和解析的时候需要, 真实使用 txs.length 即可
 
     public BlockHeader() {
     }
@@ -44,7 +45,7 @@ public class BlockHeader implements Serializable {
         time = new Uint32(bf.readIntLE());
         bits = new Uint32(bf.readIntLE());
         nonce = new Uint32(bf.readIntLE());
-        txCount = new Uint8(bf.readByte());
+        txCount = UintVar.reader(bf);
     }
 
     /**
@@ -141,12 +142,12 @@ public class BlockHeader implements Serializable {
         return toString(new StringBuilder()).toString();
     }
 
-    public Uint8 getTxCount() {
+    public UintVar getTxCount() {
         return txCount;
     }
 
-    public BlockHeader setTxCount(Uint8 txCount) {
-        this.txCount = txCount;
+    public BlockHeader setTxCount(int txCount) {
+        this.txCount = UintVar.valueOf(txCount);
         return this;
     }
 

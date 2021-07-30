@@ -31,7 +31,9 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
     protected void channelRead0(ChannelHandlerContext ctx, MessageHeader header) throws Exception {
         try {
             NetProtocol netProtocol = header.getNetProtocol();
-            logger.debug("Get a command : {}", netProtocol.cmd());
+            if (logger.isDebugEnabled()) {
+                logger.debug("Get a command : {} \n{}", netProtocol.cmd(), ByteUtil.hex(header.getPayload()));
+            }
             Peer peer = ctx.channel().attr(Peer.PEER).get();
             AbstractProtocol parse = netProtocol.parse(peer, header.getPayload());
             logger.info("Parse command: {},  data : {}", netProtocol.cmd(), parse.getClass().getSimpleName());

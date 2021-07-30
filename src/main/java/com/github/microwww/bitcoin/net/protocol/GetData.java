@@ -3,6 +3,7 @@ package com.github.microwww.bitcoin.net.protocol;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.math.Uint8;
+import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
@@ -11,7 +12,7 @@ import java.util.Optional;
 
 public class GetData extends AbstractProtocolAdapter<GetData> {
 
-    private Uint8 count;
+    private UintVar count;
     private Message[] messages;
 
     public GetData(Peer peer) {
@@ -20,7 +21,7 @@ public class GetData extends AbstractProtocolAdapter<GetData> {
 
     @Override
     protected GetData read0(ByteBuf buf) {
-        this.count = new Uint8(buf.readByte());
+        this.count = UintVar.reader(buf);
         this.messages = new Message[count.intValue()];
         for (int i = 0; i < count.intValue(); i++) {
             Message data = new Message();
@@ -74,13 +75,8 @@ public class GetData extends AbstractProtocolAdapter<GetData> {
         }
     }
 
-    public Uint8 getCount() {
+    public UintVar getCount() {
         return count;
-    }
-
-    public GetData setCount(Uint8 count) {
-        this.count = count;
-        return this;
     }
 
     public Message[] getMessages() {

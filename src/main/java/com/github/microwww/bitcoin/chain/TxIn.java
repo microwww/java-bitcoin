@@ -25,7 +25,7 @@ public class TxIn {
     public void write(ByteBuf bf) {
         bf.writeBytes(preTxHash.fill256bit());
         bf.writeIntLE(preTxOutIndex);
-        UintVar v = new UintVar(script.length);
+        UintVar v = UintVar.valueOf(script.length);
         v.write(bf);
         bf.writeBytes(script);
         bf.writeIntLE(sequence.intValue());

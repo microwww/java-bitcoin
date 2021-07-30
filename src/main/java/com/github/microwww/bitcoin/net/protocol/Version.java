@@ -58,7 +58,7 @@ public class Version extends AbstractProtocolAdapter<Version> {
         return buf.readableBytes() - f;
     }
 
-    public Version read(byte[] payload) {
+    public Version read(byte[] payload) {// TODO:: 有出入, 需要真实数据验证, PeerNode 类对应
         ByteBuf buf = Unpooled.copiedBuffer(payload);
         Version ver = new Version(peer);
         ver.setProtocolVersion(buf.readIntLE());

@@ -7,36 +7,21 @@ import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import org.springframework.util.Assert;
 
 import java.util.Arrays;
 
 public class RawTransaction {
     private int version;
-    private byte marker = 0;
-    private byte flag = 0;
     private UintVar inputCount;
     private TxIn[] txIns;
-    private Uint8 outputCount;
+    private UintVar outputCount;
     private TxOut[] txOuts;
-    private Uint8 witnessVersion;
-    private byte[][] txWitness; // 隔离见证
     private Uint32 lockTime;
 
     public void read(ByteBuf bf) {
         version = bf.readIntLE();
-        bf.markReaderIndex();
-        Uint8 uic = new Uint8(bf.readByte());
-        if (uic.intValue() == 0) {
-            marker = uic.byteValue();
-            flag = bf.readByte();
-            Assert.isTrue(1 == flag, "Must 0x0001");
-        } else {
-            bf.resetReaderIndex();
-        }
-        inputCount = UintVar.reader(bf);
         //////// IN
-        Assert.isTrue(inputCount.intValue() != 0, "Must > 0");
+        inputCount = UintVar.reader(bf);
         int len = inputCount.intValue();
         txIns = new TxIn[len];
         for (int i = 0; i < len; i++) {
@@ -45,7 +30,7 @@ public class RawTransaction {
             txIns[i] = in;
         }
         ////// OUT
-        outputCount = new Uint8(bf.readByte());
+        outputCount = UintVar.reader(bf);
         len = outputCount.intValue();
         txOuts = new TxOut[len];
         for (int i = 0; i < len; i++) {
@@ -53,11 +38,6 @@ public class RawTransaction {
             out.read(bf);
             txOuts[i] = out;
         }
-        // TODO:: 隔离见证, 格式??
-        if (flag == 1) {
-            witnessVersion = new Uint8(bf.readByte());
-        }
-        // ByteUtil.readLength(bf, );
         lockTime = new Uint32(bf.readIntLE());
     }
 
@@ -70,9 +50,6 @@ public class RawTransaction {
     public void write(ByteBuf bf) {
         bf.writeIntLE(version);
         //////// IN
-        if (version == 2) {
-            bf.writeBytes(new byte[]{marker, flag});
-        }
         bf.writeByte(txIns.length);
         for (TxIn txIn : txIns) {
             txIn.write(bf);
@@ -105,12 +82,8 @@ public class RawTransaction {
         this.txIns = txIns;
     }
 
-    public Uint8 getOutputCount() {
+    public UintVar getOutputCount() {
         return outputCount;
-    }
-
-    public void setOutputCount(Uint8 outputCount) {
-        this.outputCount = outputCount;
     }
 
     public TxOut[] getTxOuts() {
