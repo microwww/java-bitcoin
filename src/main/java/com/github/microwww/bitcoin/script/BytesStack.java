@@ -20,20 +20,23 @@ public class BytesStack {
     private Stack<byte[]> stack = new Stack<>();
     private ByteBuf cache = Unpooled.buffer(256);
 
-    public byte[] push(byte[] item) {
-        return stack.push(item);
+    public BytesStack push(byte[] item) {
+        stack.push(item);
+        return this;
     }
 
-    public byte[] push(int item) {
+    public BytesStack push(int item) {
         cache.clear();
         byte[] bytes = ByteUtil.readLength(cache.writeIntLE(item), 4);
-        return stack.push(bytes);
+        stack.push(bytes);
+        return this;
     }
 
-    public byte[] push(long item) {
+    public BytesStack push(long item) {
         cache.clear();
         byte[] bytes = ByteUtil.readLength(cache.writeLongLE(item), 4);
-        return stack.push(bytes);
+        stack.push(bytes);
+        return this;
     }
 
     public byte[] pop() {

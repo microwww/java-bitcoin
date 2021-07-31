@@ -1,26 +1,26 @@
 package com.github.microwww.bitcoin.wallet;
 
-import org.bouncycastle.asn1.x9.X9IntegerConverter;
-import org.bouncycastle.crypto.params.ECDomainParameters;
-import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
-import org.bouncycastle.crypto.params.ParametersWithRandom;
-import org.bouncycastle.crypto.signers.ECDSASigner;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
-import org.bouncycastle.math.ec.ECAlgorithms;
 import org.bouncycastle.math.ec.ECPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
-import java.security.SecureRandom;
-import java.security.Security;
-import java.util.LinkedList;
+import java.security.*;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 
 public class Secp256k1 {
     private static final Logger logger = LoggerFactory.getLogger(Secp256k1.class);
 
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
+
+    private static final String ALGORITHM = "EC";
+    private static final String SIGN_ALGORITHMS = "SHA256withECDSA";
     private static final String RANDOM_NUMBER_ALGORITHM = "SHA1PRNG";
     private static final String RANDOM_NUMBER_ALGORITHM_PROVIDER = "SUN";
 
@@ -66,118 +66,37 @@ public class Secp256k1 {
         }
     }
 
-    /**
-     * Sign data using the ECDSA algorithm.
-     */
-    public static byte[][] signTransaction(byte[] data, byte[] privateKey) {
+    public static byte[] signature(PrivateKey privateKey, byte[] data) {
         try {
-            Security.addProvider(new BouncyCastleProvider());
-            ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp256k1");
-
-            ECDSASigner ecdsaSigner = new ECDSASigner();
-            ECDomainParameters domain = new ECDomainParameters(spec.getCurve(), spec.getG(), spec.getN());
-            ECPrivateKeyParameters privateKeyParms = new ECPrivateKeyParameters(new BigInteger(1, privateKey), domain);
-            ParametersWithRandom params = new ParametersWithRandom(privateKeyParms);
-
-            ecdsaSigner.init(true, params);
-
-            BigInteger[] sig = ecdsaSigner.generateSignature(data);
-            LinkedList<byte[]> sigData = new LinkedList<byte[]>();
-            byte[] publicKey = getPublicKey(privateKey);
-            byte recoveryId = getRecoveryId(sig[0].toByteArray(), sig[1].toByteArray(), data, publicKey);
-            for (BigInteger sigChunk : sig) {
-                sigData.add(sigChunk.toByteArray());
-            }
-            sigData.add(new byte[] { recoveryId });
-            return sigData.toArray(new byte[][] {});
-
-        } catch (Exception e) {
-            logger.warn(e.getMessage(), e);
-            return new byte[0][0];
+            Signature signature = Signature.getInstance(SIGN_ALGORITHMS);// SHA256withECDSA
+            signature.initSign(privateKey);
+            signature.update(data);
+            return signature.sign();
+        } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    /**
-     * Determine the recovery ID for the given signature and public key.
-     * 
-     * <p>
-     * Any signed message can resolve to one of two public keys due to the nature ECDSA. The recovery ID provides information about which one it is, allowing confirmation that the
-     * message was signed by a specific key.
-     * </p>
-     */
-    public static byte getRecoveryId(byte[] sigR, byte[] sigS, byte[] message, byte[] publicKey) {
-        ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp256k1");
-        BigInteger pointN = spec.getN();
-        for (int recoveryId = 0; recoveryId < 2; recoveryId++) {
-            try {
-                BigInteger pointX = new BigInteger(1, sigR);
-
-                X9IntegerConverter x9 = new X9IntegerConverter();
-                byte[] compEnc = x9.integerToBytes(pointX, 1 + x9.getByteLength(spec.getCurve()));
-                compEnc[0] = (byte) ((recoveryId & 1) == 1 ? 0x03 : 0x02);
-                ECPoint pointR = spec.getCurve().decodePoint(compEnc);
-                if (!pointR.multiply(pointN).isInfinity()) {
-                    continue;
-                }
-
-                BigInteger pointE = new BigInteger(1, message);
-                BigInteger pointEInv = BigInteger.ZERO.subtract(pointE).mod(pointN);
-                BigInteger pointRInv = new BigInteger(1, sigR).modInverse(pointN);
-                BigInteger srInv = pointRInv.multiply(new BigInteger(1, sigS)).mod(pointN);
-                BigInteger pointEInvRInv = pointRInv.multiply(pointEInv).mod(pointN);
-                ECPoint pointQ = ECAlgorithms.sumOfTwoMultiplies(spec.getG(), pointEInvRInv, pointR, srInv);
-                byte[] pointQBytes = pointQ.getEncoded(false);
-                boolean matchedKeys = true;
-                for (int j = 0; j < publicKey.length; j++) {
-                    if (pointQBytes[j] != publicKey[j]) {
-                        matchedKeys = false;
-                        break;
-                    }
-                }
-                if (!matchedKeys) {
-                    continue;
-                }
-                return (byte) (0xFF & recoveryId);
-            } catch (Exception e) {
-                logger.warn(e.getMessage(), e);
-                continue;
-            }
-        }
-
-        return (byte) 0xFF;
-    }
-
-    /**
-     * Recover the public key that corresponds to the private key, which signed this message.
-     */
-    public static byte[] recoverPublicKey(byte[] sigR, byte[] sigS, byte[] sigV, byte[] message) {
-        ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp256k1");
-        BigInteger pointN = spec.getN();
-
+    public static boolean signatureVerify(PublicKey publicKey, byte[] signed, byte[] data) {
         try {
-            BigInteger pointX = new BigInteger(1, sigR);
-
-            X9IntegerConverter x9 = new X9IntegerConverter();
-            byte[] compEnc = x9.integerToBytes(pointX, 1 + x9.getByteLength(spec.getCurve()));
-            compEnc[0] = (byte) ((sigV[0] & 1) == 1 ? 0x03 : 0x02);
-            ECPoint pointR = spec.getCurve().decodePoint(compEnc);
-            if (!pointR.multiply(pointN).isInfinity()) {
-                return new byte[0];
-            }
-
-            BigInteger pointE = new BigInteger(1, message);
-            BigInteger pointEInv = BigInteger.ZERO.subtract(pointE).mod(pointN);
-            BigInteger pointRInv = new BigInteger(1, sigR).modInverse(pointN);
-            BigInteger srInv = pointRInv.multiply(new BigInteger(1, sigS)).mod(pointN);
-            BigInteger pointEInvRInv = pointRInv.multiply(pointEInv).mod(pointN);
-            ECPoint pointQ = ECAlgorithms.sumOfTwoMultiplies(spec.getG(), pointEInvRInv, pointR, srInv);
-            byte[] pointQBytes = pointQ.getEncoded(false);
-            return pointQBytes;
-        } catch (Exception e) {
-            logger.warn(e.getMessage(), e);
+            Signature signature = Signature.getInstance(SIGN_ALGORITHMS);
+            signature.initVerify(publicKey);
+            signature.update(data);
+            return signature.verify(signed);
+        } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
+            throw new RuntimeException(e);
         }
-
-        return new byte[0];
     }
 
+    public static PrivateKey converterPrivateKey(byte[] key) throws Exception {
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(key);
+        KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM);
+        return keyFactory.generatePrivate(keySpec);
+    }
+
+    public static PublicKey converterPublicKey(byte[] key) throws Exception {
+        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(key);
+        KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM);
+        return keyFactory.generatePublic(keySpec);
+    }
 }

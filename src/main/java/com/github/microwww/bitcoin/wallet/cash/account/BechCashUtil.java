@@ -242,7 +242,7 @@ public class BechCashUtil {
      * @param btc
      * @return
      */
-    public String encodeCashAdrressByLegacy(String btc) {
+    public String encodeCashAddressByLegacy(String btc) {
         byte[] b58 = Base58.decode(btc);
         if (b58.length != 25) {
             throw new IllegalArgumentException("Bitcoin address is 25 bytes !");

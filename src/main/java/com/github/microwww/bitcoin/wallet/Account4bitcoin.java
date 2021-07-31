@@ -5,6 +5,7 @@ import com.github.microwww.bitcoin.wallet.util.Base58;
 import com.github.microwww.bitcoin.wallet.util.Bech32;
 import org.bouncycastle.crypto.digests.RIPEMD160Digest;
 import org.bouncycastle.util.encoders.Hex;
+import org.springframework.util.Assert;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -20,15 +21,12 @@ public class Account4bitcoin {
     }
 
     private Account4bitcoin(BitAccountConfig config) {
-        this(null, config);
+        this(Secp256k1.generatePrivateKey(), config);
     }
 
     public Account4bitcoin(byte[] privateKey, BitAccountConfig config) {
-        if (privateKey == null) {
-            this.privateKey = Secp256k1.generatePrivateKey();
-        } else {
-            this.privateKey = privateKey;
-        }
+        Assert.isTrue(privateKey != null, "NOT NULL");
+        this.privateKey = privateKey;
         this.config = config;
     }
 
@@ -55,7 +53,9 @@ public class Account4bitcoin {
     }
 
     public byte[] getPublicHash() {
-        return sha256hash160(this.getPublicKey());
+        byte[] data = this.getPublicKey();
+        data = sha256(data);
+        return ripemd160(data);
     }
 
     public String toCashBech32() {
@@ -78,37 +78,40 @@ public class Account4bitcoin {
         byte[] addressBytes = new byte[1 + bytes.length + 4];
         addressBytes[0] = version;
         System.arraycopy(bytes, 0, addressBytes, 1, bytes.length);
-        byte[] checksum = hashTwice(addressBytes, 0, bytes.length + 1);
+        byte[] checksum = sha256sha256(addressBytes, 0, bytes.length + 1);
         System.arraycopy(checksum, 0, addressBytes, bytes.length + 1, 4);
         return Base58.encode(addressBytes);
     }
 
     public static byte[] sha256hash160(byte[] input) {
-        byte[] sha256 = hash(input, 0, input.length);
+        return ripemd160(sha256(input));
+    }
+
+    public static byte[] ripemd160(byte[] data) {
         RIPEMD160Digest digest = new RIPEMD160Digest();
-        digest.update(sha256, 0, sha256.length);
+        digest.update(data, 0, data.length);
         byte[] out = new byte[20];
         digest.doFinal(out, 0);
         return out;
     }
 
-    public static byte[] hashTwice(byte[] input, int offset, int length) {
-        MessageDigest digest = newDigest();
+    public static byte[] sha256sha256(byte[] input, int offset, int length) {
+        MessageDigest digest = sha256digest();
         digest.update(input, offset, length);
         return digest.digest(digest.digest());
     }
 
-    public static MessageDigest newDigest() {
+    public static byte[] sha256(byte[] input) {
+        MessageDigest digest = sha256digest();
+        digest.update(input, 0, input.length);
+        return digest.digest();
+    }
+
+    private static MessageDigest sha256digest() {
         try {
             return MessageDigest.getInstance("SHA-256");
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e); // Can't happen.
         }
-    }
-
-    public static byte[] hash(byte[] input, int offset, int length) {
-        MessageDigest digest = newDigest();
-        digest.update(input, offset, length);
-        return digest.digest();
     }
 }
