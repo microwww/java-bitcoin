@@ -26,7 +26,7 @@ public class UintVar extends BigInteger {
         return new UintVar(new byte[]{(byte) (val >>> 24), (byte) (val << 8 >>> 24), (byte) (val << 16 >>> 24), (byte) (val << 24 >>> 24)});
     }
 
-    public static UintVar reader(ByteBuf bf) {
+    public static UintVar parse(ByteBuf bf) {
         byte b0 = bf.readByte();
         long v0 = unsignedByte(b0);
         if (v0 < 0xFD) {
@@ -50,7 +50,7 @@ public class UintVar extends BigInteger {
     }
 
     public static byte[] parseAndRead(ByteBuf bf) {
-        int i = UintVar.reader(bf).intValueExact();
+        int i = UintVar.parse(bf).intValueExact();
         return ByteUtil.readLength(bf, i);
     }
 

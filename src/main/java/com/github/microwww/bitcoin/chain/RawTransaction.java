@@ -32,7 +32,7 @@ public class RawTransaction {
         } else {
             bf.resetReaderIndex();
         }
-        inputCount = UintVar.reader(bf);
+        inputCount = UintVar.parse(bf);
         //////// IN
         Assert.isTrue(inputCount.intValue() != 0, "Must > 0");
         int len = inputCount.intValue();
@@ -43,7 +43,7 @@ public class RawTransaction {
             txIns[i] = in;
         }
         ////// OUT
-        outputCount = UintVar.reader(bf);
+        outputCount = UintVar.parse(bf);
         len = outputCount.intValueExact();
         txOuts = new TxOut[len];
         for (int i = 0; i < len; i++) {
@@ -54,10 +54,10 @@ public class RawTransaction {
         // TODO:: 隔离见证, 格式??
         if (flag == 1) {
             for (TxIn txIn : txIns) {
-                UintVar count = UintVar.reader(bf);
+                UintVar count = UintVar.parse(bf);
                 byte[][] v = new byte[count.intValueExact()][];
                 for (int i = 0; i < v.length; i++) {
-                    len = UintVar.reader(bf).intValueExact();
+                    len = UintVar.parse(bf).intValueExact();
                     v[i] = ByteUtil.readLength(bf, len);
                 }
                 txIn.setTxWitness(v);

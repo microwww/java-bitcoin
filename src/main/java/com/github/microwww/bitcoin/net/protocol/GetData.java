@@ -21,7 +21,7 @@ public class GetData extends AbstractProtocolAdapter<GetData> {
 
     @Override
     protected GetData read0(ByteBuf buf) {
-        this.count = UintVar.reader(buf);
+        this.count = UintVar.parse(buf);
         this.messages = new Message[count.intValue()];
         for (int i = 0; i < count.intValue(); i++) {
             Message data = new Message();

@@ -18,7 +18,7 @@ public class TxIn {
     public void read(ByteBuf bf) {
         preTxHash = Uint256.read(bf);
         preTxOutIndex = bf.readIntLE();
-        scriptLength = UintVar.reader(bf);
+        scriptLength = UintVar.parse(bf);
         script = ByteUtil.readLength(bf, scriptLength.intValueExact());
         sequence = new Uint32(bf.readIntLE());
     }
@@ -91,9 +91,9 @@ public class TxIn {
         private byte[] pk;
 
         public SignatureScript read(ByteBuf bf) {
-            int len = UintVar.reader(bf).intValueExact();
+            int len = UintVar.parse(bf).intValueExact();
             signature = ByteUtil.readLength(bf, len);
-            len = UintVar.reader(bf).intValueExact();
+            len = UintVar.parse(bf).intValueExact();
             pk = ByteUtil.readLength(bf, len);
             return this;
         }

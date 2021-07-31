@@ -1,6 +1,5 @@
 package com.github.microwww.bitcoin.chain;
 
-import com.github.microwww.bitcoin.math.Uint8;
 import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
@@ -12,7 +11,7 @@ public class TxOut {
 
     public void read(ByteBuf bf) {
         value = bf.readLongLE();
-        scriptLength = UintVar.reader(bf);
+        scriptLength = UintVar.parse(bf);
         scriptPubKey = ByteUtil.readLength(bf, scriptLength.intValueExact());
     }
 

@@ -18,7 +18,7 @@ public class Addr extends AbstractProtocolAdapter<Addr> {
     @Override
     public Addr read(byte[] buf) {
         ByteBuf buffer = Unpooled.copiedBuffer(buf);
-        int len = UintVar.reader(buffer).intValueExact();
+        int len = UintVar.parse(buffer).intValueExact();
         PeerNode[] ns = new PeerNode[len];
         for (int i = 0; i < len; i++) { // TODO:: 有出入, 需要真实数据验证
             long service = buffer.readLongLE();

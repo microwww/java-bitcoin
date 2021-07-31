@@ -2,7 +2,6 @@ package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
-import com.github.microwww.bitcoin.math.Uint8;
 import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
@@ -45,7 +44,7 @@ public class BlockHeader implements Serializable {
         time = new Uint32(bf.readIntLE());
         bits = new Uint32(bf.readIntLE());
         nonce = new Uint32(bf.readIntLE());
-        txCount = UintVar.reader(bf);
+        txCount = UintVar.parse(bf);
     }
 
     /**

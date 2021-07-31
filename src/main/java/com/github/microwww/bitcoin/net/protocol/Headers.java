@@ -1,7 +1,6 @@
 package com.github.microwww.bitcoin.net.protocol;
 
 import com.github.microwww.bitcoin.chain.ChainBlock;
-import com.github.microwww.bitcoin.math.Uint8;
 import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.net.Peer;
 import io.netty.buffer.ByteBuf;
@@ -18,7 +17,7 @@ public class Headers extends AbstractProtocolAdapter<Headers> {
 
     @Override
     protected Headers read0(ByteBuf buf) {
-        int count = UintVar.reader(buf).intValueExact();
+        int count = UintVar.parse(buf).intValueExact();
         ChainBlock[] blocks = new ChainBlock[count];
         for (int i = 0; i < count; i++) {
             blocks[i] = new ChainBlock().readHeader(buf);
