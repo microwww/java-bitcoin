@@ -16,5 +16,5 @@ spring:
 #
 logging:
   level:
-    com.github.microwww.bitcoin: info
+    com.github.microwww.bitcoin.net.PeerChannelInboundHandler: DEBUG
 #
