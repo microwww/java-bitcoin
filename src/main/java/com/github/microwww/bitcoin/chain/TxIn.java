@@ -8,11 +8,11 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 public class TxIn {
-    public Uint256 preTxHash;
-    public int preTxOutIndex;
-    public UintVar scriptLength;
-    public byte[] script;
-    public Uint32 sequence;
+    private Uint256 preTxHash;
+    private int preTxOutIndex;
+    private UintVar scriptLength;
+    private byte[] script;
+    private Uint32 sequence;
     private byte[][] txWitness;
 
     public void read(ByteBuf bf) {

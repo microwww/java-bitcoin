@@ -76,11 +76,17 @@ public class RawTransaction {
         write(bf, this.flag);
     }
 
-    public void write(ByteBuf bf, byte witness) {
+    public ByteBuf serialize(int witness) {
+        ByteBuf buffer = Unpooled.buffer();
+        write(buffer, witness);
+        return buffer;
+    }
+
+    public void write(ByteBuf bf, int witness) {
         bf.writeIntLE(version);
         //////// IN
         if (witness != 0) {
-            bf.writeBytes(new byte[]{marker, witness});
+            bf.writeBytes(new byte[]{marker, (byte) witness});
         }
         bf.writeByte(txIns.length);
         for (TxIn txIn : txIns) {
@@ -152,6 +158,15 @@ public class RawTransaction {
 
     public void setFlag(byte flag) {
         this.flag = flag;
+    }
+
+    @Override
+    public RawTransaction clone() {
+        RawTransaction tx = new RawTransaction();
+        ByteBuf bf = Unpooled.buffer();
+        this.write(bf);
+        tx.read(bf);
+        return tx;
     }
 
     @Override

@@ -1,10 +1,17 @@
 package com.github.microwww.bitcoin.script;
 
+import com.github.microwww.bitcoin.chain.RawTransaction;
+import com.github.microwww.bitcoin.chain.TxIn;
 import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.script.ex.ScriptDisableException;
 import com.github.microwww.bitcoin.script.ex.TransactionInvalidException;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.wallet.Account4bitcoin;
+import com.github.microwww.bitcoin.wallet.Secp256k1;
+import io.netty.buffer.ByteBuf;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.Assert;
 
 import java.util.Arrays;
 
@@ -14,451 +21,451 @@ public enum ScriptNames {
     _1() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 1));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 1));
         }
     },
     _2() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 2));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 2));
         }
     },
     _3() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 3));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 3));
         }
     },
     _4() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 4));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 4));
         }
     },
     _5() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 5));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 5));
         }
     },
     _6() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 6));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 6));
         }
     },
     _7() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 7));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 7));
         }
     },
     _8() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 8));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 8));
         }
     },
     _9() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 9));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 9));
         }
     },
     _10() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 10));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 10));
         }
     },
     _11() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 11));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 11));
         }
     },
     _12() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 12));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 12));
         }
     },
     _13() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 13));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 13));
         }
     },
     _14() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 14));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 14));
         }
     },
     _15() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 15));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 15));
         }
     },
     _16() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 16));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 16));
         }
     },
     _17() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 17));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 17));
         }
     },
     _18() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 18));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 18));
         }
     },
     _19() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 19));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 19));
         }
     },
     _20() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 20));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 20));
         }
     },
     _21() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 21));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 21));
         }
     },
     _22() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 22));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 22));
         }
     },
     _23() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 23));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 23));
         }
     },
     _24() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 24));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 24));
         }
     },
     _25() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 25));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 25));
         }
     },
     _26() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 26));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 26));
         }
     },
     _27() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 27));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 27));
         }
     },
     _28() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 28));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 28));
         }
     },
     _29() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 29));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 29));
         }
     },
     _30() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 30));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 30));
         }
     },
     _31() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 31));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 31));
         }
     },
     _32() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 32));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 32));
         }
     },
     _33() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 33));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 33));
         }
     },
     _34() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 34));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 34));
         }
     },
     _35() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 35));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 35));
         }
     },
     _36() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 36));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 36));
         }
     },
     _37() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 37));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 37));
         }
     },
     _38() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 38));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 38));
         }
     },
     _39() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 39));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 39));
         }
     },
     _40() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 40));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 40));
         }
     },
     _41() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 41));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 41));
         }
     },
     _42() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 42));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 42));
         }
     },
     _43() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 43));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 43));
         }
     },
     _44() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 44));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 44));
         }
     },
     _45() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 45));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 45));
         }
     },
     _46() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 46));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 46));
         }
     },
     _47() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 47));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 47));
         }
     },
     _48() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 48));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 48));
         }
     },
     _49() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 49));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 49));
         }
     },
     _50() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 50));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 50));
         }
     },
     _51() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 51));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 51));
         }
     },
     _52() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 52));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 52));
         }
     },
     _53() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 53));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 53));
         }
     },
     _54() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 54));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 54));
         }
     },
     _55() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 55));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 55));
         }
     },
     _56() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 56));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 56));
         }
     },
     _57() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 57));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 57));
         }
     },
     _58() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 58));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 58));
         }
     },
     _59() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 59));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 59));
         }
     },
     _60() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 60));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 60));
         }
     },
     _61() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 61));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 61));
         }
     },
     _62() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 62));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 62));
         }
     },
     _63() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 63));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 63));
         }
     },
     _64() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 64));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 64));
         }
     },
     _65() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 65));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 65));
         }
     },
     _66() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 66));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 66));
         }
     },
     _67() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 67));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 67));
         }
     },
     _68() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 68));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 68));
         }
     },
     _69() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 69));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 69));
         }
     },
     _70() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 70));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 70));
         }
     },
     _71() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 71));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 71));
         }
     },
     _72() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 72));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 72));
         }
     },
     _73() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 73));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 73));
         }
     },
     _74() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 74));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 74));
         }
     },
     _75() {
         @Override
         public void opt(Interpreter executor) {
-            executor.stack.push(ByteUtil.readLength(executor.script, 75));
+            executor.stack.push(ByteUtil.readLength(executor.getScript(), 75));
         }
     },
     OP_PUSHDATA1,// 76
@@ -747,7 +754,7 @@ public enum ScriptNames {
             byte[] pop = executor.stack.assertNotEmpty().pop();
             byte[] bytes = Account4bitcoin.sha256hash160(pop);
             executor.stack.push(bytes);
-            bytes = UintVar.parseAndRead(executor.script);
+            bytes = UintVar.parseAndRead(executor.getScript());
             executor.stack.push(bytes);
         }
     },
@@ -762,7 +769,37 @@ public enum ScriptNames {
     },
     OP_CODESEPARATOR,
     OP_CHECKSIG() {
-
+        @Override
+        public void opt(Interpreter executor) {
+            byte[] pk = executor.stack.assertSizeGE(2).pop();
+            byte[] sn = executor.stack.pop();
+            Assert.isTrue(sn.length == 72, "signature.length == 71 + 1");
+            byte[] sign = Arrays.copyOf(sn, sn.length - 1);
+            byte type = sn[sn.length - 1];
+            Assert.isTrue(type == 1, "暂时仅支持签名 type = 1 (ALL)的交易");
+            // System.arraycopy(new byte[]{sn[sn.length - 1], 0, 0, 0}, 0, sign, sn.length - 1, 4);
+            RawTransaction tx = executor.transaction.clone();
+            for (int i = 0; i < tx.getTxIns().length; i++) {
+                TxIn txIn = tx.getTxIns()[i];
+                if (i != executor.getIndexTxIn()) {
+                    txIn.setScript(new byte[]{});
+                } else {
+                    txIn.setScript(sign);
+                }
+            }
+            ByteBuf sr = tx.serialize(0).writeBytes(new byte[]{type, 0, 0, 0});
+            byte[] data = ByteUtil.readAll(sr);
+            byte[] sha = ByteUtil.sha256sha256();
+            if (logger.isDebugEnabled()) {
+                logger.debug("Will sign data pk: {},\n origin: {}, \n sha: {}, \n target: {}",
+                        ByteUtil.hex(pk),
+                        ByteUtil.hex(data),
+                        ByteUtil.hex(sha),
+                        ByteUtil.hex(sign));
+            }
+            boolean b = Secp256k1.signatureVerify(Secp256k1.converterPublicKey(pk), sign, sha);
+            executor.stack.push(b ? new byte[]{1} : new byte[]{0});
+        }
     },
     OP_CHECKSIGVERIFY,
     OP_CHECKMULTISIG,
@@ -790,7 +827,9 @@ public enum ScriptNames {
     // OP_UNKNOWN,
     ;
 
+    private static final Logger logger = LoggerFactory.getLogger(ScriptNames.class);
+
     public void opt(Interpreter executor) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(this.name());
     }
 }

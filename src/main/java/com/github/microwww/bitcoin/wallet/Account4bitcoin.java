@@ -60,7 +60,8 @@ public class Account4bitcoin {
 
     public static String publicToBase58Address(BitAccountConfig acc, byte[] pk) {
         pk = sha256(pk);
-        return toBase58(acc.getAddressHeader(), ripemd160(pk));
+        pk = ripemd160(pk);
+        return toBase58(acc.getAddressHeader(), pk);
     }
 
     public String toCashBech32() {
