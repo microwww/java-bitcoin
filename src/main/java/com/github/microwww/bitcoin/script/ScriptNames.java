@@ -773,7 +773,7 @@ public enum ScriptNames {
         public void opt(Interpreter executor) {
             byte[] pk = executor.stack.assertSizeGE(2).pop();
             byte[] sn = executor.stack.pop();
-            Assert.isTrue(sn.length == 72, "signature.length == 71 + 1");
+            Assert.isTrue(sn.length == 71, "signature.length > 1, general == 71 / 72");
             byte[] sign = Arrays.copyOf(sn, sn.length - 1);
             byte type = sn[sn.length - 1];
             Assert.isTrue(type == 1, "暂时仅支持签名 type = 1 (ALL)的交易");
@@ -784,15 +784,21 @@ public enum ScriptNames {
                 if (i != executor.getIndexTxIn()) {
                     txIn.setScript(new byte[]{});
                 } else {
-                    txIn.setScript(sign);
+                    ByteBuf script = executor.getScript();
+                    int i1 = script.readerIndex();
+                    script.readerIndex(0);
+                    byte[] bytes = ByteUtil.readAll(script);
+                    txIn.setScript(bytes);
+                    script.readerIndex(i1);
                 }
             }
             ByteBuf sr = tx.serialize(0).writeBytes(new byte[]{type, 0, 0, 0});
             byte[] data = ByteUtil.readAll(sr);
-            byte[] sha = ByteUtil.sha256sha256();
+            byte[] sha = ByteUtil.sha256(data); // !!  文档是 sha256两次, 实际是一次 !!!
             if (logger.isDebugEnabled()) {
-                logger.debug("Will sign data pk: {},\n origin: {}, \n sha: {}, \n target: {}",
+                logger.debug("Will sign data pk: {},\n origin: {}, \n ready: {}, \n sha: {}, \n target: {}",
                         ByteUtil.hex(pk),
+                        ByteUtil.hex(ByteUtil.readAll(executor.transaction.serialize(0))),
                         ByteUtil.hex(data),
                         ByteUtil.hex(sha),
                         ByteUtil.hex(sign));

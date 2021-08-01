@@ -30,6 +30,10 @@ public class ByteUtil {
         return DigestUtil.sha256(DigestUtil.sha256(val));
     }
 
+    public static byte[] sha256(byte[] val) {
+        return DigestUtil.sha256(val);
+    }
+
     public static String hex(byte[] val) {
         return HexUtil.encodeHexStr(val);
     }

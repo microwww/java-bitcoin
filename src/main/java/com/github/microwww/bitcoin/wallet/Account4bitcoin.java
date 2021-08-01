@@ -9,6 +9,7 @@ import org.springframework.util.Assert;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 public class Account4bitcoin {
 
@@ -30,6 +31,20 @@ public class Account4bitcoin {
         this.config = config;
     }
 
+    public static Account4bitcoin fromBase58(String privateBase58) {
+        Assert.isTrue(privateBase58.length() > 50, "NOT NULL");
+        byte[] decode = Base58.decode(privateBase58);
+        byte[] privateKey = Arrays.copyOfRange(decode, 1, decode.length - 5);
+        BitAccountConfig cf = null;
+        for (BitAccountConfig value : BitAccountConfig.values()) {
+            if (decode[0] == value.getDumpedPrivateKeyHeader()) {
+                cf = value;
+            }
+        }
+        Assert.isTrue(cf != null, "not - null");
+        return new Account4bitcoin(privateKey, cf);
+    }
+
     public String getPrivateKeyBase58() {
         byte[] bts = new byte[privateKey.length + 1];
         System.arraycopy(this.privateKey, 0, bts, 0, this.privateKey.length);
@@ -45,11 +60,15 @@ public class Account4bitcoin {
         return Hex.toHexString(this.privateKey);
     }
 
+    public byte[] getPrivateKey() {
+        return Arrays.copyOfRange(this.privateKey, 0, privateKey.length);
+    }
+
     public synchronized byte[] getPublicKey() {
         if (publicKey == null) {
             publicKey = Secp256k1.getPublicKey(privateKey);
         }
-        return publicKey;
+        return Arrays.copyOfRange(publicKey, 0, publicKey.length);
     }
 
     public byte[] getPublicHash() {
