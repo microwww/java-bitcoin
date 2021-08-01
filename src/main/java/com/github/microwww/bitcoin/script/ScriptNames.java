@@ -776,7 +776,7 @@ public enum ScriptNames {
             Assert.isTrue(sn.length == 71, "signature.length > 1, general == 71 / 72");
             byte[] sign = Arrays.copyOf(sn, sn.length - 1);
             byte type = sn[sn.length - 1];
-            Assert.isTrue(type == 1, "暂时仅支持签名 type = 1 (ALL)的交易");
+            Assert.isTrue(type == 1, "暂时仅支持签名 type = 1 (ALL)的交易, 文档: https://en.bitcoin.it/wiki/OP_CHECKSIG");
             // System.arraycopy(new byte[]{sn[sn.length - 1], 0, 0, 0}, 0, sign, sn.length - 1, 4);
             RawTransaction tx = executor.transaction.clone();
             for (int i = 0; i < tx.getTxIns().length; i++) {
