@@ -2,15 +2,17 @@ package com.github.microwww.bitcoin.wallet;
 
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jce.spec.ECKeySpec;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
+import org.bouncycastle.jce.spec.ECPrivateKeySpec;
+import org.bouncycastle.jce.spec.ECPublicKeySpec;
 import org.bouncycastle.math.ec.ECPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
 import java.security.*;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
+import java.security.spec.InvalidKeySpecException;
 
 public class Secp256k1 {
     private static final Logger logger = LoggerFactory.getLogger(Secp256k1.class);
@@ -52,18 +54,30 @@ public class Secp256k1 {
         return privateKeyAttempt;
     }
 
+    public static byte[] getPublicKey(byte[] privateKey) {
+        return getPublicKey(privateKey, true);
+    }
+
     /**
      * Converts a private key into its corresponding public key.
+     *
+     * @param privateKey
+     * @param compress   是否压缩
+     * @return
      */
-    public static byte[] getPublicKey(byte[] privateKey) {
+    public static byte[] getPublicKey(byte[] privateKey, boolean compress) {
         try {
             ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp256k1");
             ECPoint pointQ = spec.getG().multiply(new BigInteger(1, privateKey));
-            return pointQ.getEncoded(true);
+            return pointQ.getEncoded(compress);
         } catch (Exception e) {
             logger.warn(e.getMessage(), e);
             return new byte[0];
         }
+    }
+
+    public static byte[] signature(byte[] privateKey, byte[] data) {
+        return signature(converterPrivateKey(privateKey), data);
     }
 
     public static byte[] signature(PrivateKey privateKey, byte[] data) {
@@ -77,6 +91,10 @@ public class Secp256k1 {
         }
     }
 
+    public static boolean signatureVerify(byte[] publicKey, byte[] signed, byte[] data) {
+        return signatureVerify(converterPublicKey(publicKey), signed, data);
+    }
+
     public static boolean signatureVerify(PublicKey publicKey, byte[] signed, byte[] data) {
         try {
             Signature signature = Signature.getInstance(SIGN_ALGORITHMS);
@@ -88,15 +106,37 @@ public class Secp256k1 {
         }
     }
 
-    public static PrivateKey converterPrivateKey(byte[] key) throws Exception {
-        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(key);
-        KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM);
-        return keyFactory.generatePrivate(keySpec);
+    /**
+     * private key -> PrivateKey
+     *
+     * @param privateKey
+     * @return BCECPrivateKey
+     */
+    public static PrivateKey converterPrivateKey(byte[] privateKey) {
+        try {
+            ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp256k1");
+            ECKeySpec k = new ECPrivateKeySpec(new BigInteger(privateKey), spec);
+            KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM);
+            return keyFactory.generatePrivate(k);
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public static PublicKey converterPublicKey(byte[] key) throws Exception {
-        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(key);
-        KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM);
-        return keyFactory.generatePublic(keySpec);
+    /**
+     * byte[] public-publicKey -> PublicKey
+     *
+     * @param publicKey
+     * @return BCECPublicKey
+     */
+    public static PublicKey converterPublicKey(byte[] publicKey) {
+        try {
+            ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp256k1");
+            ECKeySpec k = new ECPublicKeySpec(spec.getG().getCurve().decodePoint(publicKey), spec);
+            KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM);
+            return keyFactory.generatePublic(k);
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
