@@ -24,7 +24,7 @@ public class Bech32 {
 
     /**
      * not 8 -> 5
-     * 
+     *
      * @param str
      * @return
      */
@@ -44,8 +44,7 @@ public class Bech32 {
 
     /**
      * not do 8 -> 5 format
-     * 
-     * @param prefix
+     *
      * @param payload
      * @return
      */
@@ -65,8 +64,10 @@ public class Bech32 {
 
     /**
      * 5 -> 8
-     * 
-     * @param btc
+     *
+     * @param payload
+     * @param off
+     * @param len
      * @return
      */
     public byte[] payloadDecode(byte[] payload, int off, int len) {
@@ -90,7 +91,7 @@ public class Bech32 {
 
     /**
      * 8 -> 5
-     * 
+     *
      * @param data
      * @param off
      * @param len
