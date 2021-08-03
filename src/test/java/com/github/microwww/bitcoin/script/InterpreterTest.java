@@ -23,24 +23,33 @@ class InterpreterTest {
     // https://www.blockchain.com/btc/tx/6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4
     @Test
     public void testHeight_1w_6359F08() {
+        test_OP_CHECKSIG(68, 0, 69, 1);
+    }
+
+    @Test
+    public void testHeight_108267_e411c2c6635754() {
+        test_OP_CHECKSIG(77, 0, 78, 0);
+    }
+
+    public void test_OP_CHECKSIG(int transaction, int txInIndex, int txOut, int txOutIndex) {
         List<String> strings = ClassPath.readClassPathFile("/data/line-data.txt");
         RawTransaction tx1 = new RawTransaction();
         {
-            byte[] dt = ByteUtil.hex(strings.get(68));
+            byte[] dt = ByteUtil.hex(strings.get(transaction));
             ByteBuf bf = Unpooled.copiedBuffer(dt);
             tx1.read(bf);
-            assertEquals("6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4", tx1.hash().toHexReverse256());
+            // assertEquals("6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4", tx1.hash().toHexReverse256());
         }
         RawTransaction tx2 = new RawTransaction();
         {
-            byte[] dt = ByteUtil.hex(strings.get(69));
+            byte[] dt = ByteUtil.hex(strings.get(txOut));
             ByteBuf bf = Unpooled.copiedBuffer(dt);
             tx2.read(bf);
-            assertEquals("cf4e2978d0611ce46592e02d7e7daf8627a316ab69759a9f3df109a7f2bf3ec3", tx2.hash().toHexReverse256());
+            // assertEquals("cf4e2978d0611ce46592e02d7e7daf8627a316ab69759a9f3df109a7f2bf3ec3", tx2.hash().toHexReverse256());
         }
 
-        Interpreter interpreter = new Interpreter(tx1).indexTxIn(0)
-                .executor(tx1.getTxIns()[0].getScript()).executor(tx2.getTxOuts()[1].getScriptPubKey());
+        Interpreter interpreter = new Interpreter(tx1).indexTxIn(txInIndex)
+                .executor(tx1.getTxIns()[txInIndex].getScript()).executor(tx2.getTxOuts()[txOutIndex].getScriptPubKey());
         byte[] bytes = interpreter.pop().get();
         assertArrayEquals(new byte[]{1}, bytes);
     }
@@ -71,6 +80,8 @@ class InterpreterTest {
         assertArrayEquals(new byte[]{1}, bytes);
     }
 
+    // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#Native_P2WPKH
+    // c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670
     @Test
     public void P2WPKH() {
         List<String> strings = ClassPath.readClassPathFile("/data/line-data.txt");
@@ -114,12 +125,30 @@ class InterpreterTest {
                 .writeIntLE(tx1.getLockTime().intValue())
                 .writeIntLE(1);
         byte[] bytes = ByteUtil.readAll(sn);
-        byte[] bytes1 = ByteUtil.sha256sha256(bytes);
-        assertArrayEquals(ByteUtil.hex("c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670"), bytes1);
+        byte[] bytes1 = ByteUtil.sha256(bytes);
+        System.out.println(ByteUtil.hex(bytes1));
+        assertArrayEquals(ByteUtil.hex("c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670"), ByteUtil.sha256(bytes1));
         byte[] snn = ByteUtil.hex("304402203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300e8f3358f51928d43c212a8caed02de67eebee"); //
-        // Secp256k1.signature(ByteUtil.hex("bbc27228ddcb9209d7fd6f36b02f7dfa6252af40bb2f1cbc7a557da8027ff866"), bytes1);
-        byte[] pk = Secp256k1.getPublicKey(ByteUtil.hex("bbc27228ddcb9209d7fd6f36b02f7dfa6252af40bb2f1cbc7a557da8027ff866"));
+        byte[] pk = ByteUtil.hex("025476c2e83188368da1ff3e292e7acafcdb3566bb0ad253f62fc70f07aeee6357");
+        {
+            CoinAccount.KeyPrivate keyPrivate = new CoinAccount.KeyPrivate(ByteUtil.hex("619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9"));
+            byte[] bt = Secp256k1.signature(keyPrivate.getKey(), bytes1);
+            assertTrue(Secp256k1.signatureVerify(pk, bt, bytes1));
+        }
         boolean b = Secp256k1.signatureVerify(pk, snn, bytes1);
         assertTrue(b);
     }
+
+    @Test
+    public void signature() {
+        // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#Native_P2WPKH
+        // c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670
+        byte[] hash = ByteUtil.hex("c304d56804b24a6801a77803281a497f5526e20f14e65df1006887fc57f0ee39");
+        byte[] hashTwice = ByteUtil.hex("c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670");
+        byte[] snn = ByteUtil.hex("304402203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300e8f3358f51928d43c212a8caed02de67eebee"); //
+        CoinAccount.KeyPrivate kp = new CoinAccount.KeyPrivate(ByteUtil.hex("619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9"));
+        System.out.println("signature : " + ByteUtil.hex(Secp256k1.signature(kp.getKey(), hash)));
+        assertTrue(Secp256k1.signatureVerify(kp.getKeyPublic().getKey(), snn, hash));
+    }
+
 }

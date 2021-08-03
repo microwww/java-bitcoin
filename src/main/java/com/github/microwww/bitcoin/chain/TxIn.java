@@ -5,7 +5,6 @@ import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 
 public class TxIn {
     private Uint256 preTxHash;
@@ -78,12 +77,24 @@ public class TxIn {
 
     @Override
     public String toString() {
-        return "TxIn{" +
-                "  preTxHash=" + preTxHash +
-                ", preTxOutIndex=" + preTxOutIndex +
-                ", scriptLength=" + scriptLength +
-                ", script=" + ByteUtil.hex(script) +
-                ", sequence=" + sequence +
-                '}';
+        return toString(new StringBuilder("TxIn:"), "\n").toString();
+    }
+
+    public StringBuilder toString(StringBuilder append, String prefix) {
+        append
+                .append(prefix).append(" preTxHash     = ").append(preTxHash)
+                .append(prefix).append(" preTxOutIndex = ").append(preTxOutIndex)
+                .append(prefix).append(" script        = 0x")
+                .append(Integer.toUnsignedString(scriptLength.intValue())).append(" ").append(ByteUtil.hex(script));
+        if (txWitness != null) {
+            append.append(prefix).append(" txWitness     = ").append(txWitness.length);
+            for (byte[] v : txWitness) {
+                append.append(prefix).append("      0x").append(Integer.toUnsignedString(v.length, 16))
+                        .append(" ").append(ByteUtil.hex(v));
+            }
+        }
+        append
+                .append(prefix).append(" sequence      = ").append(sequence);
+        return append;
     }
 }

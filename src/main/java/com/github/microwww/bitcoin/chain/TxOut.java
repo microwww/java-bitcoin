@@ -44,10 +44,12 @@ public class TxOut {
 
     @Override
     public String toString() {
-        return "TxOut{" +
-                "value=" + value +
-                ", scriptLength=" + scriptLength +
-                ", script=" + ByteUtil.hex(scriptPubKey) +
-                '}';
+        return toString(new StringBuilder("TxOut:"), "\n").toString();
+    }
+
+    public StringBuilder toString(StringBuilder append, String s) {
+        return append
+                .append(s).append(" value  = ").append(value)
+                .append(s).append(" script = 0x").append(Integer.toUnsignedString(scriptLength.intValue(), 16)).append(" ").append(ByteUtil.hex(scriptPubKey));
     }
 }

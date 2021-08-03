@@ -175,15 +175,20 @@ public class RawTransaction {
     }
 
     public StringBuilder toString(StringBuilder builder) {
-        builder.append("RawTransaction{")
-                .append("  hash=").append(hash())
-                .append(", version=").append(version)
-                .append(", inputCount=").append(inputCount)
-                .append(", txIns=").append(Arrays.toString(txIns))
-                .append(", outputCount=").append(outputCount)
-                .append(", txOuts=").append(Arrays.toString(txOuts))
-                .append(", lockTime=").append(lockTime)
-                .append('}');
+        builder.append("RawTransaction {")
+                .append("\n hash    = ").append(hash())
+                .append("\n version = ").append(version)
+                .append("\n txIns   = ").append(inputCount);
+        for (TxIn txIn : txIns) {
+            txIn.toString(builder, "\n        ");
+        }
+        builder.append("\n txOuts  = ").append(outputCount);
+
+        for (TxOut txIn : txOuts) {
+            txIn.toString(builder, "\n        ");
+        }
+
+        builder.append("\nlockTime = ").append(lockTime);
         return builder;
     }
 }

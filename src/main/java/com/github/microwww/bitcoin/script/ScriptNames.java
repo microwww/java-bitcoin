@@ -773,7 +773,7 @@ public enum ScriptNames {
         public void opt(Interpreter executor) {
             byte[] pk = executor.stack.assertSizeGE(2).pop();
             byte[] sn = executor.stack.pop();
-            Assert.isTrue(sn.length == 71, "signature.length > 1, general == 71 / 72");
+            Assert.isTrue(sn.length >= 50, "signature.length > 1, general == 71 / 72");
             byte[] sign = Arrays.copyOf(sn, sn.length - 1);
             byte type = sn[sn.length - 1];
             Assert.isTrue(type == 1, "暂时仅支持签名 type = 1 (ALL)的交易, 文档: https://en.bitcoin.it/wiki/OP_CHECKSIG");
