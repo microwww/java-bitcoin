@@ -88,7 +88,7 @@ public class CoinAccount {
         // https://en.bitcoin.it/wiki/BIP_0173
         public String toBech32Address(Env config) {
             byte[] sha160 = this.keyPublicHash;
-            return config.bitcoinPrefix() + "1" + BechBitcoin.BECH.address(config, sha160);
+            return BechBitcoin.BECH.toAddress(config, sha160);
         }
 
         public byte[] getKeyPublicHash() {

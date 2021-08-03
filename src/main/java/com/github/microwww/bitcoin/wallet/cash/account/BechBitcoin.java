@@ -26,11 +26,11 @@ public class BechBitcoin {
     public static final BechBitcoin BECH = new BechBitcoin(Encode.BECH32);
     public static final BechBitcoin BECH32M = new BechBitcoin(Encode.BECH32M);
 
-    public String address(Env env, byte[] payload) {
-        return address(env, 0, payload);
+    public String toAddress(Env env, byte[] payload) {
+        return toAddress(env, 0, payload);
     }
 
-    public String address(Env env, int version, byte[] payload) {
+    public String toAddress(Env env, int version, byte[] payload) {
         byte[] bytes = Bech32.BECH.payloadEncode(payload);
         byte[] vp = new byte[bytes.length + 1];
         vp[0] = (byte) version;
