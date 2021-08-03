@@ -58,57 +58,61 @@ public class Bech32 {
         return ret.toString();
     }
 
-    public byte[] payloadDecode(byte[] payload) {
-        return this.payloadDecode(payload, 0, payload.length);
-    }
-
     /**
      * 5 -> 8
      *
      * @param payload
-     * @param off
-     * @param len
      * @return
      */
-    public byte[] payloadDecode(byte[] payload, int off, int len) {
-        BitArray from = new BitArray(payload, off, len);
-        int nlen = len * 5 / 8;// int
-        BitArray to = new BitArray(new byte[nlen]);
-        for (int i = 0, j = i; i < to.bitLength(); i++, j++) {
-            if (i % 5 == 0) {
-                j += 3;
-            }
-            if (from.get(j)) {
-                to.set(i);
-            }
-        }
-        return to.toArray();
-    }
-
-    public byte[] payloadEncode(byte[] data) {
-        return this.payloadEncode(data, 0, data.length);
+    public byte[] payloadDecode(byte[] payload) {
+        return tailJoin(payload, 5);
     }
 
     /**
-     * 8 -> 5
-     *
+     *  8 --> 5
      * @param data
-     * @param off
-     * @param len
      * @return
      */
-    public byte[] payloadEncode(byte[] data, int off, int len) {
-        BitArray from = new BitArray(data, off, len);
-        int nlen = (int) Math.ceil(len * 8 / 5.0);
-        BitArray to = new BitArray(new byte[nlen]);
-        for (int i = 0, j = i; i < from.bitLength(); i++, j++) {
-            if (i % 5 == 0) {// skip (8 - 5)
-                j += 3;
-            }
-            if (from.get(i)) {
-                to.set(j);
+    public byte[] payloadEncode(byte[] data) {
+        return byteSplit(data, 5);
+    }
+
+    public static byte[] byteSplit(byte[] bts, int unit) {
+        return byteSplit(bts, unit, true);
+    }
+
+    public static byte[] byteSplit(byte[] bts, int unit, boolean pad) {
+        if (unit > 8) {
+            throw new IllegalArgumentException("unit < 8");
+        }
+        byte[] target = new byte[(bts.length * 8 + unit - 1) / unit];
+        for (int i = 0; i < bts.length * 8; i++) { // simple algorithm
+            byte v = bts[i / 8];
+            byte t = target[i / unit];
+            int i2 = 7 - (i % 8);
+            target[i / unit] = (byte) ((t << 1) | (v >> i2 & 1));
+        }
+        if (pad) {
+            int len = target.length;
+            int less = bts.length * 8 % unit;
+            if (less != 0) {
+                target[len - 1] = (byte) (target[len - 1] << (unit - less));
             }
         }
-        return to.toArray();
+        return target;
+    }
+
+    public static byte[] tailJoin(byte[] bts, int tail) {
+        byte[] target = new byte[(bts.length * 5 + 7) / 8];
+        for (int i = 0, k = 0; i < bts.length * 8; i++, k++) { // simple algorithm
+            if (i % 8 == 0) {
+                i += 8 - tail;
+            }
+            byte v = bts[i / 8];
+            byte t = target[k / 8];
+            int i2 = 7 - (i % 8);
+            target[k / 8] = (byte) ((t << 1) | (v >> i2 & 1));
+        }
+        return target;
     }
 }

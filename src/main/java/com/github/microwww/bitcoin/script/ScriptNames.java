@@ -6,7 +6,7 @@ import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.script.ex.ScriptDisableException;
 import com.github.microwww.bitcoin.script.ex.TransactionInvalidException;
 import com.github.microwww.bitcoin.util.ByteUtil;
-import com.github.microwww.bitcoin.wallet.Account4bitcoin;
+import com.github.microwww.bitcoin.wallet.CoinAccount;
 import com.github.microwww.bitcoin.wallet.Secp256k1;
 import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
@@ -736,7 +736,7 @@ public enum ScriptNames {
         @Override
         public void opt(Interpreter executor) {
             byte[] pop = executor.stack.assertNotEmpty().pop();
-            byte[] bytes = Account4bitcoin.ripemd160(pop);
+            byte[] bytes = CoinAccount.ripemd160(pop);
         }
     },
     OP_SHA1,
@@ -744,7 +744,7 @@ public enum ScriptNames {
         @Override
         public void opt(Interpreter executor) {
             byte[] pop = executor.stack.assertNotEmpty().pop();
-            byte[] bytes = Account4bitcoin.sha256(pop);
+            byte[] bytes = CoinAccount.sha256(pop);
             executor.stack.push(bytes);
         }
     },
@@ -752,7 +752,7 @@ public enum ScriptNames {
         @Override
         public void opt(Interpreter executor) {
             byte[] pop = executor.stack.assertNotEmpty().pop();
-            byte[] bytes = Account4bitcoin.sha256hash160(pop);
+            byte[] bytes = CoinAccount.sha256ripemd160(pop);
             executor.stack.push(bytes);
             bytes = UintVar.parseAndRead(executor.getScript());
             executor.stack.push(bytes);

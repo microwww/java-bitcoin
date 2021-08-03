@@ -1,8 +1,7 @@
 package com.github.microwww.bitcoin.wallet;
 
-import com.github.microwww.bitcoin.wallet.cash.account.BechCashUtil;
+import com.github.microwww.bitcoin.wallet.cash.account.BechBitcoin;
 import com.github.microwww.bitcoin.wallet.util.Base58;
-import com.github.microwww.bitcoin.wallet.util.Bech32;
 import org.bouncycastle.crypto.digests.RIPEMD160Digest;
 import org.springframework.util.Assert;
 
@@ -86,13 +85,10 @@ public class CoinAccount {
             return toBase58(acc.getAddressHeader(), this.keyPublicHash);
         }
 
+        // https://en.bitcoin.it/wiki/BIP_0173
         public String toBech32Address(Env config) {
             byte[] sha160 = this.keyPublicHash;
-            byte[] comp = new byte[1 + sha160.length];
-            comp[0] = config.cashAddressHeader();
-            System.arraycopy(sha160, 0, comp, 1, sha160.length);
-            byte[] payload = Bech32.BECH.payloadEncode(comp);
-            return BechCashUtil.instance.bechEncode(payload, config.cashPrefix());
+            return config.bitcoinPrefix() + "1" + BechBitcoin.BECH.address(config, sha160);
         }
 
         public byte[] getKeyPublicHash() {

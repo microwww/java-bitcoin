@@ -3,8 +3,8 @@ package com.github.microwww.bitcoin.script;
 import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.util.ClassPath;
-import com.github.microwww.bitcoin.wallet.Account4bitcoin;
-import com.github.microwww.bitcoin.wallet.BitAccountConfig;
+import com.github.microwww.bitcoin.wallet.CoinAccount;
+import com.github.microwww.bitcoin.wallet.Env;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.jupiter.api.Test;
@@ -60,7 +60,7 @@ class InterpreterTest {
         }
         byte[] spk = tx1.getTxOuts()[0].getScriptPubKey();
         byte[] addr = Arrays.copyOfRange(spk, 1, 66);
-        assertEquals("12cbQLTFMXRnSzktFkuoG3eHoMeFtpTu3S", Account4bitcoin.publicToBase58Address(BitAccountConfig.MAIN, addr));
+        assertEquals("12cbQLTFMXRnSzktFkuoG3eHoMeFtpTu3S", new CoinAccount.KeyPublic(addr).getAddress().toBase58Address(Env.MAIN));
         Interpreter interpreter = new Interpreter(tx2).indexTxIn(0)
                 .executor(tx2.getTxIns()[0].getScript()).executor(tx1.getTxOuts()[0].getScriptPubKey());
         byte[] bytes = interpreter.pop().get();

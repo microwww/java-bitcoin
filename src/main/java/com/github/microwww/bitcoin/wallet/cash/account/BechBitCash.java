@@ -10,14 +10,14 @@ import java.util.Map.Entry;
 // C++ conversion to java
 // DOC : https://github.com/bitcoincashorg/spec/blob/master/cashaddr.md
 // CODE : https://github.com/Bitcoin-ABC/bitcoin-abc/blob/6c9c42ccb093820d5dd6f32f02c657c25ce5f823/src/cashaddr.cpp
-public class BechCashUtil {
+public class BechBitCash {
 
-    private BechCashUtil() {
+    private BechBitCash() {
     }
 
-    public static final BechCashUtil instance = new BechCashUtil();
+    public static final BechBitCash instance = new BechBitCash();
 
-    public static BechCashUtil getInstance() {
+    public static BechBitCash getInstance() {
         return instance;
     }
 
@@ -56,7 +56,7 @@ public class BechCashUtil {
             /**
              * We want to update `c` to correspond to a polynomial with one extra term. If the initial value of `c` consists of the coefficients of c(x) = f(x) mod g(x), we modify it to
              * correspond to c'(x) = (f(x) * x + d) mod g(x), where d is the next input to process.
-             * 
+             *
              * <pre>
              * Simplifying:
              * c'(x) = (f(x) * x + d) mod g(x)
@@ -154,7 +154,7 @@ public class BechCashUtil {
 
     /**
      * not do 8 -> 5 format
-     * 
+     *
      * @param prefix
      * @param payload
      * @return
@@ -236,9 +236,10 @@ public class BechCashUtil {
     // ---------------------------
     // 上面代码修改自 C++ 下面为添加
     // ---------------------------
+
     /**
      * bch old address to new address (payload)
-     * 
+     *
      * @param btc
      * @return
      */
@@ -268,7 +269,7 @@ public class BechCashUtil {
         } else {
             throw new IllegalArgumentException("unsupport format");
         }
-        byte[] payload = Bech32.BECH.payloadEncode(b58, 0, len);
+        byte[] payload = Bech32.BECH.payloadEncode(Arrays.copyOfRange(b58, 0, len));
         if (ver == 0) {
             prefix = "bitcoincash";
         } else if (ver == 0x6F) {
