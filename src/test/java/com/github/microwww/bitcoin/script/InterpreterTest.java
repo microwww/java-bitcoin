@@ -11,14 +11,22 @@ import com.github.microwww.bitcoin.wallet.Env;
 import com.github.microwww.bitcoin.wallet.Secp256k1;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class InterpreterTest {
+    private static List<String> strings = Collections.EMPTY_LIST;
+
+    @BeforeAll
+    public static void init() {
+        strings = ClassPath.readClassPathFile("/data/line-data.txt");
+    }
 
     // https://www.blockchain.com/btc/tx/6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4
     @Test
@@ -32,7 +40,6 @@ class InterpreterTest {
     }
 
     public void test_OP_CHECKSIG(int transaction, int txInIndex, int txOut, int txOutIndex) {
-        List<String> strings = ClassPath.readClassPathFile("/data/line-data.txt");
         RawTransaction tx1 = new RawTransaction();
         {
             byte[] dt = ByteUtil.hex(strings.get(transaction));
@@ -56,7 +63,6 @@ class InterpreterTest {
 
     @Test
     public void testV() {
-        List<String> strings = ClassPath.readClassPathFile("/data/line-data.txt");
         RawTransaction tx1 = new RawTransaction();
         {
             byte[] dt = ByteUtil.hex(strings.get(64));
@@ -84,7 +90,6 @@ class InterpreterTest {
     // c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670
     @Test
     public void P2WPKH() {
-        List<String> strings = ClassPath.readClassPathFile("/data/line-data.txt");
         RawTransaction tx1 = new RawTransaction();
         {
             byte[] dt = ByteUtil.hex(strings.get(72));
@@ -245,5 +250,28 @@ class InterpreterTest {
         assertEquals(71, txWitness[0].length);
         assertArrayEquals(ByteUtil.concat(snn, new byte[]{1}), txWitness[0]);
         assertArrayEquals(ByteUtil.hex("03ad1d8e89212f0b92c74d23bb710c00662ad1470198ac48c43f7d6f93a2a26873"), txWitness[1]);
+    }
+
+    // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#native-p2wsh
+    @Test
+    public void P2WSH() { // OP_CODESEPARATOR
+        RawTransaction tx = readTx(84);
+        String s = "4721026dccc749adc2a9d0d89497ac511f760f45c47dc5ed9cf352a58ac706453880aeadab210255a9626aebf5e29c0e6538428ba0d1dcf6ca98ffdf086aa8ced5e0d0215ea465ac";
+        byte[] hex = ByteUtil.hex(s);
+        CoinAccount.KeyPrivate rp = new CoinAccount.KeyPrivate(ByteUtil.hex("b8f28a772fccbf9b4f58a4f027e07dc2e35e7cd80529975e292ea34f84c4580c"));
+        byte[] ss = ByteUtil.hex("21036d5c20fa14fb2f635474c1dc4ef5909d4568e5569b79fc94d3448486e14685f8ac");
+        byte[] sign = ByteUtil.hex("304402200af4e47c9b9629dbecc21f73af989bdaa911f7e6f6c2e9394588a3aa68f81e9902204f3fcf6ade7e5abb1295b6774c8e0abd94ae62217367096bc02ee5e435b67da2");
+        long amount = 156250000L;
+        byte[] data = new SignTransaction(tx).data2signP2WPKH(SignTransaction.HashType.ALL, 0, ss, amount);
+        boolean rs = Secp256k1.signatureVerify(rp.getKeyPublic().getKey(), sign, data);
+        assertTrue(rs);
+    }
+
+    private static RawTransaction readTx(int index) {
+        RawTransaction tx = new RawTransaction();
+        byte[] dt = ByteUtil.hex(strings.get(index));
+        ByteBuf bf = Unpooled.copiedBuffer(dt);
+        tx.read(bf);
+        return tx;
     }
 }

@@ -107,9 +107,21 @@ public class SignTransaction {
         for (TxOut out : tx.getTxOuts()) {
             out.write(txOuts);
         }
-        byte[] hashPrevouts = ByteUtil.sha256sha256(ByteUtil.readAll(txIns));
-        byte[] hashSequence = ByteUtil.sha256sha256(ByteUtil.readAll(txSequence));
-        byte[] hashOutputs = ByteUtil.sha256sha256(ByteUtil.readAll(txOuts));
+        byte[] bytes = ByteUtil.readAll(txIns);
+        byte[] hashPrevouts = ByteUtil.sha256sha256(bytes);
+        if (logger.isDebugEnabled()) {
+            logger.info("TX-in : \n SHA256(SHA256({})) \n = {}", ByteUtil.hex(bytes), ByteUtil.hex(hashPrevouts));
+        }
+        bytes = ByteUtil.readAll(txSequence);
+        byte[] hashSequence = ByteUtil.sha256sha256(bytes);
+        if (logger.isDebugEnabled()) {
+            logger.info("TX-sequence : \n SHA256(SHA256({})) \n = {}", ByteUtil.hex(bytes), ByteUtil.hex(hashSequence));
+        }
+        bytes = ByteUtil.readAll(txOuts);
+        byte[] hashOutputs = ByteUtil.sha256sha256(bytes);
+        if (logger.isDebugEnabled()) {
+            logger.info("TX-out : \n SHA256(SHA256({})) \n = {}", ByteUtil.hex(bytes), ByteUtil.hex(hashOutputs));
+        }
         ByteBuf sn = Unpooled.buffer();
         sn
                 .writeIntLE(tx.getVersion())
@@ -123,8 +135,14 @@ public class SignTransaction {
                 .writeBytes(hashOutputs)
                 .writeIntLE(tx.getLockTime().intValue())
                 .writeIntLE(type.TYPE);
-        byte[] bytes = ByteUtil.readAll(sn);
-        return ByteUtil.sha256(bytes);
+        bytes = ByteUtil.readAll(sn);
+        byte[] sha256 = ByteUtil.sha256(bytes);
+        if (logger.isDebugEnabled()) {
+            String hex = ByteUtil.hex(sha256);
+            logger.info("TX-sign : \n SHA256({}) \n = {} \n & SHA256({}) \n = {}",
+                    ByteUtil.hex(bytes), hex, hex, ByteUtil.hex(ByteUtil.sha256(sha256)));
+        }
+        return sha256;
     }
 
     public SignTransaction setScriptP2PKH(HashType type, byte[] privateKey, int indexTxIn, byte[] preScript) {
