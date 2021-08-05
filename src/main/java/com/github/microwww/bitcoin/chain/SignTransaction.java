@@ -111,17 +111,15 @@ public class SignTransaction {
         byte[] hashSequence = ByteUtil.sha256sha256(ByteUtil.readAll(txSequence));
         byte[] hashOutputs = ByteUtil.sha256sha256(ByteUtil.readAll(txOuts));
         ByteBuf sn = Unpooled.buffer();
-        int nIn = 1;
-        byte[] scriptCode = ByteUtil.hex("1976a9141d0f172a0ecb48aee1be1f2687d2963ae33f71a188ac");
         sn
                 .writeIntLE(tx.getVersion())
                 .writeBytes(hashPrevouts)
                 .writeBytes(hashSequence)
                 // outpoint
-                .writeBytes(tx.getTxIns()[nIn].getPreTxHash().fill256bit()).writeIntLE(tx.getTxIns()[nIn].getPreTxOutIndex())
-                .writeBytes(scriptCode)
+                .writeBytes(tx.getTxIns()[indexTxIn].getPreTxHash().fill256bit()).writeIntLE(tx.getTxIns()[indexTxIn].getPreTxOutIndex())
+                .writeBytes(preScript)
                 .writeLongLE(preMount)
-                .writeIntLE(tx.getTxIns()[nIn].getSequence().intValue())
+                .writeIntLE(tx.getTxIns()[indexTxIn].getSequence().intValue())
                 .writeBytes(hashOutputs)
                 .writeIntLE(tx.getLockTime().intValue())
                 .writeIntLE(type.TYPE);
