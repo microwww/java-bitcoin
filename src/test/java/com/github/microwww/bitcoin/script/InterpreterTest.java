@@ -1,9 +1,9 @@
 package com.github.microwww.bitcoin.script;
 
 import com.github.microwww.bitcoin.chain.RawTransaction;
+import com.github.microwww.bitcoin.chain.SignTransaction;
 import com.github.microwww.bitcoin.chain.TxIn;
 import com.github.microwww.bitcoin.chain.TxOut;
-import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.util.ClassPath;
 import com.github.microwww.bitcoin.wallet.CoinAccount;
@@ -112,6 +112,7 @@ class InterpreterTest {
         ByteBuf sn = Unpooled.buffer();
         int nIn = 1;
         byte[] scriptCode = ByteUtil.hex("1976a9141d0f172a0ecb48aee1be1f2687d2963ae33f71a188ac");
+        long amount = Unpooled.buffer().writeLong(0x0046c32300000000L).readLongLE();
         sn
                 .writeIntLE(tx1.getVersion())
                 .writeBytes(hashIn)
@@ -119,24 +120,48 @@ class InterpreterTest {
                 // outpoint
                 .writeBytes(tx1.getTxIns()[nIn].getPreTxHash().fill256bit()).writeIntLE(tx1.getTxIns()[nIn].getPreTxOutIndex())
                 .writeBytes(scriptCode)
-                .writeLong(0x0046c32300000000L)
+                .writeLongLE(amount)
                 .writeIntLE(tx1.getTxIns()[nIn].getSequence().intValue())
                 .writeBytes(hashOut)
                 .writeIntLE(tx1.getLockTime().intValue())
                 .writeIntLE(1);
         byte[] bytes = ByteUtil.readAll(sn);
-        byte[] bytes1 = ByteUtil.sha256(bytes);
-        System.out.println(ByteUtil.hex(bytes1));
-        assertArrayEquals(ByteUtil.hex("c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670"), ByteUtil.sha256(bytes1));
+        byte[] sha256 = ByteUtil.sha256(bytes);
+        System.out.println(ByteUtil.hex(sha256));
+        assertArrayEquals(ByteUtil.hex("c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670"), ByteUtil.sha256(sha256));
         byte[] snn = ByteUtil.hex("304402203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300e8f3358f51928d43c212a8caed02de67eebee"); //
         byte[] pk = ByteUtil.hex("025476c2e83188368da1ff3e292e7acafcdb3566bb0ad253f62fc70f07aeee6357");
+        CoinAccount.KeyPrivate keyPrivate = new CoinAccount.KeyPrivate(ByteUtil.hex("619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9"));
         {
-            CoinAccount.KeyPrivate keyPrivate = new CoinAccount.KeyPrivate(ByteUtil.hex("619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9"));
-            byte[] bt = Secp256k1.signature(keyPrivate.getKey(), bytes1);
-            assertTrue(Secp256k1.signatureVerify(pk, bt, bytes1));
+            byte[] bt = Secp256k1.signature(keyPrivate.getKey(), sha256);
+            assertTrue(Secp256k1.signatureVerify(pk, bt, sha256));
+            CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("bbc27228ddcb9209d7fd6f36b02f7dfa6252af40bb2f1cbc7a557da8027ff866"));
+            new SignTransaction(tx1).setScriptP2PKH(
+                    SignTransaction.HashType.ALL,
+                    kr.getKey(),
+                    0,
+                    ByteUtil.hex("2103c9f4836b9a4f77fc0d81f7bcb01b7f1b35916864b9476c241ce9fc198bd25432ac")
+            );
         }
-        boolean b = Secp256k1.signatureVerify(pk, snn, bytes1);
+
+        byte[] dt = new SignTransaction(tx1).data2signP2WPKH(SignTransaction.HashType.ALL, 1, scriptCode, amount);
+        assertArrayEquals(dt, sha256);
+
+        boolean b = Secp256k1.signatureVerify(pk, snn, sha256);
         assertTrue(b);
+
+        // 01000000000102fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f00000000494830450221008b9d1dc26ba6a9cb62127b02742fa9d754cd3bebf337f7a55d114c8e5cdd30be022040529b194ba3f9281a99f2b1c0a19c0489bc22ede944ccf4ecbab4cc618ef3ed01eeffffffef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a0100000000ffffffff02202cb206000000001976a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac9093510d000000001976a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac000247304402203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300e8f3358f51928d43c212a8caed02de67eebee0121025476c2e83188368da1ff3e292e7acafcdb3566bb0ad253f62fc70f07aeee635711000000
+
+        tx1.getTxIns()[1].setScript(new byte[]{});
+
+        byte[] pubKey = keyPrivate.getKeyPublic().getKey();
+        tx1.getTxIns()[1].setTxWitness(new byte[][]{ByteUtil.concat(snn, new byte[]{SignTransaction.HashType.ALL.TYPE}), pubKey});
+
+        byte[][] txWitness = tx1.getTxIns()[1].getTxWitness();
+        assertEquals(2, txWitness.length);
+        assertEquals(71, txWitness[0].length);
+        assertArrayEquals(ByteUtil.concat(snn, new byte[]{1}), txWitness[0]);
+        assertArrayEquals(ByteUtil.hex("025476c2e83188368da1ff3e292e7acafcdb3566bb0ad253f62fc70f07aeee6357"), txWitness[1]);
     }
 
     @Test

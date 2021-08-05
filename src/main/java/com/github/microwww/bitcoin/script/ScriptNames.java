@@ -1,15 +1,11 @@
 package com.github.microwww.bitcoin.script;
 
-import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.chain.SignTransaction;
-import com.github.microwww.bitcoin.chain.TxIn;
 import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.script.ex.ScriptDisableException;
 import com.github.microwww.bitcoin.script.ex.TransactionInvalidException;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.wallet.CoinAccount;
-import com.github.microwww.bitcoin.wallet.Secp256k1;
-import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
@@ -777,9 +773,8 @@ public enum ScriptNames {
             Assert.isTrue(sn.length >= 50, "signature.length > 1, general == 71 / 72");
             byte[] sign = Arrays.copyOf(sn, sn.length - 1);
             byte type = sn[sn.length - 1];
-            Assert.isTrue(type == 1, "暂时仅支持签名 type = 1 (ALL)的交易, 文档: https://en.bitcoin.it/wiki/OP_CHECKSIG");
             boolean verify = new SignTransaction(executor.transaction)
-                    .signatureVerify(type, pk, sign, executor.getIndexTxIn(), executor.getScripts());
+                    .signatureVerify(SignTransaction.HashType.ALL, pk, sign, executor.getIndexTxIn(), executor.getScripts());
 
             executor.stack.push(verify ? new byte[]{1} : new byte[]{0});
         }

@@ -9,8 +9,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.springframework.util.Assert;
 
-import java.util.Arrays;
-
 public class RawTransaction {
     private int version;
     private byte marker = 0;
@@ -73,7 +71,14 @@ public class RawTransaction {
     }
 
     public void write(ByteBuf bf) {
-        write(bf, this.flag);
+        boolean flag = false;
+        for (TxIn txIn : this.getTxIns()) {
+            if (txIn.getTxWitness() != null) {
+                flag = true;
+                break;
+            }
+        }
+        write(bf, flag ? 1 : 0);
     }
 
     public ByteBuf serialize(int witness) {
@@ -154,10 +159,6 @@ public class RawTransaction {
 
     public byte getFlag() {
         return flag;
-    }
-
-    public void setFlag(byte flag) {
-        this.flag = flag;
     }
 
     @Override

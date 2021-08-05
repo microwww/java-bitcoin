@@ -1,27 +1,46 @@
 package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.util.ByteUtil;
+import com.github.microwww.bitcoin.wallet.CoinAccount;
 import com.github.microwww.bitcoin.wallet.Secp256k1;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
 public class SignTransaction {
     private static final Logger logger = LoggerFactory.getLogger(SignTransaction.class);
+
+    public enum HashType {
+        ALL(1),
+        // NONE(2),
+        // SINGLE(3),
+        // ANYONECANPAY(0x80),
+        ;
+        public final byte TYPE;
+
+        HashType(byte type) {
+            this.TYPE = type;
+        }
+
+        HashType(int type) {
+            this.TYPE = (byte) type;
+        }
+    }
+
+
     private final RawTransaction transaction;
 
     /**
-     * 自动 clone, 防止修改
-     *
      * @param transaction
      */
     public SignTransaction(RawTransaction transaction) {
-        this.transaction = transaction.clone();
+        this.transaction = transaction;
     }
 
-    public byte[] signature(byte type, byte[] privateKey, int indexTxIn, byte[] preScript) {
-        byte[] bytes = signData(type, indexTxIn, preScript);
+    public byte[] signature(HashType type, byte[] privateKey, int indexTxIn, byte[] preScript) {
+        byte[] bytes = data2signP2PKH(type, indexTxIn, preScript);
         byte[] signature = Secp256k1.signature(privateKey, bytes);
         if (logger.isDebugEnabled()) {
             logger.debug("Will sign private-key: {}, public-key: {}, \n data: {}",
@@ -43,16 +62,17 @@ public class SignTransaction {
      * @param preScript
      * @return
      */
-    public boolean signatureVerify(byte type, byte[] publicKey, byte[] si, int indexTxIn, byte[] preScript) {
+    public boolean signatureVerify(HashType type, byte[] publicKey, byte[] si, int indexTxIn, byte[] preScript) {
+        Assert.isTrue(type.TYPE == 1, "暂时仅支持签名 type = 1 (ALL)的交易, 文档: https://en.bitcoin.it/wiki/OP_CHECKSIG");
         if (logger.isDebugEnabled()) {
             logger.debug("Verify signature PK: {}", ByteUtil.hex(publicKey));
         }
-        byte[] bytes = signData(type, indexTxIn, preScript);
+        byte[] bytes = data2signP2PKH(type, indexTxIn, preScript);
         return Secp256k1.signatureVerify(publicKey, si, bytes);
     }
 
-    public byte[] signData(byte type, int indexTxIn, byte[] preScript) {
-        Assert.isTrue(type == 1, "暂时仅支持签名 type = 1 (ALL)的交易, 文档: https://en.bitcoin.it/wiki/OP_CHECKSIG");
+    public byte[] data2signP2PKH(HashType type, int indexTxIn, byte[] preScript) {
+        Assert.isTrue(type.TYPE == 1, "暂时仅支持签名 type = 1 (ALL)的交易, 文档: https://en.bitcoin.it/wiki/OP_CHECKSIG");
         // System.arraycopy(new byte[]{sn[sn.length - 1], 0, 0, 0}, 0, sign, sn.length - 1, 4);
         RawTransaction tx = transaction.clone();
         for (int i = 0; i < tx.getTxIns().length; i++) {
@@ -63,15 +83,77 @@ public class SignTransaction {
                 txIn.setScript(preScript);
             }
         }
-        ByteBuf sr = tx.serialize(0).writeBytes(new byte[]{type, 0, 0, 0});
+        ByteBuf sr = tx.serialize(0).writeBytes(new byte[]{type.TYPE, 0, 0, 0});
         byte[] data = ByteUtil.readAll(sr);
         byte[] sha = ByteUtil.sha256(data); // !!  文档是 sha256两次, 实际是一次 !!!
         if (logger.isDebugEnabled()) {
             logger.debug("Will sign data origin: {}, \n ready: {}, \n sha256: {}",
-                    ByteUtil.hex(ByteUtil.readAll(transaction.serialize(0))),
+                    ByteUtil.hex(ByteUtil.readAll(tx.serialize(0))),
                     ByteUtil.hex(data),
                     ByteUtil.hex(sha));
         }
         return sha;
+    }
+
+    public byte[] data2signP2WPKH(HashType type, int indexTxIn, byte[] preScript, long preMount) {
+        RawTransaction tx = this.transaction;
+        ByteBuf txIns = Unpooled.buffer();
+        ByteBuf txSequence = Unpooled.buffer();
+        for (TxIn txIn : tx.getTxIns()) {
+            txIns.writeBytes(txIn.getPreTxHash().fill256bit()).writeIntLE(txIn.getPreTxOutIndex());
+            txSequence.writeIntLE(txIn.getSequence().intValue());
+        }
+        ByteBuf txOuts = Unpooled.buffer();
+        for (TxOut out : tx.getTxOuts()) {
+            out.write(txOuts);
+        }
+        byte[] hashPrevouts = ByteUtil.sha256sha256(ByteUtil.readAll(txIns));
+        byte[] hashSequence = ByteUtil.sha256sha256(ByteUtil.readAll(txSequence));
+        byte[] hashOutputs = ByteUtil.sha256sha256(ByteUtil.readAll(txOuts));
+        ByteBuf sn = Unpooled.buffer();
+        int nIn = 1;
+        byte[] scriptCode = ByteUtil.hex("1976a9141d0f172a0ecb48aee1be1f2687d2963ae33f71a188ac");
+        sn
+                .writeIntLE(tx.getVersion())
+                .writeBytes(hashPrevouts)
+                .writeBytes(hashSequence)
+                // outpoint
+                .writeBytes(tx.getTxIns()[nIn].getPreTxHash().fill256bit()).writeIntLE(tx.getTxIns()[nIn].getPreTxOutIndex())
+                .writeBytes(scriptCode)
+                .writeLongLE(preMount)
+                .writeIntLE(tx.getTxIns()[nIn].getSequence().intValue())
+                .writeBytes(hashOutputs)
+                .writeIntLE(tx.getLockTime().intValue())
+                .writeIntLE(type.TYPE);
+        byte[] bytes = ByteUtil.readAll(sn);
+        return ByteUtil.sha256(bytes);
+    }
+
+    public SignTransaction setScriptP2PKH(HashType type, byte[] privateKey, int indexTxIn, byte[] preScript) {
+        byte[] signature = this.signature(type, privateKey, indexTxIn, preScript);
+        int sLen = signature.length;
+        ByteBuf buffer = Unpooled.buffer();
+        buffer.writeByte(sLen);
+        buffer.writeBytes(signature);
+        byte[] pk = new CoinAccount.KeyPrivate(privateKey).getKeyPublic().getKey();
+        int pLen = pk.length;
+        buffer.writeByte(pLen);
+        buffer.writeBytes(pk);
+        transaction.getTxIns()[indexTxIn].setScript(ByteUtil.readAll(buffer));
+        return this;
+    }
+
+    public SignTransaction setScriptP2WKH(HashType type, byte[] privateKey, int indexTxIn, byte[] preScript) {
+        byte[] signature = this.signature(type, privateKey, indexTxIn, preScript);
+        int sLen = signature.length;
+        byte[] pk = new CoinAccount.KeyPrivate(privateKey).getAddress().getKeyPublicHash();
+        int pLen = pk.length;
+        ByteBuf buffer = Unpooled.buffer();
+        buffer.writeByte(1 + sLen + 1 + pLen);
+        buffer.writeByte(sLen);
+        buffer.writeBytes(signature);
+        buffer.writeByte(pLen);
+        buffer.writeBytes(pk);
+        return this;
     }
 }
