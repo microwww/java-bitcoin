@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.script;
 
 import com.github.microwww.bitcoin.chain.RawTransaction;
+import com.github.microwww.bitcoin.chain.SignTransaction;
 import com.github.microwww.bitcoin.chain.TxIn;
 import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.script.ex.ScriptDisableException;
@@ -777,34 +778,10 @@ public enum ScriptNames {
             byte[] sign = Arrays.copyOf(sn, sn.length - 1);
             byte type = sn[sn.length - 1];
             Assert.isTrue(type == 1, "暂时仅支持签名 type = 1 (ALL)的交易, 文档: https://en.bitcoin.it/wiki/OP_CHECKSIG");
-            // System.arraycopy(new byte[]{sn[sn.length - 1], 0, 0, 0}, 0, sign, sn.length - 1, 4);
-            RawTransaction tx = executor.transaction.clone();
-            for (int i = 0; i < tx.getTxIns().length; i++) {
-                TxIn txIn = tx.getTxIns()[i];
-                if (i != executor.getIndexTxIn()) {
-                    txIn.setScript(new byte[]{});
-                } else {
-                    ByteBuf script = executor.getScript();
-                    int i1 = script.readerIndex();
-                    script.readerIndex(0);
-                    byte[] bytes = ByteUtil.readAll(script);
-                    txIn.setScript(bytes);
-                    script.readerIndex(i1);
-                }
-            }
-            ByteBuf sr = tx.serialize(0).writeBytes(new byte[]{type, 0, 0, 0});
-            byte[] data = ByteUtil.readAll(sr);
-            byte[] sha = ByteUtil.sha256(data); // !!  文档是 sha256两次, 实际是一次 !!!
-            if (logger.isDebugEnabled()) {
-                logger.debug("Will sign data pk: {},\n origin: {}, \n ready: {}, \n sha: {}, \n target: {}",
-                        ByteUtil.hex(pk),
-                        ByteUtil.hex(ByteUtil.readAll(executor.transaction.serialize(0))),
-                        ByteUtil.hex(data),
-                        ByteUtil.hex(sha),
-                        ByteUtil.hex(sign));
-            }
-            boolean b = Secp256k1.signatureVerify(Secp256k1.converterPublicKey(pk), sign, sha);
-            executor.stack.push(b ? new byte[]{1} : new byte[]{0});
+            boolean verify = new SignTransaction(executor.transaction)
+                    .signatureVerify(type, pk, sign, executor.getIndexTxIn(), executor.getScripts());
+
+            executor.stack.push(verify ? new byte[]{1} : new byte[]{0});
         }
     },
     OP_CHECKSIGVERIFY,

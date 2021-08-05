@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
+import java.util.Arrays;
 import java.util.Optional;
 
 public class Interpreter {
@@ -16,6 +17,7 @@ public class Interpreter {
     protected final RawTransaction transaction;
     private int indexTxIn = 0;
     private ByteBuf script;
+    private byte[] scripts;
     protected final BytesStack stack = new BytesStack();
 
     public Interpreter(RawTransaction tx) {
@@ -36,6 +38,7 @@ public class Interpreter {
 
     public Interpreter executor(byte[] aScript) {
         Assert.isTrue(aScript != null, "Not NULL");
+        this.scripts = aScript;
         this.script = Unpooled.copiedBuffer(aScript);
         while (script.readableBytes() > 0) {
             Uint8 op = new Uint8(script.readByte());
@@ -57,8 +60,12 @@ public class Interpreter {
         return Optional.of(this.stack.pop());
     }
 
-    protected ByteBuf getScript() {
+    ByteBuf getScript() {
         return script;
+    }
+
+    public byte[] getScripts() {
+        return Arrays.copyOf(scripts, scripts.length);
     }
 
     public int getIndexTxIn() {
