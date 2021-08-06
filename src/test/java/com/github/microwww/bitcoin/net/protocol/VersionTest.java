@@ -14,6 +14,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.jupiter.api.*;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.UUID;
 
@@ -22,12 +23,19 @@ import static org.junit.jupiter.api.Assertions.*;
 public class VersionTest {
     private static CChainParams cp = new CChainParams(new Settings(CChainParams.Env.REG_TEST));
 
-    private LocalBlockChain localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TxMemPool(cp));
-    Peer peer = new Peer(localBlockChain, "localhost", 8333);
+    private static LocalBlockChain localBlockChain;
+    private static Peer peer;
 
     @BeforeAll
     public static void inti() {
         cp.settings.setDataDir("/tmp/" + UUID.randomUUID());
+        localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TxMemPool(cp));
+        peer = new Peer(localBlockChain, "localhost", 8333);
+    }
+
+    @AfterAll
+    public static void close() throws IOException {
+        localBlockChain.getDiskBlock().close();
     }
 
     @Test

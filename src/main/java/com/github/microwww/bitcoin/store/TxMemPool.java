@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
@@ -19,7 +20,7 @@ import java.util.LinkedHashSet;
 import java.util.Optional;
 
 @Component
-public class TxMemPool {
+public class TxMemPool implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(TxMemPool.class);
     private final CChainParams chainParams;
     private final HashSet<RawTransaction> transactions;
@@ -63,5 +64,10 @@ public class TxMemPool {
             return Optional.of(rt);
         }
         return Optional.empty();
+    }
+
+    @Override
+    public void close() throws IOException {
+        levelDB.close();
     }
 }

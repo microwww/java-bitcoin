@@ -36,7 +36,7 @@ public class BechBitcoin {
         vp[0] = (byte) version;
         System.arraycopy(bytes, 0, vp, 1, bytes.length);
         byte[] checksum = new BechBitcoin(encode).createChecksum(env.bitcoinPrefix(), vp, encode);
-        return Bech32.BECH.bechEncode(vp, checksum);
+        return env.bitcoinPrefix() + "1" + Bech32.BECH.bechEncode(vp, checksum);
     }
 
     public int polymod(byte[] values) {
