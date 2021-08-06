@@ -141,15 +141,14 @@ class InterpreterTest {
             byte[] bt = Secp256k1.signature(keyPrivate.getKey(), sha256);
             assertTrue(Secp256k1.signatureVerify(pk, bt, sha256));
             CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("bbc27228ddcb9209d7fd6f36b02f7dfa6252af40bb2f1cbc7a557da8027ff866"));
-            new SignTransaction(tx1).setScriptP2PKH(
-                    SignTransaction.HashType.ALL,
+            new SignTransaction(tx1).writeHashAllSignScriptP2PK(
                     kr.getKey(),
                     0,
                     ByteUtil.hex("2103c9f4836b9a4f77fc0d81f7bcb01b7f1b35916864b9476c241ce9fc198bd25432ac")
             );
         }
 
-        byte[] dt = new SignTransaction(tx1).data2signP2WPKH(SignTransaction.HashType.ALL, nIn, scriptCode, amount);
+        byte[] dt = new SignTransaction(tx1).data4hashAllSignP2Witness(nIn, scriptCode, amount);
         assertArrayEquals(dt, sha256);
 
         boolean b = Secp256k1.signatureVerify(pk, snn, sha256);
@@ -232,7 +231,7 @@ class InterpreterTest {
         byte[] pk = keyPrivate.getKeyPublic().getKey();
         assertArrayEquals(ByteUtil.hex("03ad1d8e89212f0b92c74d23bb710c00662ad1470198ac48c43f7d6f93a2a26873"), pk);
 
-        byte[] dt = new SignTransaction(tx).data2signP2WPKH(SignTransaction.HashType.ALL, nIn, scriptCode, amount);
+        byte[] dt = new SignTransaction(tx).data4hashAllSignP2Witness(nIn, scriptCode, amount);
         assertArrayEquals(dt, sha256);
 
         byte[] snn = ByteUtil.hex("3044022047ac8e878352d3ebbde1c94ce3a10d057c24175747116f8288e5d794d12d482f0220217f36a485cae903c713331d877c1f64677e3622ad4010726870540656fe9dcb"); //
@@ -256,14 +255,30 @@ class InterpreterTest {
     @Test
     public void P2WSH() { // OP_CODESEPARATOR
         RawTransaction tx = readTx(84);
-        String s = "4721026dccc749adc2a9d0d89497ac511f760f45c47dc5ed9cf352a58ac706453880aeadab210255a9626aebf5e29c0e6538428ba0d1dcf6ca98ffdf086aa8ced5e0d0215ea465ac";
-        byte[] hex = ByteUtil.hex(s);
         CoinAccount.KeyPrivate rp = new CoinAccount.KeyPrivate(ByteUtil.hex("b8f28a772fccbf9b4f58a4f027e07dc2e35e7cd80529975e292ea34f84c4580c"));
         byte[] ss = ByteUtil.hex("21036d5c20fa14fb2f635474c1dc4ef5909d4568e5569b79fc94d3448486e14685f8ac");
+        // The first input comes from an ordinary P2PK:
+        int index = 0;
+        byte[] data = new SignTransaction(tx).data4hashAllSignP2PK(index, ss);
         byte[] sign = ByteUtil.hex("304402200af4e47c9b9629dbecc21f73af989bdaa911f7e6f6c2e9394588a3aa68f81e9902204f3fcf6ade7e5abb1295b6774c8e0abd94ae62217367096bc02ee5e435b67da2");
-        long amount = 156250000L;
-        byte[] data = new SignTransaction(tx).data2signP2WPKH(SignTransaction.HashType.ALL, 0, ss, amount);
         boolean rs = Secp256k1.signatureVerify(rp.getKeyPublic().getKey(), sign, data);
+        assertTrue(rs);
+
+        // The second input comes from a native P2WSH witness program:
+        index = 1;
+        ss = ByteUtil.hex("4721026dccc749adc2a9d0d89497ac511f760f45c47dc5ed9cf352a58ac706453880aeadab210255a9626aebf5e29c0e6538428ba0d1dcf6ca98ffdf086aa8ced5e0d0215ea465ac");
+        data = new SignTransaction(tx).data4hashSingleSignP2Witness(index, ss, 49_0000_0000L);
+        rp = new CoinAccount.KeyPrivate(ByteUtil.hex("8e02b539b1500aa7c81cf3fed177448a546f19d2be416c0c61ff28e577d8d0cd"));
+        sign = ByteUtil.hex("3044022027dc95ad6b740fe5129e7e62a75dd00f291a2aeb1200b84b09d9e3789406b6c002201a9ecd315dd6a0e632ab20bbb98948bc0c6fb204f2c286963bb48517a7058e27");
+        rs = Secp256k1.signatureVerify(rp.getKeyPublic().getKey(), sign, data);
+        assertTrue(rs);
+
+        index = 1;
+        ss = ByteUtil.hex("23210255a9626aebf5e29c0e6538428ba0d1dcf6ca98ffdf086aa8ced5e0d0215ea465ac");
+        data = new SignTransaction(tx).data4hashSingleSignP2Witness(index, ss, 49_0000_0000L);
+        rp = new CoinAccount.KeyPrivate(ByteUtil.hex("86bf2ed75935a0cbef03b89d72034bb4c189d381037a5ac121a70016db8896ec"));
+        sign = ByteUtil.hex("304402200de66acf4527789bfda55fc5459e214fa6083f936b430a762c629656216805ac0220396f550692cd347171cbc1ef1f51e15282e837bb2b30860dc77c8f78bc8501e5");
+        rs = Secp256k1.signatureVerify(rp.getKeyPublic().getKey(), sign, data);
         assertTrue(rs);
     }
 
