@@ -65,6 +65,15 @@ public class BytesStack {
         return stack.peek();
     }
 
+    /**
+     *
+     * @param index from 0
+     * @return
+     */
+    public byte[] peek(int index) {
+        return stack.get(stack.size() - index);
+    }
+
     public int peekInt() {
         byte[] pop = stack.peek();
         if (pop.length > 4) {

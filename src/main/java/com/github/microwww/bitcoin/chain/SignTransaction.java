@@ -145,7 +145,7 @@ public class SignTransaction {
         return sha256;
     }
 
-    public byte[] data4hashSingleSignP2Witness(int indexTxIn, byte[] preScript, long preMount) {
+    public byte[] data4hashSingleSignP2WPKH(int indexTxIn, byte[] preScript, long preMount) {
         HashType type = HashType.SINGLE;
         RawTransaction tx = this.transaction;
         ByteBuf txIns = Unpooled.buffer();
@@ -210,18 +210,10 @@ public class SignTransaction {
         return this;
     }
 
-    public SignTransaction writeHashAllSignScriptP2Witness(byte[] privateKey, int indexTxIn, byte[] preScript) {
+    public SignTransaction writeHashAllSignScriptP2WPKH(byte[] privateKey, int indexTxIn, byte[] preScript) {
         byte[] signature = this.getHashAllSignP2PK(privateKey, indexTxIn, preScript);
-        int sLen = signature.length;
         byte[] pk = new CoinAccount.KeyPrivate(privateKey).getAddress().getKeyPublicHash();
-        int pLen = pk.length;
-        ByteBuf buffer = Unpooled.buffer();
-        buffer.writeByte(1 + sLen + 1 + pLen);
-        buffer.writeByte(sLen);
-        buffer.writeBytes(signature);
-        buffer.writeByte(pLen);
-        buffer.writeBytes(pk);
-        // return this;
+        transaction.getTxIns()[indexTxIn].setTxWitness(new byte[][]{signature, pk});
         throw new UnsupportedOperationException();
     }
 }

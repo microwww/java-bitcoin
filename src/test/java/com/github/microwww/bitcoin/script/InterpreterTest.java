@@ -263,23 +263,35 @@ class InterpreterTest {
         byte[] sign = ByteUtil.hex("304402200af4e47c9b9629dbecc21f73af989bdaa911f7e6f6c2e9394588a3aa68f81e9902204f3fcf6ade7e5abb1295b6774c8e0abd94ae62217367096bc02ee5e435b67da2");
         boolean rs = Secp256k1.signatureVerify(rp.getKeyPublic().getKey(), sign, data);
         assertTrue(rs);
+        new SignTransaction(tx).writeHashAllSignScriptP2PK(rp.getKey(), 0, ss);
 
         // The second input comes from a native P2WSH witness program:
         index = 1;
         ss = ByteUtil.hex("4721026dccc749adc2a9d0d89497ac511f760f45c47dc5ed9cf352a58ac706453880aeadab210255a9626aebf5e29c0e6538428ba0d1dcf6ca98ffdf086aa8ced5e0d0215ea465ac");
-        data = new SignTransaction(tx).data4hashSingleSignP2Witness(index, ss, 49_0000_0000L);
+        data = new SignTransaction(tx).data4hashSingleSignP2WPKH(index, ss, 49_0000_0000L);
         rp = new CoinAccount.KeyPrivate(ByteUtil.hex("8e02b539b1500aa7c81cf3fed177448a546f19d2be416c0c61ff28e577d8d0cd"));
         sign = ByteUtil.hex("3044022027dc95ad6b740fe5129e7e62a75dd00f291a2aeb1200b84b09d9e3789406b6c002201a9ecd315dd6a0e632ab20bbb98948bc0c6fb204f2c286963bb48517a7058e27");
         rs = Secp256k1.signatureVerify(rp.getKeyPublic().getKey(), sign, data);
         assertTrue(rs);
+        new SignTransaction(tx).writeHashAllSignScriptP2WPKH(rp.getKey(), 0, ss);
 
         index = 1;
         ss = ByteUtil.hex("23210255a9626aebf5e29c0e6538428ba0d1dcf6ca98ffdf086aa8ced5e0d0215ea465ac");
-        data = new SignTransaction(tx).data4hashSingleSignP2Witness(index, ss, 49_0000_0000L);
+        data = new SignTransaction(tx).data4hashSingleSignP2WPKH(index, ss, 49_0000_0000L);
         rp = new CoinAccount.KeyPrivate(ByteUtil.hex("86bf2ed75935a0cbef03b89d72034bb4c189d381037a5ac121a70016db8896ec"));
         sign = ByteUtil.hex("304402200de66acf4527789bfda55fc5459e214fa6083f936b430a762c629656216805ac0220396f550692cd347171cbc1ef1f51e15282e837bb2b30860dc77c8f78bc8501e5");
         rs = Secp256k1.signatureVerify(rp.getKeyPublic().getKey(), sign, data);
         assertTrue(rs);
+    }
+
+    @Test
+    public void exeP2WPKH() {
+        RawTransaction tx = readTx(87);
+        RawTransaction preouts = readTx(88);
+        Interpreter interpreter = new Interpreter(tx).indexTxIn(0).witnessPushStack()
+                .executor(tx.getTxIns()[0].getScript())
+                .executor(preouts.getTxOuts()[1].getScriptPubKey());
+
     }
 
     private static RawTransaction readTx(int index) {

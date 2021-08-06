@@ -18,12 +18,23 @@ public class Interpreter {
     private int indexTxIn = 0;
     private ByteBuf script;
     private byte[] scripts;
-    protected final BytesStack stack = new BytesStack();
+    protected final BytesStack stack;
     private int lastCodeSeparator = -1;
 
     public Interpreter(RawTransaction tx) {
+        this(tx, new BytesStack());
+    }
+
+    protected Interpreter(RawTransaction tx, BytesStack bytesStack) {
         Assert.isTrue(tx != null, "Not NULL");
         this.transaction = tx.clone();
+        stack = bytesStack;
+    }
+
+    public Interpreter subScript() {
+        Interpreter ch = new Interpreter(this.transaction, this.stack);
+        ch.indexTxIn = this.indexTxIn;
+        return ch;
     }
 
     public Interpreter indexTxIn(int i) {
@@ -34,6 +45,16 @@ public class Interpreter {
 
     public Interpreter nextTxIn() {
         indexTxIn(indexTxIn + 1);
+        return this;
+    }
+
+    public Interpreter witnessPushStack() {
+        byte[][] pushes = transaction.getTxIns()[indexTxIn].getTxWitness();
+        if (pushes != null) {
+            for (byte[] push : pushes) {
+                this.stack.push(push);
+            }
+        }
         return this;
     }
 
@@ -50,6 +71,18 @@ public class Interpreter {
             if (logger.isDebugEnabled())
                 logger.debug("After  Operation : {}, {}", sn.name(), stack.size());
         }
+
+        for (TemplateTransaction value : TemplateTransaction.values()) {
+            try { // TODO :: 需要实现 !!
+                if (value.isSupport(aScript)) {
+                    value.executor(this);
+                    break;
+                }
+            } catch (UnsupportedOperationException e) {
+                logger.debug("UnsupportedOperationException : {}", e.getMessage());
+            }
+        }
+
         return this;
     }
 
@@ -59,6 +92,20 @@ public class Interpreter {
             return Optional.empty();
         }
         return Optional.of(this.stack.pop());
+    }
+
+
+    public boolean topIsTrue() {
+        Assert.isTrue(script.readableBytes() == 0, "Script Not done");
+        if (!this.stack.isEmpty()) {
+            byte[] pk = this.stack.peek();
+            if (pk.length > 0) {
+                if (pk[0] != 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     ByteBuf getScript() {

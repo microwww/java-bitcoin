@@ -14,7 +14,12 @@ import java.util.Arrays;
 
 public enum ScriptNames {
     // push value
-    OP_0,
+    OP_0() {
+        @Override
+        public void opt(Interpreter executor) {
+            executor.stack.push(new byte[0]);
+        }
+    },
     _1() {
         @Override
         public void opt(Interpreter executor) {
@@ -518,7 +523,12 @@ public enum ScriptNames {
     OP_2SWAP,
     OP_IFDUP, // 115
     OP_DEPTH,
-    OP_DROP,
+    OP_DROP() {
+        @Override
+        public void opt(Interpreter executor) {
+            executor.stack.assertSizeGE(1).pop();
+        }
+    },
     OP_DUP {
         @Override
         public void opt(Interpreter executor) {
@@ -528,7 +538,14 @@ public enum ScriptNames {
     },
     OP_NIP,
     OP_OVER, // 120
-    OP_PICK,
+    OP_PICK {
+        @Override
+        public void opt(Interpreter executor) {
+            int i = executor.stack.assertNotEmpty().popInt();
+            executor.stack.assertSizeGE(i);
+            executor.stack.push(executor.stack.peek(i));
+        }
+    },
     OP_ROLL,
     OP_ROT,
     OP_SWAP,
@@ -764,7 +781,7 @@ public enum ScriptNames {
             executor.stack.push(bytes);
         }
     },
-    OP_CODESEPARATOR(){
+    OP_CODESEPARATOR() {
         @Override
         public void opt(Interpreter executor) {
             executor.setLastCodeSeparator(executor.getScript().readerIndex());
@@ -814,5 +831,9 @@ public enum ScriptNames {
 
     public void opt(Interpreter executor) {
         throw new UnsupportedOperationException(this.name());
+    }
+
+    public byte opcode() {
+        return (byte) this.ordinal();
     }
 }
