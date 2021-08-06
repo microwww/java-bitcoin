@@ -19,6 +19,7 @@ public class Interpreter {
     private ByteBuf script;
     private byte[] scripts;
     protected final BytesStack stack = new BytesStack();
+    private int lastCodeSeparator = -1;
 
     public Interpreter(RawTransaction tx) {
         Assert.isTrue(tx != null, "Not NULL");
@@ -70,5 +71,16 @@ public class Interpreter {
 
     public int getIndexTxIn() {
         return indexTxIn;
+    }
+
+    /**
+     * @return if do not exist return -1
+     */
+    public int getLastCodeSeparator() {
+        return lastCodeSeparator;
+    }
+
+    protected void setLastCodeSeparator(int lastCodeSeparator) {
+        this.lastCodeSeparator = lastCodeSeparator;
     }
 }

@@ -764,7 +764,12 @@ public enum ScriptNames {
             executor.stack.push(bytes);
         }
     },
-    OP_CODESEPARATOR,
+    OP_CODESEPARATOR(){
+        @Override
+        public void opt(Interpreter executor) {
+            executor.setLastCodeSeparator(executor.getScript().readerIndex());
+        }
+    },
     OP_CHECKSIG() {
         @Override
         public void opt(Interpreter executor) {
