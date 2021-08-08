@@ -803,7 +803,13 @@ public enum ScriptNames {
             executor.stack.push(verify ? new byte[]{1} : new byte[]{0});
         }
     },
-    OP_CHECKSIGVERIFY,
+    OP_CHECKSIGVERIFY {
+        @Override
+        public void opt(Interpreter executor) {
+            OP_CHECKSIG.opt(executor);
+            OP_VERIFY.opt(executor);
+        }
+    },
     OP_CHECKMULTISIG,
     OP_CHECKMULTISIGVERIFY, // 175
 

@@ -9,8 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
-import java.util.Arrays;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
 
 public class Interpreter {
     private static final Logger logger = LoggerFactory.getLogger(Interpreter.class);
@@ -23,6 +23,7 @@ public class Interpreter {
     protected final BytesStack stack;
     private int lastCodeSeparator = -1;
     private boolean internally = false; // These words are used internally for assisting with transaction matching. They are invalid if used in actual scripts.
+    private Map<String, Function<byte[], byte[]>> preProcess = new LinkedHashMap<>();
 
     public Interpreter(RawTransaction tx) {
         this(tx, new BytesStack());
@@ -81,6 +82,10 @@ public class Interpreter {
 
     public Interpreter executor(byte[] aScript) {
         Assert.isTrue(aScript != null, "Not NULL");
+        Iterator<String> iterator = preProcess.keySet().iterator();
+        while (iterator.hasNext()) {
+            aScript = preProcess.get(iterator.next()).apply(aScript);
+        }
         this.scripts = aScript;
         this.script = Unpooled.copiedBuffer(aScript);
         while (script.readableBytes() > 0) {
@@ -101,6 +106,14 @@ public class Interpreter {
         }
 
         return this;
+    }
+
+    public void addPreProcess(String key, Function<byte[], byte[]> preProcess) {
+        this.preProcess.put(key, preProcess);
+    }
+
+    public void removePreProcess(String key) {
+        this.preProcess.remove(key);
     }
 
     public Optional<byte[]> pop() {

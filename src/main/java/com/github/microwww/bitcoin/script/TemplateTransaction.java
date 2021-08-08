@@ -1,5 +1,6 @@
 package com.github.microwww.bitcoin.script;
 
+import com.github.microwww.bitcoin.script.ex.TransactionInvalidException;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.wallet.CoinAccount;
 import io.netty.buffer.ByteBuf;
@@ -7,6 +8,9 @@ import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
+
+import java.util.Arrays;
+import java.util.UUID;
 
 import static com.github.microwww.bitcoin.script.ScriptNames.*;
 
@@ -30,7 +34,7 @@ public enum TemplateTransaction {
             return P2PK.scriptPubKey(args);
         }
     },
-    MN {
+    MN {// static bool MatchMultisig(const CScript& script, unsigned int& required, std::vector<valtype>& pubkeys)
         /**
          * M <Public Key 1> <Public Key 2> … <Public Key N>
          * @param args
@@ -54,7 +58,7 @@ public enum TemplateTransaction {
             return ByteUtil.readAll(bf);
         }
     },
-    P2SH {
+    P2SH { // bool CScript::IsPayToScriptHash() const
         @Override
         public byte[] scriptPubKey(byte[]... args) {
             Assert.isTrue(args.length > 0, "one arg for address");
@@ -94,7 +98,7 @@ public enum TemplateTransaction {
             ScriptNames.OP_CHECKSIG.opt(interpreter);
         }
     },
-    P2WSH() {
+    P2WSH() {// bool CScript::IsPayToWitnessScriptHash() const
         @Override
         public boolean isSupport(byte[] data) {// [0x00][0x20] [SHA256(witnessScript)]
             return TemplateTransaction.p2wSupport(data, 0x20);
@@ -114,7 +118,16 @@ public enum TemplateTransaction {
 
         @Override
         public void executor(Interpreter interpreter) {
-            // nothing
+            String name = UUID.randomUUID().toString();
+            interpreter.addPreProcess(name, bytes -> {
+                interpreter.removePreProcess(name);
+                byte[] sc = ByteUtil.sha256(bytes);
+                boolean equals = Arrays.equals(interpreter.stack.pop(), sc);
+                if (!equals) {
+                    throw new TransactionInvalidException("sha256(script) != P2WSH");
+                }
+                return bytes;
+            });
         }
     },
 
