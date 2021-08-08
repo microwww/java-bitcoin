@@ -30,7 +30,30 @@ public enum TemplateTransaction {
             return P2PK.scriptPubKey(args);
         }
     },
-    MN,
+    MN {
+        /**
+         * M <Public Key 1> <Public Key 2> … <Public Key N>
+         * @param args
+         * @return
+         */
+        @Override
+        public byte[] scriptPubKey(byte[]... args) {
+            // M <Public Key 1> <Public Key 2> … <Public Key N> N CHECKMULTISIG
+            Assert.isTrue(args.length > 0, "one arg for address");
+            Assert.isTrue(args[0].length == 1, "args[0].length == 1");
+            byte m = args[0][0];
+            ByteBuf bf = Unpooled.buffer()
+                    .writeByte(m);
+            for (int i = 1; i < args.length; i++) {
+                bf.writeBytes(args[i]);
+            }
+            int n = args.length - 1;
+            bf.writeByte(n)
+                    .writeByte(OP_CHECKMULTISIG.opcode());
+            Assert.isTrue(m <= n, "M <= N :  M <Public Key 1> <Public Key 2> … <Public Key N>");
+            return ByteUtil.readAll(bf);
+        }
+    },
     P2SH {
         @Override
         public byte[] scriptPubKey(byte[]... args) {
@@ -87,6 +110,11 @@ public enum TemplateTransaction {
                     .writeBytes(args[0]);
             Assert.isTrue(34 == bf.readableBytes(), "Length 34");
             return ByteUtil.readAll(bf);
+        }
+
+        @Override
+        public void executor(Interpreter interpreter) {
+            // nothing
         }
     },
 
@@ -149,6 +177,6 @@ public enum TemplateTransaction {
     }
 
     public void executor(Interpreter interpreter) {
-        log.debug("Ignore : {}", this.name());
+        throw new UnsupportedOperationException("TemplateTransaction." + this.name());
     }
 }

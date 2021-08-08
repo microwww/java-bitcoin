@@ -111,6 +111,9 @@ public class Interpreter {
         return Optional.of(this.stack.pop());
     }
 
+    public boolean stackSizeEqual(int size) {
+        return this.stack.size() == size;
+    }
 
     public boolean topIsTrue() {
         Assert.isTrue(script.readableBytes() == 0, "Script Not done");
