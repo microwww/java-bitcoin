@@ -5,9 +5,9 @@ import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 
 public class TxOut {
-    public long value;
-    public UintVar scriptLength;
-    public byte[] scriptPubKey;
+    private long value;
+    private UintVar scriptLength;
+    private byte[] scriptPubKey;
 
     public void read(ByteBuf bf) {
         value = bf.readLongLE();
@@ -26,8 +26,9 @@ public class TxOut {
         return value;
     }
 
-    public void setValue(long value) {
+    public TxOut setValue(long value) {
         this.value = value;
+        return this;
     }
 
     public UintVar getScriptLength() {
@@ -38,8 +39,9 @@ public class TxOut {
         return scriptPubKey;
     }
 
-    public void setScriptPubKey(byte[] scriptPubKey) {
+    public TxOut setScriptPubKey(byte[] scriptPubKey) {
         this.scriptPubKey = scriptPubKey;
+        return this;
     }
 
     @Override

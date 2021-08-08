@@ -1,10 +1,48 @@
 package com.github.microwww.bitcoin.script;
 
+import com.github.microwww.bitcoin.util.ByteUtil;
+import com.github.microwww.bitcoin.wallet.CoinAccount;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.Assert;
+
+import static com.github.microwww.bitcoin.script.ScriptNames.*;
+
 public enum TemplateTransaction {
-    P2PK,
-    P2PKH,
+    P2PK {
+        @Override
+        public byte[] scriptPubKey(byte[]... args) {
+            Assert.isTrue(args.length > 0, "one arg for address");
+            ByteBuf bf = Unpooled.buffer().writeByte(OP_DUP.opcode())
+                    .writeByte(OP_HASH160.opcode())
+                    .writeByte(args[0].length).writeBytes(args[0])
+                    .writeByte(OP_EQUALVERIFY.opcode())
+                    .writeByte(OP_CHECKSIG.opcode());
+            Assert.isTrue(25 == bf.readableBytes(), "Length 25");
+            return ByteUtil.readAll(bf);
+        }
+    },
+    P2PKH {
+        @Override
+        public byte[] scriptPubKey(byte[]... args) {
+            return P2PK.scriptPubKey(args);
+        }
+    },
     MN,
-    P2SH,
+    P2SH {
+        @Override
+        public byte[] scriptPubKey(byte[]... args) {
+            Assert.isTrue(args.length > 0, "one arg for address");
+            ByteBuf bf = Unpooled.buffer()
+                    .writeByte(OP_HASH160.opcode())
+                    .writeByte(args[0].length).writeBytes(args[0])
+                    .writeByte(OP_EQUAL.opcode());
+            Assert.isTrue(23 == bf.readableBytes(), "Length 23");
+            return ByteUtil.readAll(bf);
+        }
+    },
     P2WPKH() {
         @Override
         public boolean isSupport(byte[] data) {// [0x00][0x14] [Hash160(PK)]
@@ -12,20 +50,25 @@ public enum TemplateTransaction {
         }
 
         @Override
+        public byte[] scriptPubKey(byte[]... args) {
+            Assert.isTrue(args.length > 0, "one arg for address");
+            // 0x00 0x14 20
+            ByteBuf bf = Unpooled.buffer()
+                    .writeByte(0)
+                    .writeByte(0x14)
+                    .writeBytes(args[0]);
+            Assert.isTrue(22 == bf.readableBytes(), "Length 22");
+            return ByteUtil.readAll(bf);
+        }
+
+        @Override
         public void executor(Interpreter interpreter) { // TODO:: 重写
-            byte[] sc = new byte[10];
-            int i = 0;
-            sc[i++] = ScriptNames.OP_DROP.opcode();
-            sc[i++] = ScriptNames._4.opcode();
-            sc[i++] = 0x01; // 大端的整数 1
-            sc[i++] = 0x00;
-            sc[i++] = 0x00;
-            sc[i++] = 0x00;
-            sc[i++] = ScriptNames.OP_PICK.opcode();
-            sc[i++] = ScriptNames.OP_HASH160.opcode();
-            sc[i++] = ScriptNames.OP_EQUALVERIFY.opcode();
-            sc[i++] = ScriptNames.OP_CHECKSIG.opcode();
-            interpreter.subScript().executor(sc);
+            byte[] pop = interpreter.stack.peek(2);
+            byte[] bytes = CoinAccount.sha256ripemd160(pop);
+            interpreter.stack.push(bytes);
+            ScriptNames.OP_EQUALVERIFY.opt(interpreter);
+            ScriptNames.OP_DROP.opt(interpreter);
+            ScriptNames.OP_CHECKSIG.opt(interpreter);
         }
     },
     P2WSH() {
@@ -33,12 +76,46 @@ public enum TemplateTransaction {
         public boolean isSupport(byte[] data) {// [0x00][0x20] [SHA256(witnessScript)]
             return TemplateTransaction.p2wSupport(data, 0x20);
         }
+
+        @Override
+        public byte[] scriptPubKey(byte[]... args) {
+            Assert.isTrue(args.length > 0, "one arg for address");
+            // VER OPCODE_LEN ADDR 34
+            ByteBuf bf = Unpooled.buffer()
+                    .writeByte(0)
+                    .writeByte(0x20)
+                    .writeBytes(args[0]);
+            Assert.isTrue(34 == bf.readableBytes(), "Length 34");
+            return ByteUtil.readAll(bf);
+        }
     },
 
-    P2SH_P2WPKH,
-    P2SH_P2WSH,
-    OP_RETURN,
+    P2SH_P2WPKH {
+        @Override
+        public byte[] scriptPubKey(byte[]... args) {
+            return P2SH.scriptPubKey(args);
+        }
+    },
+    P2SH_P2WSH {
+        @Override
+        public byte[] scriptPubKey(byte[]... args) {
+            return P2SH.scriptPubKey(args);
+        }
+    },
+    OP_RETURN {
+        @Override
+        public byte[] scriptPubKey(byte[]... args) {
+            Assert.isTrue(args.length > 0, "one arg for address");
+            ByteBuf bf = Unpooled.buffer()
+                    .writeByte(ScriptNames.OP_RETURN.opcode())
+                    .writeByte(args[0].length).writeBytes(args[0]);
+            Assert.isTrue(20 + 2 <= bf.readableBytes(), "Length 22");
+            return ByteUtil.readAll(bf);
+        }
+    },
     ;
+
+    private static final Logger log = LoggerFactory.getLogger(TemplateTransaction.class);
 
     public boolean isSupport(byte[] data) {
         return false;
@@ -72,6 +149,6 @@ public enum TemplateTransaction {
     }
 
     public void executor(Interpreter interpreter) {
-        throw new UnsupportedOperationException();
+        log.debug("Ignore : {}", this.name());
     }
 }

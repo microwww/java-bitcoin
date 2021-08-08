@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.script;
 
-import com.github.microwww.bitcoin.chain.SignTransaction;
+import com.github.microwww.bitcoin.chain.HashType;
 import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.script.ex.ScriptDisableException;
 import com.github.microwww.bitcoin.script.ex.TransactionInvalidException;
@@ -798,9 +798,8 @@ public enum ScriptNames {
             Assert.isTrue(sn.length >= 50, "signature.length > 1, general == 71 / 72");
             byte[] sign = Arrays.copyOf(sn, sn.length - 1);
             byte type = sn[sn.length - 1];
-            boolean verify = new SignTransaction(executor.transaction)
-                    .signatureVerify(SignTransaction.HashType.ALL, pk, sign, executor.getIndexTxIn(), executor.getScripts());
-
+            HashType select = HashType.select(type);
+            boolean verify = select.signatureVerify(executor.transaction, executor.getIndexTxIn(), executor.getPreout(), pk, sign, executor.getScripts());
             executor.stack.push(verify ? new byte[]{1} : new byte[]{0});
         }
     },

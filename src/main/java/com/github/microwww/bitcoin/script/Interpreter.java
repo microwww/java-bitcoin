@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.script;
 
 import com.github.microwww.bitcoin.chain.RawTransaction;
+import com.github.microwww.bitcoin.chain.TxOut;
 import com.github.microwww.bitcoin.math.Uint8;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -16,6 +17,7 @@ public class Interpreter {
 
     protected final RawTransaction transaction;
     private int indexTxIn = 0;
+    private TxOut preout;
     private ByteBuf script;
     private byte[] scripts;
     protected final BytesStack stack;
@@ -46,11 +48,24 @@ public class Interpreter {
     public Interpreter indexTxIn(int i) {
         Assert.isTrue(transaction.getTxIns().length >= indexTxIn, "over-flow TX-IN index");
         indexTxIn = i;
+        this.preout = null;
+        return this;
+    }
+
+    public Interpreter indexTxIn(int i, TxOut preout) {
+        Assert.isTrue(transaction.getTxIns().length >= indexTxIn, "over-flow TX-IN index");
+        indexTxIn = i;
+        this.preout = preout;
         return this;
     }
 
     public Interpreter nextTxIn() {
         indexTxIn(indexTxIn + 1);
+        return this;
+    }
+
+    public Interpreter nextTxIn(TxOut preout) {
+        indexTxIn(indexTxIn + 1, preout);
         return this;
     }
 
@@ -79,13 +94,9 @@ public class Interpreter {
         }
 
         for (TemplateTransaction value : TemplateTransaction.values()) {
-            try { // TODO :: 需要实现 !!
-                if (value.isSupport(aScript)) {
-                    value.executor(this);
-                    break;
-                }
-            } catch (UnsupportedOperationException e) {
-                logger.debug("UnsupportedOperationException : {}", e.getMessage());
+            if (value.isSupport(aScript)) {
+                value.executor(this);
+                break;
             }
         }
 
@@ -124,6 +135,10 @@ public class Interpreter {
 
     public int getIndexTxIn() {
         return indexTxIn;
+    }
+
+    public TxOut getPreout() {
+        return preout;
     }
 
     /**
