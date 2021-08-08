@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
+@Deprecated
 public class SignTransaction {
     private static final Logger logger = LoggerFactory.getLogger(SignTransaction.class);
     private static final byte[] _READ_ONLY_ZERO = new byte[32];
