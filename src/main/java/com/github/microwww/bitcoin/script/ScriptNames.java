@@ -567,9 +567,12 @@ public enum ScriptNames {
     OP_EQUALVERIFY() {
         @Override
         public void opt(Interpreter executor) {
-            byte[] x1 = executor.stack.pop();
+            byte[] x1 = executor.stack.assertSizeGE(2).pop();
             byte[] x2 = executor.stack.pop();
             executor.stack.push(Arrays.equals(x1, x2) ? 1 : 0);
+            if (logger.isDebugEnabled()) {
+                logger.debug("x1: {}, x2: {}", ByteUtil.hex(x1), ByteUtil.hex(x2));
+            }
             OP_VERIFY.opt(executor);
         }
     }, // 136

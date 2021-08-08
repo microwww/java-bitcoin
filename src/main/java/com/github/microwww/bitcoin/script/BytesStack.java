@@ -71,7 +71,7 @@ public class BytesStack {
      * @return
      */
     public byte[] peek(int index) {
-        return stack.get(stack.size() - index);
+        return stack.get(stack.size() - index - 1);
     }
 
     public int peekInt() {

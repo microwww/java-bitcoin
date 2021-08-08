@@ -20,6 +20,7 @@ public class Interpreter {
     private byte[] scripts;
     protected final BytesStack stack;
     private int lastCodeSeparator = -1;
+    private boolean internally = false; // These words are used internally for assisting with transaction matching. They are invalid if used in actual scripts.
 
     public Interpreter(RawTransaction tx) {
         this(tx, new BytesStack());
@@ -31,10 +32,15 @@ public class Interpreter {
         stack = bytesStack;
     }
 
-    public Interpreter subScript() {
+    public Interpreter subScript(boolean internally) {
         Interpreter ch = new Interpreter(this.transaction, this.stack);
         ch.indexTxIn = this.indexTxIn;
+        ch.internally = internally;
         return ch;
+    }
+
+    public Interpreter subScript() {
+        return this.subScript(false);
     }
 
     public Interpreter indexTxIn(int i) {
@@ -129,5 +135,9 @@ public class Interpreter {
 
     protected void setLastCodeSeparator(int lastCodeSeparator) {
         this.lastCodeSeparator = lastCodeSeparator;
+    }
+
+    public boolean isInternally() {
+        return internally;
     }
 }
