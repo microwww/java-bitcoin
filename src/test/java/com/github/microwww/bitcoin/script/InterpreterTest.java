@@ -49,8 +49,7 @@ class InterpreterTest {
 
         Interpreter interpreter = new Interpreter(tx1).indexTxIn(txInIndex)
                 .executor(tx1.getTxIns()[txInIndex].getScript()).executor(tx2.getTxOuts()[txOutIndex].getScriptPubKey());
-        byte[] bytes = interpreter.peek().get();
-        assertArrayEquals(new byte[]{1}, bytes);
+        assertTrue(interpreter.isSuccess());
     }
 
     @Test
@@ -74,8 +73,8 @@ class InterpreterTest {
         assertEquals("12cbQLTFMXRnSzktFkuoG3eHoMeFtpTu3S", new CoinAccount.KeyPublic(addr).getAddress().toBase58Address(Env.MAIN));
         Interpreter interpreter = new Interpreter(tx2).indexTxIn(0)
                 .executor(tx2.getTxIns()[0].getScript()).executor(tx1.getTxOuts()[0].getScriptPubKey());
-        byte[] bytes = interpreter.peek().get();
-        assertArrayEquals(new byte[]{1}, bytes);
+
+        assertTrue(interpreter.isSuccess());
     }
 
     // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#Native_P2WPKH
@@ -296,10 +295,10 @@ class InterpreterTest {
         assertEquals("0517e82c799730212b226676dd2feb3f0e6b2ba808a32f2968b78399b209df43", tx.hash().toHexReverse256());
         RawTransaction preouts = readTx(88);
         assertEquals("887e1d2a500264d5f5329c623fa64604415ae7627cb17097d07769a932e2df87", preouts.hash().toHexReverse256());
-        Interpreter interpreter = new Interpreter(tx).indexTxIn(0, new TxOut().setValue(preouts.getTxOuts()[0].getValue())).witnessPushStack()
+        Interpreter interpreter = new Interpreter(tx).indexTxIn(0, new TxOut(preouts.getTxOuts()[0].getValue())).witnessPushStack()
                 .executor(tx.getTxIns()[0].getScript())
                 .executor(preouts.getTxOuts()[1].getScriptPubKey());
-        assertTrue(interpreter.topIsTrue());
+        assertTrue(interpreter.isSuccess());
     }
 
     private static RawTransaction readTx(int index) {

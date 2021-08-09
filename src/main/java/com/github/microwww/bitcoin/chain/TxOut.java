@@ -9,6 +9,15 @@ public class TxOut {
     private UintVar scriptLength;
     private byte[] scriptPubKey;
 
+    public TxOut() {
+    }
+
+    public TxOut(long value) {
+        this.value = value;
+        this.scriptLength = UintVar.ZERO;
+        this.scriptPubKey = new byte[]{};
+    }
+
     public void read(ByteBuf bf) {
         value = bf.readLongLE();
         scriptLength = UintVar.parse(bf);

@@ -38,10 +38,9 @@ class WitnessSingleSignatureTransactionTest {
                 .executor(ByteUtil.hex("00205d1b56b63d714eebe542309525f484b7e9d6f686b3781b6f61ef925d66d6f6a0"));
 
         // TODO:: 其他脚本如何获取
-        executor.executor(ByteUtil.hex("21026dccc749adc2a9d0d89497ac511f760f45c47dc5ed9cf352a58ac706453880aeadab210255a9626aebf5e29c0e6538428ba0d1dcf6ca98ffdf086aa8ced5e0d0215ea465ac"));
-        executor.executor(ByteUtil.hex("23210255a9626aebf5e29c0e6538428ba0d1dcf6ca98ffdf086aa8ced5e0d0215ea465ac"));
+        // executor.executor(ByteUtil.hex("23210255a9626aebf5e29c0e6538428ba0d1dcf6ca98ffdf086aa8ced5e0d0215ea465ac"));
         // TODO:: 如何执行
-        //assertTrue(executor.stackSizeEqual(5));
+        assertTrue(executor.isSuccess());
     }
 
     private static RawTransaction readTx(int index) {
