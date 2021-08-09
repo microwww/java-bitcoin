@@ -1,5 +1,6 @@
 package com.github.microwww.bitcoin.script;
 
+import com.github.microwww.bitcoin.script.ins.*;
 import org.springframework.util.Assert;
 
 public final class Instructions { // Instruction-set

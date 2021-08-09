@@ -1,5 +1,8 @@
-package com.github.microwww.bitcoin.script;
+package com.github.microwww.bitcoin.script.ins;
 
+import com.github.microwww.bitcoin.script.Instruction;
+import com.github.microwww.bitcoin.script.Interpreter;
+import com.github.microwww.bitcoin.script.ScriptOperation;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 

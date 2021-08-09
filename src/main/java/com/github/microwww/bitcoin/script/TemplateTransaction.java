@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.script;
 
 import com.github.microwww.bitcoin.script.ex.TransactionInvalidException;
+import com.github.microwww.bitcoin.script.ins.Instruction_61_6A;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.wallet.CoinAccount;
 import io.netty.buffer.ByteBuf;
@@ -12,11 +13,11 @@ import org.springframework.util.Assert;
 import java.util.Arrays;
 import java.util.UUID;
 
-import static com.github.microwww.bitcoin.script.Instruction_6B_7D.OP_DROP;
-import static com.github.microwww.bitcoin.script.Instruction_6B_7D.OP_DUP;
-import static com.github.microwww.bitcoin.script.Instruction_83_8A.OP_EQUAL;
-import static com.github.microwww.bitcoin.script.Instruction_83_8A.OP_EQUALVERIFY;
-import static com.github.microwww.bitcoin.script.Instruction_A6_AF.*;
+import static com.github.microwww.bitcoin.script.ins.Instruction_6B_7D.OP_DROP;
+import static com.github.microwww.bitcoin.script.ins.Instruction_6B_7D.OP_DUP;
+import static com.github.microwww.bitcoin.script.ins.Instruction_83_8A.OP_EQUAL;
+import static com.github.microwww.bitcoin.script.ins.Instruction_83_8A.OP_EQUALVERIFY;
+import static com.github.microwww.bitcoin.script.ins.Instruction_A6_AF.*;
 
 public enum TemplateTransaction {
     P2PK {
