@@ -25,10 +25,11 @@ public enum Instruction_61_6A implements Instruction {
 
         @Override
         public void exec(Interpreter executor, Object data) {
-            int v = executor.stack.popInt();
-            if (v == 0) {
+            boolean v = executor.stack.peekSuccess();
+            if (!v) {
                 throw new TransactionInvalidException("OP_VERIFY not equal");
             }
+            executor.stack.pop();
         }
     },
     OP_RETURN, // 106

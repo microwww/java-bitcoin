@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.chain.sign.HashAllSignatureTransaction;
 import com.github.microwww.bitcoin.chain.sign.WitnessHashAllSignatureTransaction;
+import com.github.microwww.bitcoin.chain.sign.WitnessSingleSignatureTransaction;
 
 public enum HashType {
     ALL(1) {
@@ -42,6 +43,11 @@ public enum HashType {
     }
 
     public boolean signatureVerify(RawTransaction transaction, int indexTxIn, TxOut preout, byte[] pk, byte[] sign, byte[] scripts) {
-        throw new UnsupportedOperationException();
+        if (transaction.getFlag() == 1) {
+            WitnessSingleSignatureTransaction wss = new WitnessSingleSignatureTransaction(transaction, indexTxIn, preout);
+            return wss.signatureVerify(pk, sign, scripts);
+        } else {
+            throw new UnsupportedOperationException();
+        }
     }
 }

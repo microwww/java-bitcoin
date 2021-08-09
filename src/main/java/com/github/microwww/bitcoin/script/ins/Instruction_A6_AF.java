@@ -78,8 +78,8 @@ public enum Instruction_A6_AF implements Instruction {
             byte[] sign = Arrays.copyOf(sn, sn.length - 1);
             byte type = sn[sn.length - 1];
             HashType select = HashType.select(type);
-            boolean verify = select.signatureVerify(executor.transaction, executor.getIndexTxIn(), executor.getPreout(), pk, sign, executor.getScripts());
-            executor.stack.push(verify ? new byte[]{1} : new byte[]{0});
+            boolean verify = select.signatureVerify(executor.transaction, executor.getIndexTxIn(), executor.getPreout(), pk, sign, executor.getScriptsFromLastCodeSeparator());
+            executor.stack.push(verify ? 1 : 0);
         }
     },
     OP_CHECKSIGVERIFY {
@@ -104,7 +104,7 @@ public enum Instruction_A6_AF implements Instruction {
     }
 
     public void exec(Interpreter executor, Object data) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(this.name());
     }
 
     public byte opcode() {

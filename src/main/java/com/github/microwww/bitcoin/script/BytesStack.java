@@ -45,11 +45,19 @@ public class BytesStack {
 
     public int popInt() {
         byte[] pop = stack.peek();
-        if (pop.length > 4) {
-            throw new ScriptException("length > 4");
+        if (pop.length != 4) {
+            throw new ScriptException("length != 4");
         }
         cache.clear();
         return cache.writeBytes(stack.pop()).readIntLE();
+    }
+
+    public boolean peekSuccess() {
+        byte[] pop = stack.peek();
+        if (pop.length != 4) {
+            throw new ScriptException("length != 4");
+        }
+        return cache.writeBytes(pop).readIntLE() == 1;
     }
 
     public long popLong() {
@@ -66,7 +74,6 @@ public class BytesStack {
     }
 
     /**
-     *
      * @param index from 0
      * @return
      */

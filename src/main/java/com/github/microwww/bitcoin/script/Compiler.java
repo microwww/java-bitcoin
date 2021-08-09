@@ -10,7 +10,12 @@ public class Compiler {
     private final ByteBuf script;
 
     public Compiler(byte[] bytes) {
+        this(bytes, 0);
+    }
+
+    public Compiler(byte[] bytes, int offset) {
         this.script = Unpooled.copiedBuffer(bytes);
+        this.script.readerIndex(offset);
     }
 
     public List<SourceCode> compile() {

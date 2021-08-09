@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
 import java.util.Arrays;
-import java.util.UUID;
 
 import static com.github.microwww.bitcoin.script.ins.Instruction_6B_7D.OP_DROP;
 import static com.github.microwww.bitcoin.script.ins.Instruction_6B_7D.OP_DUP;
@@ -40,6 +39,7 @@ public enum TemplateTransaction {
         }
     },
     MN {// static bool MatchMultisig(const CScript& script, unsigned int& required, std::vector<valtype>& pubkeys)
+
         /**
          * M <Public Key 1> <Public Key 2> … <Public Key N>
          * @param args
@@ -64,6 +64,7 @@ public enum TemplateTransaction {
         }
     },
     P2SH { // bool CScript::IsPayToScriptHash() const
+
         @Override
         public byte[] scriptPubKey(byte[]... args) {
             Assert.isTrue(args.length > 0, "one arg for address");
@@ -78,7 +79,7 @@ public enum TemplateTransaction {
     P2WPKH() {
         @Override
         public boolean isSupport(byte[] data) {// [0x00][0x14] [Hash160(PK)]
-            return TemplateTransaction.p2wSupport(data, 0x14);
+            return TemplateTransaction.p2wSupport(data, 0x14 + 2, (byte) 0, (byte) 0x14);
         }
 
         @Override
@@ -104,9 +105,10 @@ public enum TemplateTransaction {
         }
     },
     P2WSH() {// bool CScript::IsPayToWitnessScriptHash() const
+
         @Override
         public boolean isSupport(byte[] data) {// [0x00][0x20] [SHA256(witnessScript)]
-            return TemplateTransaction.p2wSupport(data, 0x20);
+            return TemplateTransaction.p2wSupport(data, 0x20 + 2, (byte) 0, (byte) 0x20);
         }
 
         @Override
@@ -123,16 +125,14 @@ public enum TemplateTransaction {
 
         @Override
         public void executor(Interpreter interpreter) {
-            String name = UUID.randomUUID().toString();
-            interpreter.addPreProcess(name, bytes -> {
-                interpreter.removePreProcess(name);
-                byte[] sc = ByteUtil.sha256(bytes);
-                boolean equals = Arrays.equals(interpreter.stack.pop(), sc);
-                if (!equals) {
-                    throw new TransactionInvalidException("sha256(script) != P2WSH");
-                }
-                return bytes;
-            });
+            byte[] sha256 = interpreter.stack.assertSizeGE(2).pop();
+            OP_DROP.exec(interpreter, ZERO);
+            byte[] sc = interpreter.stack.pop();
+            if (!Arrays.equals(sha256, ByteUtil.sha256(sc))) {
+                throw new TransactionInvalidException("sha256(script) != P2WSH");
+            }
+            byte[] bytes = ByteUtil.concat(new byte[]{(byte) sc.length}, sc);
+            interpreter.subScript().executor(bytes, 1);
         }
     },
 
@@ -146,6 +146,11 @@ public enum TemplateTransaction {
         @Override
         public byte[] scriptPubKey(byte[]... args) {
             return P2SH.scriptPubKey(args);
+        }
+
+        @Override
+        public void executor(Interpreter interpreter) {
+            P2WSH.executor(interpreter);
         }
     },
     OP_RETURN {
@@ -175,21 +180,14 @@ public enum TemplateTransaction {
         throw new UnsupportedOperationException();
     }
 
-    private static boolean p2wSupport(byte[] data, int len) {
-        //[0x00][0x14] [Hash160(PK)] 0x00: 版本号
-        int length = len + 2;
-        if (data.length >= length) {
-            if (0x00 == data[0]) {
-                if (len == data[1]) {
-                    if (data.length == length) {
-                        return true;
-                    } else if (data.length > length) {
-                        if (Byte.toUnsignedInt(data[length]) == OP_CODESEPARATOR.ordinal()) {
-                            return true;
-                        }
-                    }
+    private static boolean p2wSupport(byte[] data, int len, byte... bts) {
+        if (data.length == len) {
+            for (int i = 0; i < bts.length; i++) {
+                if (data[i] != bts[i]) {
+                    return false;
                 }
             }
+            return true;
         }
         return false;
     }

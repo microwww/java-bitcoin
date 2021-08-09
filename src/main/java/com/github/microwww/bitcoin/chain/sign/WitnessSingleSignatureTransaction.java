@@ -10,6 +10,7 @@ import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// uint256 SignatureHash(const CScript& scriptCode
 public class WitnessSingleSignatureTransaction extends AbstractWitnessSignatureTransaction {
     private static final Logger logger = LoggerFactory.getLogger(WitnessSingleSignatureTransaction.class);
 

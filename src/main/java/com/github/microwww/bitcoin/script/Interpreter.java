@@ -12,15 +12,15 @@ import java.util.function.Function;
 public class Interpreter {
     private static final Logger logger = LoggerFactory.getLogger(Interpreter.class);
 
-    protected final RawTransaction transaction;
+    public final RawTransaction transaction;
     private int indexTxIn = 0;
     private TxOut preout;
     private List<Compiler.SourceCode> script = Collections.EMPTY_LIST;
     private byte[] scripts;
-    protected final BytesStack stack;
+    public final BytesStack stack;
     private int lastCodeSeparator = -1;
     private boolean internally = false; // These words are used internally for assisting with transaction matching. They are invalid if used in actual scripts.
-    private Map<String, Function<byte[], byte[]>> preProcess = new LinkedHashMap<>();
+    private Map<String, Function<List<Compiler.SourceCode>, List<Compiler.SourceCode>>> preProcess = new LinkedHashMap<>();
 
     public Interpreter(RawTransaction tx) {
         this(tx, new BytesStack());
@@ -36,6 +36,7 @@ public class Interpreter {
         Interpreter ch = new Interpreter(this.transaction, this.stack);
         ch.indexTxIn = this.indexTxIn;
         ch.internally = internally;
+        ch.preout = preout;
         return ch;
     }
 
@@ -78,20 +79,25 @@ public class Interpreter {
     }
 
     public Interpreter executor(byte[] aScript) {
+        return this.executor(aScript, 0);
+    }
+
+    public Interpreter executor(byte[] aScript, int offset) {
         Assert.isTrue(aScript != null, "Not NULL");
         this.scripts = aScript;
         Iterator<String> iterator = preProcess.keySet().iterator();
+        List<Compiler.SourceCode> script = new Compiler(aScript, offset).compile();
         while (iterator.hasNext()) {
-            aScript = preProcess.get(iterator.next()).apply(aScript);
+            script = preProcess.get(iterator.next()).apply(script);
         }
-        this.script = new Compiler(aScript).compile();
+        this.script = script;
         for (Compiler.SourceCode sc : script) {
             ScriptOperation sn = sc.opt;
             if (logger.isDebugEnabled())
-                logger.debug("Before Operation : {}, {}", sn, stack.size());
+                logger.debug("Before Operation : {}, {}", sn.keyword, stack.size());
             sn.exec(this, sc.position);
             if (logger.isDebugEnabled())
-                logger.debug("After  Operation : {}, {}", sn, stack.size());
+                logger.debug("After  Operation : {}, {}", sn.keyword, stack.size());
         }
 
         for (TemplateTransaction value : TemplateTransaction.values()) {
@@ -104,7 +110,7 @@ public class Interpreter {
         return this;
     }
 
-    public void addPreProcess(String key, Function<byte[], byte[]> preProcess) {
+    public void addPreProcess(String key, Function<List<Compiler.SourceCode>, List<Compiler.SourceCode>> preProcess) {
         this.preProcess.put(key, preProcess);
     }
 
@@ -112,11 +118,8 @@ public class Interpreter {
         this.preProcess.remove(key);
     }
 
-    public Optional<byte[]> peek() {
-        if (this.stack.isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(this.stack.peek());
+    public boolean isSuccess() {
+        return stack.peekSuccess();
     }
 
     public boolean stackSizeEqual(int size) {
@@ -135,8 +138,15 @@ public class Interpreter {
         return false;
     }
 
-    public byte[] getScripts() {
+    public byte[] getScriptsFromLastCodeSeparator() {
+        if (this.getLastCodeSeparator() >= 0) {
+            return Arrays.copyOfRange(scripts, this.getLastCodeSeparator(), scripts.length);
+        }
         return Arrays.copyOf(scripts, scripts.length);
+    }
+
+    public Iterator<Compiler.SourceCode> scriptIterator() {
+        return script.iterator();
     }
 
     public int getIndexTxIn() {
@@ -154,7 +164,7 @@ public class Interpreter {
         return lastCodeSeparator;
     }
 
-    protected void setLastCodeSeparator(int lastCodeSeparator) {
+    public void setLastCodeSeparator(int lastCodeSeparator) {
         this.lastCodeSeparator = lastCodeSeparator;
     }
 
