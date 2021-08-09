@@ -49,7 +49,7 @@ class InterpreterTest {
 
         Interpreter interpreter = new Interpreter(tx1).indexTxIn(txInIndex)
                 .executor(tx1.getTxIns()[txInIndex].getScript()).executor(tx2.getTxOuts()[txOutIndex].getScriptPubKey());
-        byte[] bytes = interpreter.pop().get();
+        byte[] bytes = interpreter.peek().get();
         assertArrayEquals(new byte[]{1}, bytes);
     }
 
@@ -74,7 +74,7 @@ class InterpreterTest {
         assertEquals("12cbQLTFMXRnSzktFkuoG3eHoMeFtpTu3S", new CoinAccount.KeyPublic(addr).getAddress().toBase58Address(Env.MAIN));
         Interpreter interpreter = new Interpreter(tx2).indexTxIn(0)
                 .executor(tx2.getTxIns()[0].getScript()).executor(tx1.getTxOuts()[0].getScriptPubKey());
-        byte[] bytes = interpreter.pop().get();
+        byte[] bytes = interpreter.peek().get();
         assertArrayEquals(new byte[]{1}, bytes);
     }
 

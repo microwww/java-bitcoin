@@ -2,9 +2,6 @@ package com.github.microwww.bitcoin.script;
 
 import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.chain.TxOut;
-import com.github.microwww.bitcoin.math.Uint8;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
@@ -18,7 +15,7 @@ public class Interpreter {
     protected final RawTransaction transaction;
     private int indexTxIn = 0;
     private TxOut preout;
-    private ByteBuf script;
+    private List<Compiler.SourceCode> script = Collections.EMPTY_LIST;
     private byte[] scripts;
     protected final BytesStack stack;
     private int lastCodeSeparator = -1;
@@ -82,20 +79,19 @@ public class Interpreter {
 
     public Interpreter executor(byte[] aScript) {
         Assert.isTrue(aScript != null, "Not NULL");
+        this.scripts = aScript;
         Iterator<String> iterator = preProcess.keySet().iterator();
         while (iterator.hasNext()) {
             aScript = preProcess.get(iterator.next()).apply(aScript);
         }
-        this.scripts = aScript;
-        this.script = Unpooled.copiedBuffer(aScript);
-        while (script.readableBytes() > 0) {
-            Uint8 op = new Uint8(script.readByte());
-            ScriptNames sn = ScriptNames.values()[op.intValue()];
+        this.script = new Compiler(aScript).compile();
+        for (Compiler.SourceCode sc : script) {
+            ScriptOperation sn = sc.opt;
             if (logger.isDebugEnabled())
-                logger.debug("Before Operation : {}, {}", sn.name(), stack.size());
-            sn.opt(this);
+                logger.debug("Before Operation : {}, {}", sn, stack.size());
+            sn.exec(this, sc.position);
             if (logger.isDebugEnabled())
-                logger.debug("After  Operation : {}, {}", sn.name(), stack.size());
+                logger.debug("After  Operation : {}, {}", sn, stack.size());
         }
 
         for (TemplateTransaction value : TemplateTransaction.values()) {
@@ -116,12 +112,11 @@ public class Interpreter {
         this.preProcess.remove(key);
     }
 
-    public Optional<byte[]> pop() {
-        Assert.isTrue(script.readableBytes() == 0, "Script Not done");
+    public Optional<byte[]> peek() {
         if (this.stack.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(this.stack.pop());
+        return Optional.of(this.stack.peek());
     }
 
     public boolean stackSizeEqual(int size) {
@@ -129,7 +124,6 @@ public class Interpreter {
     }
 
     public boolean topIsTrue() {
-        Assert.isTrue(script.readableBytes() == 0, "Script Not done");
         if (!this.stack.isEmpty()) {
             byte[] pk = this.stack.peek();
             if (pk.length > 0) {
@@ -139,10 +133,6 @@ public class Interpreter {
             }
         }
         return false;
-    }
-
-    ByteBuf getScript() {
-        return script;
     }
 
     public byte[] getScripts() {

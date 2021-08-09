@@ -12,7 +12,11 @@ import org.springframework.util.Assert;
 import java.util.Arrays;
 import java.util.UUID;
 
-import static com.github.microwww.bitcoin.script.ScriptNames.*;
+import static com.github.microwww.bitcoin.script.Instruction_6B_7D.OP_DROP;
+import static com.github.microwww.bitcoin.script.Instruction_6B_7D.OP_DUP;
+import static com.github.microwww.bitcoin.script.Instruction_83_8A.OP_EQUAL;
+import static com.github.microwww.bitcoin.script.Instruction_83_8A.OP_EQUALVERIFY;
+import static com.github.microwww.bitcoin.script.Instruction_A6_AF.*;
 
 public enum TemplateTransaction {
     P2PK {
@@ -93,9 +97,9 @@ public enum TemplateTransaction {
             byte[] pop = interpreter.stack.peek(2);
             byte[] bytes = CoinAccount.sha256ripemd160(pop);
             interpreter.stack.push(bytes);
-            ScriptNames.OP_EQUALVERIFY.opt(interpreter);
-            ScriptNames.OP_DROP.opt(interpreter);
-            ScriptNames.OP_CHECKSIG.opt(interpreter);
+            OP_EQUALVERIFY.exec(interpreter, ZERO);
+            OP_DROP.exec(interpreter, ZERO);
+            OP_CHECKSIG.exec(interpreter, ZERO);
         }
     },
     P2WSH() {// bool CScript::IsPayToWitnessScriptHash() const
@@ -148,7 +152,7 @@ public enum TemplateTransaction {
         public byte[] scriptPubKey(byte[]... args) {
             Assert.isTrue(args.length > 0, "one arg for address");
             ByteBuf bf = Unpooled.buffer()
-                    .writeByte(ScriptNames.OP_RETURN.opcode())
+                    .writeByte(Instruction_61_6A.OP_RETURN.opcode())
                     .writeByte(args[0].length).writeBytes(args[0]);
             Assert.isTrue(20 + 2 <= bf.readableBytes(), "Length 22");
             return ByteUtil.readAll(bf);
@@ -179,7 +183,7 @@ public enum TemplateTransaction {
                     if (data.length == length) {
                         return true;
                     } else if (data.length > length) {
-                        if (Byte.toUnsignedInt(data[length]) == ScriptNames.OP_CODESEPARATOR.ordinal()) {
+                        if (Byte.toUnsignedInt(data[length]) == OP_CODESEPARATOR.ordinal()) {
                             return true;
                         }
                     }
