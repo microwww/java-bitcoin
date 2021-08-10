@@ -95,13 +95,24 @@ public enum TemplateTransaction {
         }
 
         @Override
-        public void executor(Interpreter interpreter) { // TODO:: 重写
+        public void executor(Interpreter interpreter) {
             byte[] pop = interpreter.stack.peek(2);
             byte[] bytes = CoinAccount.sha256ripemd160(pop);
-            interpreter.stack.push(bytes);
-            OP_EQUALVERIFY.exec(interpreter, ZERO);
-            OP_DROP.exec(interpreter, ZERO);
-            OP_CHECKSIG.exec(interpreter, ZERO);
+            if (log.isDebugEnabled())
+                log.debug("PK : sha256ripemd160({}), {}", ByteUtil.hex(pop), ByteUtil.hex(bytes));
+            // CScript witScriptPubkey = CScript() << OP_DUP << OP_HASH160 << ToByteVector(pubkeyHash) << OP_EQUALVERIFY << OP_CHECKSIG;
+            // ByteUtil.hex("1976a914 <public-key-hash> 88ac");
+            byte[] addr = interpreter.stack.pop();
+            byte[] scr = new byte[26];
+            scr[0] = 0x19;
+            scr[1] = OP_DUP.opcode();
+            scr[2] = OP_HASH160.opcode();
+            scr[3] = (byte) addr.length;
+            System.arraycopy(addr, 0, scr, 4, addr.length);
+            scr[24] = OP_EQUALVERIFY.opcode();
+            scr[25] = OP_CHECKSIG.opcode();
+            interpreter.stack.pop();
+            interpreter.executor(scr, 1);
         }
     },
     P2WSH() {// bool CScript::IsPayToWitnessScriptHash() const

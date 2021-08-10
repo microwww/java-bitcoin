@@ -286,16 +286,19 @@ class InterpreterTest {
         assertTrue(rs);
     }
 
-    @Disabled // 不知道原因 reg-test 的数据无法通过
     @Test
     public void exeP2WPKH() {
         RawTransaction tx = readTx(87);
+        // CScript witScriptPubkey = CScript() << OP_DUP << OP_HASH160 << ToByteVector(pubkeyHash) << OP_EQUALVERIFY << OP_CHECKSIG;
         assertEquals("0517e82c799730212b226676dd2feb3f0e6b2ba808a32f2968b78399b209df43", tx.hash().toHexReverse256());
         RawTransaction preouts = readTx(88);
         assertEquals("887e1d2a500264d5f5329c623fa64604415ae7627cb17097d07769a932e2df87", preouts.hash().toHexReverse256());
-        Interpreter interpreter = new Interpreter(tx).indexTxIn(0, new TxOut(preouts.getTxOuts()[0].getValue())).witnessPushStack()
-                .executor(tx.getTxIns()[0].getScript())
-                .executor(preouts.getTxOuts()[1].getScriptPubKey());
+        int in = 0;
+        int out = tx.getTxIns()[in].getPreTxOutIndex();
+        TxOut txOut = preouts.getTxOuts()[out];
+        Interpreter interpreter = new Interpreter(tx).indexTxIn(0, txOut).witnessPushStack()
+                .executor(tx.getTxIns()[in].getScript())
+                .executor(txOut.getScriptPubKey());
         assertTrue(interpreter.isSuccess());
     }
 
