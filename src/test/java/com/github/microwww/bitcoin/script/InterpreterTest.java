@@ -122,9 +122,7 @@ class InterpreterTest {
                 .writeIntLE(tx1.getLockTime().intValue())
                 .writeIntLE(1);
         byte[] bytes = ByteUtil.readAll(sn);
-        byte[] sha256 = ByteUtil.sha256(bytes);
-        System.out.println(ByteUtil.hex(sha256));
-        assertArrayEquals(ByteUtil.hex("c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670"), ByteUtil.sha256(sha256));
+        byte[] sha256 = ByteUtil.sha256sha256(bytes);
         byte[] pk = ByteUtil.hex("025476c2e83188368da1ff3e292e7acafcdb3566bb0ad253f62fc70f07aeee6357");
         CoinAccount.KeyPrivate keyPrivate = new CoinAccount.KeyPrivate(ByteUtil.hex("619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9"));
         {
@@ -175,12 +173,12 @@ class InterpreterTest {
     public void signature() {
         // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#Native_P2WPKH
         // c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670
-        byte[] hash = ByteUtil.hex("c304d56804b24a6801a77803281a497f5526e20f14e65df1006887fc57f0ee39");
+        //byte[] hash = ByteUtil.hex("c304d56804b24a6801a77803281a497f5526e20f14e65df1006887fc57f0ee39");
         byte[] hashTwice = ByteUtil.hex("c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670");
         byte[] snn = ByteUtil.hex("304402203609e17b84f6a7d30c80bfa610b5b4542f32a8a0d5447a12fb1366d7f01cc44a0220573a954c4518331561406f90300e8f3358f51928d43c212a8caed02de67eebee"); //
         CoinAccount.KeyPrivate kp = new CoinAccount.KeyPrivate(ByteUtil.hex("619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9"));
-        System.out.println("signature : " + ByteUtil.hex(Secp256k1.signature(kp.getKey(), hash)));
-        assertTrue(Secp256k1.signatureVerify(kp.getKeyPublic().getKey(), snn, hash));
+        //System.out.println("signature : " + ByteUtil.hex(Secp256k1.signature(kp.getKey(), hashTwice)));
+        assertTrue(Secp256k1.signatureVerify(kp.getKeyPublic().getKey(), snn, hashTwice));
     }
 
     // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#p2sh-p2wpkh
@@ -228,8 +226,8 @@ class InterpreterTest {
                 .writeIntLE(tx.getLockTime().intValue())
                 .writeIntLE(HashType.ALL.TYPE);
         byte[] bytes = ByteUtil.readAll(sn);
-        byte[] sha256 = ByteUtil.sha256(bytes);
-        assertArrayEquals(ByteUtil.hex("64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6"), ByteUtil.sha256(sha256));
+        byte[] sha256 = ByteUtil.sha256sha256(bytes);
+        assertArrayEquals(ByteUtil.hex("64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6"), sha256);
         CoinAccount.KeyPrivate keyPrivate = new CoinAccount.KeyPrivate(ByteUtil.hex("eb696a065ef48a2192da5b28b694f87544b30fae8327c4510137a922f32c6dcf"));
         byte[] pk = keyPrivate.getKeyPublic().getKey();
         assertArrayEquals(ByteUtil.hex("03ad1d8e89212f0b92c74d23bb710c00662ad1470198ac48c43f7d6f93a2a26873"), pk);

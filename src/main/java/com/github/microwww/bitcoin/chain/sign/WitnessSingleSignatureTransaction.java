@@ -65,11 +65,10 @@ public class WitnessSingleSignatureTransaction extends AbstractWitnessSignatureT
                 .writeIntLE(tx.getLockTime().intValue())
                 .writeIntLE(supportType().TYPE);
         bytes = ByteUtil.readAll(sn);
-        byte[] sha256 = ByteUtil.sha256(bytes);
+        byte[] sha256 = ByteUtil.sha256sha256(bytes);
         if (logger.isDebugEnabled()) {
             String hex = ByteUtil.hex(sha256);
-            logger.info("TX-sign : \n SHA256({}) \n = {} \n & SHA256({}) \n = {}",
-                    ByteUtil.hex(bytes), hex, hex, ByteUtil.hex(ByteUtil.sha256(sha256)));
+            logger.info("TX-sign : \n SHA256(SHA256({})) \n = {}", ByteUtil.hex(bytes), hex);
         }
         return sha256;
     }

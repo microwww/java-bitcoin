@@ -22,7 +22,7 @@ public class Secp256k1 {
     }
 
     private static final String ALGORITHM = "EC";
-    private static final String SIGN_ALGORITHMS = "SHA256withECDSA";
+    private static final String SIGN_ALGORITHMS = "NONEwithECDSA";
     private static final String RANDOM_NUMBER_ALGORITHM = "SHA1PRNG";
     private static final String RANDOM_NUMBER_ALGORITHM_PROVIDER = "SUN";
 
