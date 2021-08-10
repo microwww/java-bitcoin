@@ -17,14 +17,10 @@ import java.util.Stack;
  * 非线程安全的类
  */
 public class BytesStack {
-    public static final int MAX_BYTES = 520;
     private Stack<byte[]> stack = new Stack<>();
-    private ByteBuf cache = Unpooled.buffer(520);
+    private ByteBuf cache = Unpooled.buffer(256);
 
     public BytesStack push(byte[] item) {
-        if (item.length > MAX_BYTES) {
-            throw new IllegalArgumentException("Max : " + MAX_BYTES);
-        }
         stack.push(item);
         return this;
     }

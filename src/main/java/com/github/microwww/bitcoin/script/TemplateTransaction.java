@@ -18,9 +18,6 @@ import static com.github.microwww.bitcoin.script.ins.Instruction_83_8A.OP_EQUAL;
 import static com.github.microwww.bitcoin.script.ins.Instruction_83_8A.OP_EQUALVERIFY;
 import static com.github.microwww.bitcoin.script.ins.Instruction_A6_AF.*;
 
-/**
- * 隔离见证文档: https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki
- */
 public enum TemplateTransaction {
     P2PK {
         @Override
@@ -80,22 +77,6 @@ public enum TemplateTransaction {
         }
     },
     P2WPKH() {
-        /**
-         *     witness:      <signature> <pubkey>
-         *     scriptSig:    (empty)
-         *     scriptPubKey: 0 <20-byte-key-hash>
-         *                   (0x0014{20-byte-key-hash})
-         *
-         *     The signature is verified as
-         *     <signature> <pubkey> CHECKSIG
-         *
-         *     P2WPKH nested in BIP16 P2SH
-         *     witness:      <signature> <pubkey>
-         *     scriptSig:    <0 <20-byte-key-hash>>
-         *                   (0x160014{20-byte-key-hash})
-         *     scriptPubKey: HASH160 <20-byte-script-hash> EQUAL
-         *                   (0xA914{20-byte-script-hash}87)
-         */
         @Override
         public boolean isSupport(byte[] data) {// [0x00][0x14] [Hash160(PK)]
             return TemplateTransaction.p2wSupport(data, 0x14 + 2, (byte) 0, (byte) 0x14);
@@ -125,21 +106,6 @@ public enum TemplateTransaction {
     },
     P2WSH() {// bool CScript::IsPayToWitnessScriptHash() const
 
-        /**
-         *     scriptPubKey  1 <pubkey1> <pubkey2> 2 CHECKMULTISIG
-         *
-         *     witness:      0 <signature1> <1 <pubkey1> <pubkey2> 2 CHECKMULTISIG>
-         *     scriptSig:    (empty)
-         *     scriptPubKey: 0 <32-byte-hash>
-         *                   (0x0020{32-byte-hash})
-         *
-         *  P2WSH nested in BIP16 P2SH
-         *     witness:      0 <signature1> <1 <pubkey1> <pubkey2> 2 CHECKMULTISIG>
-         *     scriptSig:    <0 <32-byte-hash>>
-         *                   (0x220020{32-byte-hash})
-         *     scriptPubKey: HASH160 <20-byte-hash> EQUAL
-         *                   (0xA914{20-byte-hash}87)
-         */
         @Override
         public boolean isSupport(byte[] data) {// [0x00][0x20] [SHA256(witnessScript)]
             return TemplateTransaction.p2wSupport(data, 0x20 + 2, (byte) 0, (byte) 0x20);
