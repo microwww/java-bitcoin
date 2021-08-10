@@ -96,7 +96,7 @@ public class CoinAccount {
         }
     }
 
-    private static String toBase58(byte version, byte[] bytes) {
+    public static String toBase58(byte version, byte[] bytes) {
         // A stringified buffer is:
         // 1 byte version + data bytes + 4 bytes check code (a truncated hash)
         byte[] addressBytes = new byte[1 + bytes.length + 4];

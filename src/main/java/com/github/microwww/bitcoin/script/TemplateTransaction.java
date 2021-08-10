@@ -12,6 +12,8 @@ import org.springframework.util.Assert;
 
 import java.util.Arrays;
 
+import static com.github.microwww.bitcoin.script.ins.Instruction_00_4B._1;
+import static com.github.microwww.bitcoin.script.ins.Instruction_00_4B._16;
 import static com.github.microwww.bitcoin.script.ins.Instruction_6B_7D.OP_DROP;
 import static com.github.microwww.bitcoin.script.ins.Instruction_6B_7D.OP_DUP;
 import static com.github.microwww.bitcoin.script.ins.Instruction_83_8A.OP_EQUAL;
@@ -19,32 +21,62 @@ import static com.github.microwww.bitcoin.script.ins.Instruction_83_8A.OP_EQUALV
 import static com.github.microwww.bitcoin.script.ins.Instruction_A6_AF.*;
 
 public enum TemplateTransaction {
+
+    /**
+     * [PKHash] OP_CHECKSIG
+     */
     P2PK {
+        @Override
+        public byte[] scriptPubKey(byte[]... args) {
+            Assert.isTrue(args.length > 0, "one arg for address");
+            ByteBuf bf = Unpooled.buffer()
+                    .writeByte(args[0].length)
+                    .writeBytes(args[0])
+                    .writeByte(OP_CHECKSIG.opcode());
+            Assert.isTrue(22 == bf.readableBytes(), "Length 25");
+            return ByteUtil.readAll(bf);
+        }
+    },
+    /**
+     * OP_DUP OP_HASH160 [0×14][PKHash] OP_EQUALVERIFY OP_CHECKSIG
+     */
+    P2PKH {
         @Override
         public byte[] scriptPubKey(byte[]... args) {
             Assert.isTrue(args.length > 0, "one arg for address");
             ByteBuf bf = Unpooled.buffer().writeByte(OP_DUP.opcode())
                     .writeByte(OP_HASH160.opcode())
-                    .writeByte(args[0].length).writeBytes(args[0])
+                    .writeByte(args[0].length)
+                    .writeBytes(args[0])
                     .writeByte(OP_EQUALVERIFY.opcode())
                     .writeByte(OP_CHECKSIG.opcode());
             Assert.isTrue(25 == bf.readableBytes(), "Length 25");
             return ByteUtil.readAll(bf);
         }
     },
-    P2PKH {
+    /**
+     * static bool MatchMultisig(const CScript& script, unsigned int& required, std::vector<valtype>& pubkeys)
+     * <p>
+     * M <Public Key 1> <Public Key 2> … <Public Key N>
+     */
+    MN {
         @Override
-        public byte[] scriptPubKey(byte[]... args) {
-            return P2PK.scriptPubKey(args);
+        public boolean isSupport(byte[] data) {
+            if (data != null && data.length > 1) {
+                if (data[data.length - 1] == OP_CHECKMULTISIG.opcode()) {
+                    byte code = data[0];
+                    if (IsSmallInteger(code)) {
+                        new Compiler(data, 1).compile();
+                    }
+                }
+            }
+            return false;
         }
-    },
-    MN {// static bool MatchMultisig(const CScript& script, unsigned int& required, std::vector<valtype>& pubkeys)
 
-        /**
-         * M <Public Key 1> <Public Key 2> … <Public Key N>
-         * @param args
-         * @return
-         */
+        public boolean IsSmallInteger(byte opcode) {
+            return opcode >= _1.opcode() && opcode < _16.opcode();
+        }
+
         @Override
         public byte[] scriptPubKey(byte[]... args) {
             // M <Public Key 1> <Public Key 2> … <Public Key N> N CHECKMULTISIG
@@ -205,5 +237,17 @@ public enum TemplateTransaction {
 
     public void executor(Interpreter interpreter) {
         throw new UnsupportedOperationException("TemplateTransaction." + this.name());
+    }
+
+    public static byte[] getScriptForMultiSig(int nRequest, byte[]... pks) {
+        ByteBuf bf = Unpooled.buffer().writeByte(0x50 | nRequest);
+        for (byte[] pk : pks) {
+            bf.writeByte(pk.length);
+            bf.writeBytes(pk);
+        }
+        bf.writeByte(0x50 | pks.length);
+        bf.writeByte(OP_CHECKMULTISIG.opcode());
+        Assert.isTrue(bf.readableBytes() <= BytesStack.MAX_SCRIPT_ELEMENT_SIZE, "Max 520 byte");
+        return ByteUtil.readAll(bf);
     }
 }
