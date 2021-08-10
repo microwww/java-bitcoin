@@ -6,7 +6,6 @@ import com.github.microwww.bitcoin.script.Instruction;
 import com.github.microwww.bitcoin.script.Interpreter;
 import com.github.microwww.bitcoin.script.ScriptOperation;
 import com.github.microwww.bitcoin.util.ByteUtil;
-import com.github.microwww.bitcoin.wallet.CoinAccount;
 import io.netty.buffer.ByteBuf;
 import org.springframework.util.Assert;
 
@@ -20,7 +19,7 @@ public enum Instruction_A6_AF implements Instruction {
         @Override
         public void exec(Interpreter executor, Object data) {
             byte[] pop = executor.stack.assertNotEmpty().pop();
-            byte[] bytes = CoinAccount.ripemd160(pop);
+            byte[] bytes = ByteUtil.ripemd160(pop);
             executor.stack.push(bytes);
         }
     },
@@ -29,7 +28,7 @@ public enum Instruction_A6_AF implements Instruction {
         @Override
         public void exec(Interpreter executor, Object data) {
             byte[] pop = executor.stack.assertNotEmpty().pop();
-            byte[] bytes = CoinAccount.sha256(pop);
+            byte[] bytes = ByteUtil.sha256(pop);
             executor.stack.push(bytes);
         }
     },
@@ -42,7 +41,7 @@ public enum Instruction_A6_AF implements Instruction {
         @Override
         public void exec(Interpreter executor, Object data, int pc) {
             byte[] pop = executor.stack.assertNotEmpty().pop();
-            byte[] bytes = CoinAccount.sha256ripemd160(pop);
+            byte[] bytes = ByteUtil.sha256ripemd160(pop);
             executor.stack.push(bytes);
             bytes = (byte[]) data;
             executor.stack.push(bytes);

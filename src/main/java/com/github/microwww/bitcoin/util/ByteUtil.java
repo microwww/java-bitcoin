@@ -4,6 +4,7 @@ import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.HexUtil;
 import cn.hutool.crypto.digest.DigestUtil;
 import io.netty.buffer.ByteBuf;
+import org.bouncycastle.crypto.digests.RIPEMD160Digest;
 import org.springframework.util.Assert;
 
 /**
@@ -56,5 +57,17 @@ public class ByteUtil {
 
     public static byte[] concat(byte[]... bytes) {
         return ArrayUtil.addAll(bytes);
+    }
+
+    public static byte[] sha256ripemd160(byte[] input) {
+        return ripemd160(sha256(input));
+    }
+
+    public static byte[] ripemd160(byte[] data) {
+        RIPEMD160Digest digest = new RIPEMD160Digest();
+        digest.update(data, 0, data.length);
+        byte[] out = new byte[20];
+        digest.doFinal(out, 0);
+        return out;
     }
 }

@@ -27,16 +27,16 @@ public class BechBitcoin {
     public static final BechBitcoin BECH32M = new BechBitcoin(Encode.BECH32M);
 
     public String toAddress(Env env, byte[] payload) {
-        return toAddress(env, 0, payload);
+        return toAddress(env.addressBECH32, 0, payload);
     }
 
-    public String toAddress(Env env, int version, byte[] payload) {
+    public String toAddress(String prefix, int version, byte[] payload) {
         byte[] bytes = Bech32.BECH.payloadEncode(payload);
         byte[] vp = new byte[bytes.length + 1];
         vp[0] = (byte) version;
         System.arraycopy(bytes, 0, vp, 1, bytes.length);
-        byte[] checksum = new BechBitcoin(encode).createChecksum(env.bitcoinPrefix(), vp, encode);
-        return env.bitcoinPrefix() + "1" + Bech32.BECH.bechEncode(vp, checksum);
+        byte[] checksum = new BechBitcoin(encode).createChecksum(prefix, vp, encode);
+        return prefix + "1" + Bech32.BECH.bechEncode(vp, checksum);
     }
 
     public int polymod(byte[] values) {

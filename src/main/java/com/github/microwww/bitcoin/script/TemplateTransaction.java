@@ -3,7 +3,6 @@ package com.github.microwww.bitcoin.script;
 import com.github.microwww.bitcoin.script.ex.TransactionInvalidException;
 import com.github.microwww.bitcoin.script.ins.Instruction_61_6A;
 import com.github.microwww.bitcoin.util.ByteUtil;
-import com.github.microwww.bitcoin.wallet.CoinAccount;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
@@ -129,7 +128,7 @@ public enum TemplateTransaction {
         @Override
         public void executor(Interpreter interpreter) {
             byte[] pop = interpreter.stack.peek(2);
-            byte[] bytes = CoinAccount.sha256ripemd160(pop);
+            byte[] bytes = ByteUtil.sha256ripemd160(pop);
             if (log.isDebugEnabled())
                 log.debug("PK : sha256ripemd160({}), {}", ByteUtil.hex(pop), ByteUtil.hex(bytes));
             // CScript witScriptPubkey = CScript() << OP_DUP << OP_HASH160 << ToByteVector(pubkeyHash) << OP_EQUALVERIFY << OP_CHECKSIG;

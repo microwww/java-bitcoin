@@ -1,7 +1,6 @@
 package com.github.microwww.bitcoin.wallet.cash.account;
 
 import com.github.microwww.bitcoin.util.ByteUtil;
-import com.github.microwww.bitcoin.wallet.CoinAccount;
 import com.github.microwww.bitcoin.wallet.util.Bech32;
 import org.junit.jupiter.api.Test;
 
@@ -12,7 +11,7 @@ class BechBitcoinTest {
     @Test
     void sha256ripemd160() {// demo for https://en.bitcoin.it/wiki/Bech32
         byte[] encoded = ByteUtil.hex("0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798");
-        byte[] bytes = CoinAccount.sha256ripemd160(encoded);
+        byte[] bytes = ByteUtil.sha256ripemd160(encoded);
         assertArrayEquals(ByteUtil.hex("751e76e8199196d454941c45d1b3a323f1433bd6"), bytes);
         byte[] bytes1 = Bech32.BECH.payloadEncode(bytes);
         byte[] hex = ByteUtil.hex("0e140f070d1a001912060b0d081504140311021d030c1d03040f1814060e1e16");

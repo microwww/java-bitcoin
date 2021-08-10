@@ -17,10 +17,10 @@ class TemplateTransactionTest {
         byte[] pk3 = ByteUtil.hex("03c6103b3b83e4a24a0e33a4df246ef11772f9992663db0c35759a5e2ebf68d8e9");
 
         byte[] ss = TemplateTransaction.getScriptForMultiSig(2, pk1, pk2, pk3);
-        System.out.println(ByteUtil.hex(ss));
-        for (int i = 0; i < 256; i++) {
-            String encode = CoinAccount.toBase58((byte) i, CoinAccount.sha256ripemd160(ss));
-            System.out.println(encode);
-        }
+        String encode = Base58.encodeAddress(Env.MAIN.addressP2SH, ByteUtil.sha256ripemd160(ss));
+        assertEquals("36NUkt6FWUi3LAWBqWRdDmdTWbt91Yvfu7", encode);
+
+        String s = new CoinAccount.KeyPublic(ss).getAddress().toP2SHAddress(Env.MAIN);
+        assertEquals("36NUkt6FWUi3LAWBqWRdDmdTWbt91Yvfu7", s);
     }
 }
