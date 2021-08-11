@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.script;
 
 import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.chain.TxOut;
+import com.github.microwww.bitcoin.util.ByteUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
@@ -82,6 +83,11 @@ public class Interpreter {
         return this.executor(aScript, 0);
     }
 
+    public Interpreter printStack() {
+        this.stack.print();
+        return this;
+    }
+
     public Interpreter executor(byte[] aScript, int offset) {
         Assert.isTrue(aScript != null, "Not NULL");
         this.scripts = aScript;
@@ -91,6 +97,24 @@ public class Interpreter {
             script = preProcess.get(iterator.next()).apply(script);
         }
         this.script = script;
+        if (logger.isDebugEnabled())
+            logger.debug("Exec offset {}, script : {}", offset, ByteUtil.hex(aScript));
+
+        boolean run = false;
+        for (TemplateTransaction value : TemplateTransaction.values()) {
+            if (value.isSupport(aScript)) {
+                value.executor(this);
+                run = true;
+                break;
+            }
+        }
+        if (!run) {
+            runNow();
+        }
+        return this;
+    }
+
+    protected Interpreter runNow() {
         for (Compiler.SourceCode sc : script) {
             ScriptOperation sn = sc.opt;
             if (logger.isDebugEnabled())
@@ -99,14 +123,6 @@ public class Interpreter {
             if (logger.isDebugEnabled())
                 logger.debug("After  Operation : {}, {}", sn.keyword, stack.size());
         }
-
-        for (TemplateTransaction value : TemplateTransaction.values()) {
-            if (value.isSupport(aScript)) {
-                value.executor(this);
-                break;
-            }
-        }
-
         return this;
     }
 
@@ -119,23 +135,19 @@ public class Interpreter {
     }
 
     public boolean isSuccess() {
-        return stack.peekSuccess();
+        return isSuccess(false);
+    }
+
+    public boolean isSuccess(boolean remove) {
+        boolean ok = stack.peekSuccess();
+        if (remove) {
+            stack.pop();
+        }
+        return ok;
     }
 
     public boolean stackSizeEqual(int size) {
         return this.stack.size() == size;
-    }
-
-    public boolean topIsTrue() {
-        if (!this.stack.isEmpty()) {
-            byte[] pk = this.stack.peek();
-            if (pk.length > 0) {
-                if (pk[0] != 0) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     public byte[] getScriptsFromLastCodeSeparator() {

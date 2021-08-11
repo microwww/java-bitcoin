@@ -94,7 +94,30 @@ public enum TemplateTransaction {
             return ByteUtil.readAll(bf);
         }
     },
-    P2SH { // bool CScript::IsPayToScriptHash() const
+    /**
+     * bool CScript::IsPayToScriptHash() const
+     * <p>
+     * OP_HASH160 [Hash160(redeemScript)] OP_EQUAL
+     */
+    P2SH {
+        @Override
+        public boolean isSupport(byte[] data) {
+            if (data.length == 23) {
+                if (data[0] == OP_HASH160.opcode())
+                    if (data[1] == 0x14)
+                        if (data[22] == OP_EQUAL.opcode())
+                            return true;
+            }
+            return false;
+        }
+
+        @Override
+        public void executor(Interpreter interpreter) {
+            byte[] pop = interpreter.stack.peek();
+            interpreter.runNow();
+            Assert.isTrue(interpreter.isSuccess(true), "P2SH address is hash160 not equals");
+            interpreter.executor(pop);
+        }
 
         @Override
         public byte[] scriptPubKey(byte[]... args) {
@@ -127,6 +150,7 @@ public enum TemplateTransaction {
 
         @Override
         public void executor(Interpreter interpreter) {
+            interpreter.runNow();
             byte[] pop = interpreter.stack.peek(2);
             byte[] bytes = ByteUtil.sha256ripemd160(pop);
             if (log.isDebugEnabled())
@@ -167,6 +191,7 @@ public enum TemplateTransaction {
 
         @Override
         public void executor(Interpreter interpreter) {
+            interpreter.runNow();
             byte[] sha256 = interpreter.stack.assertSizeGE(2).pop();
             OP_DROP.exec(interpreter, ZERO);
             byte[] sc = interpreter.stack.pop();
@@ -249,4 +274,6 @@ public enum TemplateTransaction {
         Assert.isTrue(bf.readableBytes() <= BytesStack.MAX_SCRIPT_ELEMENT_SIZE, "Max 520 byte");
         return ByteUtil.readAll(bf);
     }
+
+    public static final int M2N_MAX = 16;
 }

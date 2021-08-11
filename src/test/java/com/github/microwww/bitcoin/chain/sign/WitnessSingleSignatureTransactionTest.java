@@ -32,7 +32,7 @@ class WitnessSingleSignatureTransactionTest {
         Interpreter executor = new Interpreter(tx).executor(tx.getTxIns()[0].getScript())
                 .executor(ByteUtil.hex("21036d5c20fa14fb2f635474c1dc4ef5909d4568e5569b79fc94d3448486e14685f8ac"));
         assertTrue(executor.stackSizeEqual(1));
-        assertTrue(executor.topIsTrue());
+        assertTrue(executor.isSuccess());
 
         executor = new Interpreter(tx).nextTxIn(new TxOut().setValue(49_0000_0000L)).executor(tx.getTxIns()[1].getScript()).witnessPushStack()
                 .executor(ByteUtil.hex("00205d1b56b63d714eebe542309525f484b7e9d6f686b3781b6f61ef925d66d6f6a0"));

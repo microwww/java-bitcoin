@@ -5,8 +5,11 @@ import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.script.Instruction;
 import com.github.microwww.bitcoin.script.Interpreter;
 import com.github.microwww.bitcoin.script.ScriptOperation;
+import com.github.microwww.bitcoin.script.TemplateTransaction;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
 import java.util.Arrays;
@@ -88,9 +91,51 @@ public enum Instruction_A6_AF implements Instruction {
             Instruction_61_6A.OP_VERIFY.exec(executor, data);
         }
     },
-    OP_CHECKMULTISIG,
+    OP_CHECKMULTISIG {
+        @Override
+        public ScriptOperation compile(ByteBuf bf) {
+            return new ScriptOperation(this, ZERO);
+        }
+
+        @Override
+        public void exec(Interpreter executor, Object data) {
+            byte[] pop = executor.stack.assertSizeGE(1).pop();
+            int mm = TemplateTransaction.M2N_MAX;
+            Assert.isTrue(pop.length == 1, "Must 1");
+            int max = Byte.toUnsignedInt(pop[0]);
+            Assert.isTrue(max <= mm, "M2N max " + mm);
+            executor.stack.assertSizeGE(max);
+            byte[][] pks = new byte[max][];
+            for (int i = 0; i < max; i++) {
+                pks[i] = executor.stack.pop();
+            }
+            pop = executor.stack.assertSizeGE(1).pop();
+            Assert.isTrue(pop.length == 1, "Must 1");
+            int req = Byte.toUnsignedInt(pop[0]);
+            Assert.isTrue(req <= max, "M2N , request <= max ");
+            executor.stack.assertSizeGE(req, "stack data < M2N request :" + req);
+            int count = 0;
+            for (int i = 0; i < pks.length; i++) {
+                byte[] bytes = executor.stack.pop();
+                byte type = bytes[bytes.length - 1];
+                for (; i < pks.length; i++) {
+                    boolean b = HashType.select(type).signatureVerify(executor.transaction, executor.getIndexTxIn(), executor.getPreout(),
+                            pks[i], Arrays.copyOf(bytes, bytes.length - 1), executor.getScriptsFromLastCodeSeparator());
+                    if (b) {
+                        count++;
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Signature-Verify success : \n pk:{}, \n sign: {}", pks[i], bytes);
+                        }
+                        break;
+                    }
+                }
+            }
+            executor.stack.push(count >= req ? 1 : 0);
+        }
+    },
     OP_CHECKMULTISIGVERIFY, // 175
     ;
+    private static final Logger logger = LoggerFactory.getLogger(Instruction_A6_AF.class);
 
     @Override
     public ScriptOperation compile(ByteBuf bf) {

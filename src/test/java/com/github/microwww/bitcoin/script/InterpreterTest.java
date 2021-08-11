@@ -15,7 +15,6 @@ import com.github.microwww.bitcoin.wallet.Secp256k1;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -162,11 +161,11 @@ class InterpreterTest {
         Interpreter in = new Interpreter(tx).executor(tx.getTxIns()[0].getScript())
                 .executor(ByteUtil.hex("2103c9f4836b9a4f77fc0d81f7bcb01b7f1b35916864b9476c241ce9fc198bd25432ac"));
 
-        assertTrue(in.topIsTrue());
+        assertTrue(in.isSuccess());
 
         in.nextTxIn(new TxOut().setValue(6)).executor(tx.getTxIns()[1].getScript()).witnessPushStack()
                 .executor(ByteUtil.hex("1976a9141d0f172a0ecb48aee1be1f2687d2963ae33f71a188ac"));
-        assertTrue(in.topIsTrue());
+        assertTrue(in.isSuccess());
     }
 
     @Test

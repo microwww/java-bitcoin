@@ -12,12 +12,17 @@ public final class Instructions { // Instruction-set
             instructions[i] = value;
             i++;
         }
-        Assert.isTrue(i == 0x4B + 1, "count 0xAF");
-        for (Instruction_4C_60 value : Instruction_4C_60.values()) {
+        Assert.isTrue(i == 0x4B + 1, "count 0x4B");
+        for (Instruction_4C_50 value : Instruction_4C_50.values()) {
             instructions[i] = value;
             i++;
         }
-        Assert.isTrue(i == 0x60 + 1, "count 0xAF");
+        Assert.isTrue(i == 0x50 + 1, "count 0x4C");
+        for (Instruction_51_60 value : Instruction_51_60.values()) {
+            instructions[i] = value;
+            i++;
+        }
+        Assert.isTrue(i == 0x60 + 1, "count 0x60");
         for (Instruction_61_6A value : Instruction_61_6A.values()) {
             instructions[i] = value;
             i++;

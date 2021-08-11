@@ -17,7 +17,19 @@ public enum Instruction_83_8A implements Instruction {
     OP_AND,
     OP_OR,
     OP_XOR,
-    OP_EQUAL,
+    OP_EQUAL {
+        @Override
+        public ScriptOperation compile(ByteBuf bf) {
+            return new ScriptOperation(this, ZERO);
+        }
+
+        @Override
+        public void exec(Interpreter executor, Object data) {
+            byte[] x1 = executor.stack.pop();
+            byte[] x2 = executor.stack.pop();
+            executor.stack.push(Arrays.equals(x1, x2) ? 1 : 0);
+        }
+    },
     OP_EQUALVERIFY() {
         @Override
         public ScriptOperation compile(ByteBuf bf) {
@@ -42,7 +54,7 @@ public enum Instruction_83_8A implements Instruction {
 
     @Override
     public ScriptOperation compile(ByteBuf bf) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(this.toString());
     }
 
     @Override
@@ -56,5 +68,10 @@ public enum Instruction_83_8A implements Instruction {
 
     public byte opcode() {
         return (byte) (0x83 + this.ordinal());
+    }
+
+    @Override
+    public String toString() {
+        return this.name() + ", 0x" + ByteUtil.hex(new byte[]{this.opcode()});
     }
 }

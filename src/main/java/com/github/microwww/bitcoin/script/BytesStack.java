@@ -4,6 +4,8 @@ import com.github.microwww.bitcoin.script.ex.ScriptException;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Stack;
 
@@ -17,6 +19,7 @@ import java.util.Stack;
  * 非线程安全的类
  */
 public class BytesStack {
+    private static final Logger logger = LoggerFactory.getLogger(BytesStack.class);
     public static final int MAX_SCRIPT_ELEMENT_SIZE = 520;
     private Stack<byte[]> stack = new Stack<>();
     private ByteBuf cache = Unpooled.buffer(520);
@@ -112,9 +115,13 @@ public class BytesStack {
     }
 
     public BytesStack assertSizeGE(int size) {
+        return this.assertSizeGE(size, "STACK SIZE < " + size);
+    }
+
+    public BytesStack assertSizeGE(int size, String message) {
         if (stack.size() >= size) {
             return this;
-        } else throw new IllegalArgumentException("STACK SIZE < " + size);
+        } else throw new IllegalArgumentException(message);
     }
 
     public int size() {
@@ -123,5 +130,15 @@ public class BytesStack {
 
     public boolean isEmpty() {
         return stack.isEmpty();
+    }
+
+    public void print() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Bottom").append("\n");
+        stack.forEach(e -> {
+            sb.append("    0x").append(ByteUtil.hex(e)).append("\n");
+        });
+        sb.append("Top");
+        logger.info("stack : \n{}", sb);
     }
 }

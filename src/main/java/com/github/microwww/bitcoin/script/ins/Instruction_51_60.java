@@ -3,14 +3,11 @@ package com.github.microwww.bitcoin.script.ins;
 import com.github.microwww.bitcoin.script.Instruction;
 import com.github.microwww.bitcoin.script.Interpreter;
 import com.github.microwww.bitcoin.script.ScriptOperation;
+import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
+import org.springframework.util.Assert;
 
-public enum Instruction_4C_60 implements Instruction {
-    OP_PUSHDATA1,// 76
-    OP_PUSHDATA2,
-    OP_PUSHDATA4,
-    OP_1NEGATE,
-    OP_RESERVED,// 80
+public enum Instruction_51_60 implements Instruction {
     OP_1,// OP_TRUE 81
     OP_2,
     OP_3,
@@ -31,15 +28,18 @@ public enum Instruction_4C_60 implements Instruction {
 
     @Override
     public ScriptOperation compile(ByteBuf bf) {
-        throw new UnsupportedOperationException();
+        int size = this.opcode() & 0x0F;
+        return new ScriptOperation(this, new byte[]{(byte) size});
     }
 
     @Override
     public void exec(Interpreter executor, Object data) {
-        throw new UnsupportedOperationException();
+        executor.stack.push((byte[]) data);
     }
+
+    @Override
     public byte opcode() {
-        return (byte) (0x4C + this.ordinal());
+        return (byte) (0x51 + this.ordinal());
     }
 
 }
