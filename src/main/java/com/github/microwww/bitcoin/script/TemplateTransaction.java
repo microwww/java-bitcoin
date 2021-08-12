@@ -200,7 +200,7 @@ public enum TemplateTransaction {
             }
             byte[] bytes = ByteUtil.concat(new byte[]{(byte) sc.length}, sc);
             //TODO::这个规则需要确认
-            Assert.isTrue(bytes.length -1 == bytes[0], "这个规则需要确认");
+            Assert.isTrue(bytes.length -1 == Byte.toUnsignedInt(bytes[0]), "这个规则需要确认");
             interpreter.executor(bytes, 1);
         }
     },

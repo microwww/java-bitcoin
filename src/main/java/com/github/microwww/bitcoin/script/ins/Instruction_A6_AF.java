@@ -129,7 +129,7 @@ public enum Instruction_A6_AF implements Instruction {
                     if (b) {
                         count++;
                         if (logger.isDebugEnabled()) {
-                            logger.debug("Signature-Verify success : \n pk:{}, \n sign: {}", pks[i], bytes);
+                            logger.debug("Signature-Verify success : \n pk   : {}, \n sign : {}", ByteUtil.hex(pks[i]), ByteUtil.hex(bytes));
                         }
                         break;
                     }

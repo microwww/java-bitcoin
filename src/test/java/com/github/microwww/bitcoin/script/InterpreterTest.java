@@ -405,6 +405,22 @@ class InterpreterTest {
     }
 
     @Test
+    public void testMultiSigWitnessVerify() {
+        RawTransaction tx = readTx(104);
+        int inIndex = 0;
+        TxOut txOut = new TxOut(987654321L);
+
+        Interpreter exe = new Interpreter(tx).indexTxIn(inIndex, txOut)
+                .executor(tx.getTxIns()[inIndex].getScript())
+                .printStack()
+                .witnessPushStack()
+                .printStack()
+                .executor(ByteUtil.hex("0020a16b5755f7f6f96dbd65f5f0d6ab9418b89af4b1f14a1bb8a09062c35f0dcb54"))
+                .printStack();
+        assertTrue(exe.isSuccess());
+    }
+
+    @Test
     public void exeP2WPKH() {
         RawTransaction tx = readTx(87);
         // CScript witScriptPubkey = CScript() << OP_DUP << OP_HASH160 << ToByteVector(pubkeyHash) << OP_EQUALVERIFY << OP_CHECKSIG;
