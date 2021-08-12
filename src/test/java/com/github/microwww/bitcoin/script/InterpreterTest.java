@@ -372,7 +372,7 @@ class InterpreterTest {
             boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
             assertTrue(b);
         }
-        if (false) {// ALL|ANYONECANPAY
+        if (true) {// ALL|ANYONECANPAY
             SignatureTransaction st = new WitnessAnyOneCanPayAllSignatureTransaction(tx, inIndex, txOut);
             byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
             assertEquals("2a67f03e63a6a422125878b40b82da593be8d4efaafe88ee528af6e5a9955c6e", ByteUtil.hex(bytes));
@@ -382,7 +382,7 @@ class InterpreterTest {
             boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
             assertTrue(b);
         }
-        if (false) {// NONE|ANYONECANPAY
+        if (true) {// NONE|ANYONECANPAY
             SignatureTransaction st = new WitnessAnyOneCanPayNoneSignatureTransaction(tx, inIndex, txOut);
             byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
             assertEquals("781ba15f3779d5542ce8ecb5c18716733a5ee42a6f51488ec96154934e2c890a", ByteUtil.hex(bytes));
@@ -392,7 +392,7 @@ class InterpreterTest {
             boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
             assertTrue(b);
         }
-        if (false) {// SINGLE|ANYONECANPAY
+        if (true) {// SINGLE|ANYONECANPAY
             SignatureTransaction st = new WitnessAnyOneCanPaySingleSignatureTransaction(tx, inIndex, txOut);
             byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
             assertEquals("511e8e52ed574121fc1b654970395502128263f62662e076dc6baf05c2e6a99b", ByteUtil.hex(bytes));

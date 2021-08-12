@@ -2,12 +2,12 @@ package com.github.microwww.bitcoin.chain.sign;
 
 import com.github.microwww.bitcoin.chain.HashType;
 import com.github.microwww.bitcoin.chain.RawTransaction;
+import com.github.microwww.bitcoin.chain.TxIn;
 import com.github.microwww.bitcoin.chain.TxOut;
-import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.Assert;
 
 // uint256 SignatureHash(const CScript& scriptCode
 public class WitnessAnyOneCanPayNoneSignatureTransaction extends AbstractWitnessSignatureTransaction {
@@ -24,28 +24,12 @@ public class WitnessAnyOneCanPayNoneSignatureTransaction extends AbstractWitness
 
     @Override
     public byte[] data4signature(byte[] preScript) {
-        RawTransaction tx = this.transaction;
-        ByteBuf buffer = Unpooled.buffer();
-        byte[] hashOutputs = _READ_ONLY_32_ZERO;
-        buffer.clear()
-                .writeIntLE(tx.getVersion())
-                .writeBytes(_READ_ONLY_32_ZERO) // hashPrevouts
-                .writeBytes(_READ_ONLY_32_ZERO) // hashSequence
-                // outpoint
-                .writeBytes(tx.getTxIns()[inIndex].getPreTxHash().fill256bit()).writeIntLE(tx.getTxIns()[inIndex].getPreTxOutIndex())
-                .writeBytes(preScript)
-                .writeLongLE(preout.getValue())
-                .writeIntLE(tx.getTxIns()[inIndex].getSequence().intValue())
-                .writeBytes(hashOutputs)
-                .writeIntLE(tx.getLockTime().intValue())
-                .writeIntLE(this.supportType().toUnsignedInt());
-        byte[] bytes = ByteUtil.readAll(buffer);
-        byte[] sha256 = ByteUtil.sha256sha256(bytes);
-        if (logger.isDebugEnabled()) {
-            String hex = ByteUtil.hex(sha256);
-            logger.info("TX-sign : \n SHA256(SHA256({})) \n = {}", ByteUtil.hex(bytes), hex);
-        }
-        return sha256;
+        RawTransaction tx = this.transaction.clone();
+        Assert.isTrue(tx.getTxIns().length > 0, "TX-in not empty");
+        Assert.isTrue(tx.getTxOuts().length > 0, "TX-out not empty");
+        tx.setTxIns(new TxIn[]{});
+        tx.setTxOuts(new TxOut[]{});
+        return super.data4signature(tx, preScript);
     }
 
     @Override

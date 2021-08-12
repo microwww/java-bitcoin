@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.chain.sign;
 
 import com.github.microwww.bitcoin.chain.HashType;
 import com.github.microwww.bitcoin.chain.RawTransaction;
+import com.github.microwww.bitcoin.chain.TxIn;
 import com.github.microwww.bitcoin.chain.TxOut;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
@@ -24,29 +25,15 @@ public class WitnessAnyOneCanPaySingleSignatureTransaction extends AbstractWitne
 
     @Override
     public byte[] data4signature(byte[] preScript) {
-        RawTransaction tx = this.transaction;
-        ByteBuf sn = Unpooled.buffer();
-        tx.getTxOuts()[inIndex].write(sn);
-        byte[] hashOutputs = ByteUtil.sha256sha256(ByteUtil.readAll(sn));
-        sn.clear()
-                .writeIntLE(tx.getVersion())
-                .writeBytes(_READ_ONLY_32_ZERO) // hashPrevouts
-                .writeBytes(_READ_ONLY_32_ZERO) // hashSequence
-                // outpoint
-                .writeBytes(tx.getTxIns()[inIndex].getPreTxHash().fill256bit()).writeIntLE(tx.getTxIns()[inIndex].getPreTxOutIndex())
-                .writeBytes(preScript)
-                .writeLongLE(preout.getValue())
-                .writeIntLE(tx.getTxIns()[inIndex].getSequence().intValue())
-                .writeBytes(hashOutputs)
-                .writeIntLE(tx.getLockTime().intValue())
-                .writeIntLE(this.supportType().toUnsignedInt());
-        byte[] bytes = ByteUtil.readAll(sn);
-        byte[] sha256 = ByteUtil.sha256sha256(bytes);
-        if (logger.isDebugEnabled()) {
-            String hex = ByteUtil.hex(sha256);
-            logger.info("TX-sign : \n SHA256(SHA256({})) \n = {}", ByteUtil.hex(bytes), hex);
+        RawTransaction tx = this.transaction.clone();
+        tx.setTxIns(new TxIn[]{});
+        TxOut[] txOuts = tx.getTxOuts();
+        if (txOuts.length > inIndex) {
+            tx.setTxOuts(new TxOut[]{txOuts[inIndex]});
+        } else {
+            tx.setTxOuts(new TxOut[]{});
         }
-        return sha256;
+        return super.data4signature(tx, preScript);
     }
 
     @Override

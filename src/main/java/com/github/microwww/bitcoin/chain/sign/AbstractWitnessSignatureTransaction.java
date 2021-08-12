@@ -33,13 +33,16 @@ public abstract class AbstractWitnessSignatureTransaction extends AbstractSignat
         sign.writeIntLE(tx.getVersion());
 
         {// 2.hashPrevouts
-            for (TxIn txIn : tx.getTxIns()) {
-                buffer.writeBytes(txIn.getPreTxHash().fill256bit()).writeIntLE(txIn.getPreTxOutIndex());
-            }
-            byte[] bytes = ByteUtil.readAll(buffer);
-            byte[] hashPrevouts = ByteUtil.sha256sha256(bytes);
-            if (logger.isDebugEnabled()) {
-                logger.info("TX-in : \n SHA256(SHA256({})) \n = {}", ByteUtil.hex(bytes), ByteUtil.hex(hashPrevouts));
+            byte[] hashPrevouts = _READ_ONLY_32_ZERO;
+            if (tx.getTxIns().length > 0) {
+                for (TxIn txIn : tx.getTxIns()) {
+                    buffer.writeBytes(txIn.getPreTxHash().fill256bit()).writeIntLE(txIn.getPreTxOutIndex());
+                }
+                byte[] bytes = ByteUtil.readAll(buffer);
+                hashPrevouts = ByteUtil.sha256sha256(bytes);
+                if (logger.isDebugEnabled()) {
+                    logger.info("TX-in : \n SHA256(SHA256({})) \n = {}", ByteUtil.hex(bytes), ByteUtil.hex(hashPrevouts));
+                }
             }
             sign.writeBytes(hashPrevouts);
         }
@@ -77,7 +80,7 @@ public abstract class AbstractWitnessSignatureTransaction extends AbstractSignat
         // 9.nLockTime
         sign.writeIntLE(tx.getLockTime().intValue());
         // 10.nHashType`
-        sign.writeIntLE(supportType().TYPE);
+        sign.writeIntLE(supportType().toUnsignedInt());
 
         byte[] bytes = ByteUtil.readAll(sign);
         byte[] sha256 = ByteUtil.sha256sha256(bytes);
@@ -89,18 +92,7 @@ public abstract class AbstractWitnessSignatureTransaction extends AbstractSignat
     }
 
     protected byte[] hashSequence(ByteBuf buffer, RawTransaction tx) {
-        {// 3.hashSequence
-            buffer.clear();
-            for (TxIn txIn : tx.getTxIns()) {
-                buffer.writeIntLE(txIn.getSequence().intValue());
-            }
-            byte[] bytes = ByteUtil.readAll(buffer);
-            byte[] hashSequence = ByteUtil.sha256sha256(bytes);
-            if (logger.isDebugEnabled()) {
-                logger.info("TX-sequence : \n SHA256(SHA256({})) \n = {}", ByteUtil.hex(bytes), ByteUtil.hex(hashSequence));
-            }
-            return hashSequence;
-        }
+        return _READ_ONLY_32_ZERO;
     }
 
     public int getInIndex() {

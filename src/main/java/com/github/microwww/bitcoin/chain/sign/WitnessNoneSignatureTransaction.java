@@ -33,11 +33,6 @@ public class WitnessNoneSignatureTransaction extends AbstractWitnessSignatureTra
     }
 
     @Override
-    protected byte[] hashSequence(ByteBuf buffer, RawTransaction tx) {
-        return _READ_ONLY_32_ZERO;
-    }
-
-    @Override
     public RawTransaction writeSignatureScript(byte[] privateKey, byte[] preScript) {
         throw new UnsupportedOperationException();
     }
