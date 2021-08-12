@@ -342,7 +342,7 @@ class InterpreterTest {
                 "2102d8b661b0b3302ee2f162b09e07a55ad5dfbe673a9f01d9f0c19617681024306b" +
                 "56" +
                 "ae";
-        if (false) { // ALL
+        if (true) { // ALL
             SignatureTransaction st = new WitnessHashAllSignatureTransaction(tx, inIndex, txOut);
             byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
             assertEquals("185c0be5263dce5b4bb50a047973c1b6272bfbd0103a89444597dc40b248ee7c", ByteUtil.hex(bytes));
@@ -352,7 +352,7 @@ class InterpreterTest {
             boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
             assertTrue(b);
         }
-        if (false) {// NONE
+        if (true) {// NONE
             SignatureTransaction st = new WitnessNoneSignatureTransaction(tx, inIndex, txOut);
             byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
             assertEquals("e9733bc60ea13c95c6527066bb975a2ff29a925e80aa14c213f686cbae5d2f36", ByteUtil.hex(bytes));
@@ -362,7 +362,7 @@ class InterpreterTest {
             boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
             assertTrue(b);
         }
-        if (false) {// SINGLE
+        if (true) {// SINGLE
             SignatureTransaction st = new WitnessSingleSignatureTransaction(tx, inIndex, txOut);
             byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
             assertEquals("1e1f1c303dc025bd664acb72e583e933fae4cff9148bf78c157d1e8f78530aea", ByteUtil.hex(bytes));
@@ -392,7 +392,7 @@ class InterpreterTest {
             boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
             assertTrue(b);
         }
-        if (true) {// SINGLE|ANYONECANPAY
+        if (false) {// SINGLE|ANYONECANPAY
             SignatureTransaction st = new WitnessAnyOneCanPaySingleSignatureTransaction(tx, inIndex, txOut);
             byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
             assertEquals("511e8e52ed574121fc1b654970395502128263f62662e076dc6baf05c2e6a99b", ByteUtil.hex(bytes));
