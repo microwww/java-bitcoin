@@ -72,6 +72,7 @@ public enum Instruction_83_8A implements Instruction {
 
     @Override
     public String toString() {
-        return this.name() + ", 0x" + ByteUtil.hex(new byte[]{this.opcode()});
+        byte c = this.opcode();
+        return this.name() + "|" + c + "|0x" + ByteUtil.hex(new byte[]{c});
     }
 }

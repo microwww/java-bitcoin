@@ -199,7 +199,9 @@ public enum TemplateTransaction {
                 throw new TransactionInvalidException("sha256(script) != P2WSH");
             }
             byte[] bytes = ByteUtil.concat(new byte[]{(byte) sc.length}, sc);
-            interpreter.subScript().executor(bytes, 1);
+            //TODO::这个规则需要确认
+            Assert.isTrue(bytes.length -1 == bytes[0], "这个规则需要确认");
+            interpreter.executor(bytes, 1);
         }
     },
 

@@ -152,7 +152,9 @@ public class Interpreter {
 
     public byte[] getScriptsFromLastCodeSeparator() {
         if (this.getLastCodeSeparator() >= 0) {
-            return Arrays.copyOfRange(scripts, this.getLastCodeSeparator(), scripts.length);
+            // TODO :: 这个格式需要确认
+            byte[] bytes = Arrays.copyOfRange(scripts, this.getLastCodeSeparator(), scripts.length);
+            return ByteUtil.concat(new byte[]{(byte) bytes.length}, bytes);
         }
         return Arrays.copyOf(scripts, scripts.length);
     }

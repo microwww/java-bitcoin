@@ -5,6 +5,8 @@ import com.github.microwww.bitcoin.script.Interpreter;
 import com.github.microwww.bitcoin.script.ScriptOperation;
 import com.github.microwww.bitcoin.script.ex.TransactionInvalidException;
 import io.netty.buffer.ByteBuf;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public enum Instruction_61_6A implements Instruction {
 
@@ -29,11 +31,13 @@ public enum Instruction_61_6A implements Instruction {
             if (!v) {
                 throw new TransactionInvalidException("OP_VERIFY not equal");
             }
+            logger.debug("OP_VERIFY SUCCESS !");
             executor.stack.pop();
         }
     },
     OP_RETURN, // 106
     ;
+    private static final Logger logger = LoggerFactory.getLogger(Instruction_61_6A.class);
 
     @Override
     public ScriptOperation compile(ByteBuf bf) {

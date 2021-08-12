@@ -161,10 +161,10 @@ class InterpreterTest {
         Interpreter in = new Interpreter(tx).executor(tx.getTxIns()[0].getScript())
                 .executor(ByteUtil.hex("2103c9f4836b9a4f77fc0d81f7bcb01b7f1b35916864b9476c241ce9fc198bd25432ac"));
 
-        assertTrue(in.isSuccess());
+        assertTrue(in.isSuccess(true));
 
-        in.nextTxIn(new TxOut().setValue(6)).executor(tx.getTxIns()[1].getScript()).witnessPushStack()
-                .executor(ByteUtil.hex("1976a9141d0f172a0ecb48aee1be1f2687d2963ae33f71a188ac"));
+        in.nextTxIn(new TxOut( 6_0000_0000L)).executor(tx.getTxIns()[1].getScript()).witnessPushStack()
+                .executor(ByteUtil.hex("1976a9141d0f172a0ecb48aee1be1f2687d2963ae33f71a188ac"), 1);
         assertTrue(in.isSuccess());
     }
 
@@ -261,7 +261,7 @@ class InterpreterTest {
         int index = 0;
         byte[] data = new HashAllSignatureTransaction(tx, index).data4signature(ss);
         byte[] sign = ByteUtil.hex("304402200af4e47c9b9629dbecc21f73af989bdaa911f7e6f6c2e9394588a3aa68f81e9902204f3fcf6ade7e5abb1295b6774c8e0abd94ae62217367096bc02ee5e435b67da2");
-        boolean rs = Secp256k1.signatureVerify(rp.getKeyPublic().getKey(), sign, data);
+        boolean rs = rp.getKeyPublic().signatureVerify(sign, data);
         assertTrue(rs);
         new HashAllSignatureTransaction(tx, 0).writeSignatureScript(rp.getKey(), ss);
 
@@ -283,6 +283,20 @@ class InterpreterTest {
         sign = ByteUtil.hex("304402200de66acf4527789bfda55fc5459e214fa6083f936b430a762c629656216805ac0220396f550692cd347171cbc1ef1f51e15282e837bb2b30860dc77c8f78bc8501e5");
         rs = Secp256k1.signatureVerify(rp.getKeyPublic().getKey(), sign, data);
         assertTrue(rs);
+    }
+
+    @Test
+    void txP2WSH() {
+        RawTransaction tx = readTx(94);
+        byte[] ss = ByteUtil.hex("21036d5c20fa14fb2f635474c1dc4ef5909d4568e5569b79fc94d3448486e14685f8ac");
+        int i = 0;
+        Interpreter executor = new Interpreter(tx).executor(tx.getTxIns()[i].getScript()).witnessPushStack().executor(ss);
+        assertTrue(executor.isSuccess(true));
+
+        i = 1;
+        byte[] hex = ByteUtil.hex("00205d1b56b63d714eebe542309525f484b7e9d6f686b3781b6f61ef925d66d6f6a0");
+        executor.nextTxIn(new TxOut(49_0000_0000L)).executor(tx.getTxIns()[i].getScript()).witnessPushStack().executor(hex);
+        assertTrue(executor.isSuccess());
     }
 
     @Test

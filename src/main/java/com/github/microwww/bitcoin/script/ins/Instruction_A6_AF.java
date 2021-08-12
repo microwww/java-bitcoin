@@ -80,7 +80,12 @@ public enum Instruction_A6_AF implements Instruction {
             byte[] sign = Arrays.copyOf(sn, sn.length - 1);
             byte type = sn[sn.length - 1];
             HashType select = HashType.select(type);
-            boolean verify = select.signatureVerify(executor.transaction, executor.getIndexTxIn(), executor.getPreout(), pk, sign, executor.getScriptsFromLastCodeSeparator());
+            byte[] scr = executor.getScriptsFromLastCodeSeparator();
+            boolean verify = select.signatureVerify(executor.transaction, executor.getIndexTxIn(), executor.getPreout(), pk, sign, scr);
+            if (logger.isDebugEnabled() && !verify) {
+                logger.debug("Verify signature : {} \n script: {} \n pk    : {} \n sign  : {}",
+                        verify, ByteUtil.hex(scr), ByteUtil.hex(pk), ByteUtil.hex(sign));
+            }
             executor.stack.push(verify ? 1 : 0);
         }
     },
