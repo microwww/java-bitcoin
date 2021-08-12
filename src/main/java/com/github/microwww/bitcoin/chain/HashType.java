@@ -3,6 +3,7 @@ package com.github.microwww.bitcoin.chain;
 import com.github.microwww.bitcoin.chain.sign.HashAllSignatureTransaction;
 import com.github.microwww.bitcoin.chain.sign.WitnessHashAllSignatureTransaction;
 import com.github.microwww.bitcoin.chain.sign.WitnessSingleSignatureTransaction;
+import org.springframework.util.Assert;
 
 public enum HashType {
     ALL(1) {
@@ -18,7 +19,12 @@ public enum HashType {
     },
     NONE(2),
     SINGLE(3),
-    ANYONECANPAY(0x80),
+    ANYONECANPAY(0x80) {
+        public int or(HashType type) {
+            Assert.isTrue(type.TYPE >= 0, "TYPE >= 0");
+            return Byte.toUnsignedInt(TYPE) | type.TYPE;
+        }
+    },
     ALL_ANYONECANPAY(0x81),
     NONE_ANYONECANPAY(0x82),
     SINGLE_ANYONECANPAY(0x83),
@@ -49,5 +55,9 @@ public enum HashType {
         } else {
             throw new UnsupportedOperationException();
         }
+    }
+
+    public int toUnsignedInt() {
+        return Byte.toUnsignedInt(TYPE);
     }
 }

@@ -23,6 +23,11 @@ public class WitnessSingleSignatureTransaction extends AbstractWitnessSignatureT
         return HashType.SINGLE;
     }
 
+    /**
+     * 所有输入和对应的输出(单个)做签名
+     * @param preScript
+     * @return
+     */
     @Override
     public byte[] data4signature(byte[] preScript) {
         RawTransaction tx = this.transaction;

@@ -1,12 +1,7 @@
 package com.github.microwww.bitcoin.script;
 
-import com.github.microwww.bitcoin.chain.HashType;
-import com.github.microwww.bitcoin.chain.RawTransaction;
-import com.github.microwww.bitcoin.chain.TxIn;
-import com.github.microwww.bitcoin.chain.TxOut;
-import com.github.microwww.bitcoin.chain.sign.HashAllSignatureTransaction;
-import com.github.microwww.bitcoin.chain.sign.WitnessHashAllSignatureTransaction;
-import com.github.microwww.bitcoin.chain.sign.WitnessSingleSignatureTransaction;
+import com.github.microwww.bitcoin.chain.*;
+import com.github.microwww.bitcoin.chain.sign.*;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.util.ClassPath;
 import com.github.microwww.bitcoin.wallet.CoinAccount;
@@ -163,7 +158,7 @@ class InterpreterTest {
 
         assertTrue(in.isSuccess(true));
 
-        in.nextTxIn(new TxOut( 6_0000_0000L)).executor(tx.getTxIns()[1].getScript()).witnessPushStack()
+        in.nextTxIn(new TxOut(6_0000_0000L)).executor(tx.getTxIns()[1].getScript()).witnessPushStack()
                 .executor(ByteUtil.hex("1976a9141d0f172a0ecb48aee1be1f2687d2963ae33f71a188ac"), 1);
         assertTrue(in.isSuccess());
     }
@@ -297,6 +292,116 @@ class InterpreterTest {
         byte[] hex = ByteUtil.hex("00205d1b56b63d714eebe542309525f484b7e9d6f686b3781b6f61ef925d66d6f6a0");
         executor.nextTxIn(new TxOut(49_0000_0000L)).executor(tx.getTxIns()[i].getScript()).witnessPushStack().executor(hex);
         assertTrue(executor.isSuccess());
+    }
+
+    @Test
+    void WitnessAnyOneCanPaySingleSignatureTransaction() {
+        RawTransaction tx = readTx(97);
+        int inIndex = 0;
+        ByteBuf sn = Unpooled.buffer();
+        tx.getTxOuts()[inIndex].write(sn);
+        byte[] hashOutputs = ByteUtil.sha256sha256(ByteUtil.readAll(sn));
+        assertEquals("b258eaf08c39fbe9fbac97c15c7e7adeb8df142b0df6f83e017f349c2b6fe3d2", ByteUtil.hex(hashOutputs));
+
+        {
+            byte[] preScript = ByteUtil.hex("27" + "0063ab68210392972e2eb617b2388771abe27235fd5ac44af8e61693261550447a4c3e39da98ac");
+            WitnessAnyOneCanPaySingleSignatureTransaction st = new WitnessAnyOneCanPaySingleSignatureTransaction(tx, inIndex, new TxOut(16777215L));
+            byte[] bytes = st.data4signature(preScript);
+            assertEquals("e9071e75e25b8a1e298a72f0d2e9f4f95a0f5cdf86a533cda597eb402ed13b3a", ByteUtil.hex(bytes));
+            CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("f52b3484edd96598e02a9c89c4492e9c1e2031f471c49fd721fe68b3ce37780d"));
+            byte[] sign = ByteUtil.hex("3045022100f6a10b8604e6dc910194b79ccfc93e1bc0ec7c03453caaa8987f7d6c3413566002206216229ede9b4d6ec2d325be245c5b508ff0339bf1794078e20bfe0babc7ffe6");
+            boolean b = kr.getKeyPublic().signatureVerify(sign, bytes);
+            assertTrue(b);
+        }
+        {
+            inIndex++;
+            byte[] preScript = ByteUtil.hex("24" + "68210392972e2eb617b2388771abe27235fd5ac44af8e61693261550447a4c3e39da98ac");
+            WitnessAnyOneCanPaySingleSignatureTransaction st = new WitnessAnyOneCanPaySingleSignatureTransaction(tx, inIndex, new TxOut(16777215L));
+            byte[] bytes = st.data4signature(preScript);
+            assertEquals("cd72f1f1a433ee9df816857fad88d8ebd97e09a75cd481583eb841c330275e54", ByteUtil.hex(bytes));
+            CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("f52b3484edd96598e02a9c89c4492e9c1e2031f471c49fd721fe68b3ce37780d"));
+            byte[] sign = ByteUtil.hex("30440220032521802a76ad7bf74d0e2c218b72cf0cbc867066e2e53db905ba37f130397e02207709e2188ed7f08f4c952d9d13986da504502b8c3be59617e043552f506c46ff");// 83");
+            boolean b = kr.getKeyPublic().signatureVerify(sign, bytes);
+            assertTrue(b);
+        }
+    }
+
+    @Test
+    public void testMultiSigWitness() {
+        RawTransaction tx = readTx(101);
+        int inIndex = 0;
+        TxOut txOut = new TxOut(987654321L);
+        // 这是 6-6 的脚本
+        String m6_6 = "cf" +
+                "56" +
+                "210307b8ae49ac90a048e9b53357a2354b3334e9c8bee813ecb98e99a7e07e8c3ba3" +
+                "2103b28f0c28bfab54554ae8c658ac5c3e0ce6e79ad336331f78c428dd43eea8449b" +
+                "21034b8113d703413d57761b8b9781957b8c0ac1dfe69f492580ca4195f50376ba4a" +
+                "21033400f6afecb833092a9a21cfdf1ed1376e58c5d1f47de74683123987e967a8f4" +
+                "2103a6d48b1131e94ba04d9737d61acdaa1322008af9602b3b14862c07a1789aac16" +
+                "2102d8b661b0b3302ee2f162b09e07a55ad5dfbe673a9f01d9f0c19617681024306b" +
+                "56" +
+                "ae";
+        if (false) { // ALL
+            SignatureTransaction st = new WitnessHashAllSignatureTransaction(tx, inIndex, txOut);
+            byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
+            assertEquals("185c0be5263dce5b4bb50a047973c1b6272bfbd0103a89444597dc40b248ee7c", ByteUtil.hex(bytes));
+            CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("730fff80e1413068a05b57d6a58261f07551163369787f349438ea38ca80fac6"));
+            String sign = "304402206ac44d672dac41f9b00e28f4df20c52eeb087207e8d758d76d92c6fab3b73e2b0220367750dbbe19290069cba53d096f44530e4f98acaa594810388cf7409a1870ce";
+            //+"01"; ALL
+            boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
+            assertTrue(b);
+        }
+        if (false) {// NONE
+            SignatureTransaction st = new WitnessNoneSignatureTransaction(tx, inIndex, txOut);
+            byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
+            assertEquals("e9733bc60ea13c95c6527066bb975a2ff29a925e80aa14c213f686cbae5d2f36", ByteUtil.hex(bytes));
+            CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("11fa3d25a17cbc22b29c44a484ba552b5a53149d106d3d853e22fdd05a2d8bb3"));
+            String sign = "3044022068c7946a43232757cbdf9176f009a928e1cd9a1a8c212f15c1e11ac9f2925d9002205b75f937ff2f9f3c1246e547e54f62e027f64eefa2695578cc6432cdabce2715";
+            // + "02"; NONE
+            boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
+            assertTrue(b);
+        }
+        if (false) {// SINGLE
+            SignatureTransaction st = new WitnessSingleSignatureTransaction(tx, inIndex, txOut);
+            byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
+            assertEquals("1e1f1c303dc025bd664acb72e583e933fae4cff9148bf78c157d1e8f78530aea", ByteUtil.hex(bytes));
+            CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("77bf4141a87d55bdd7f3cd0bdccf6e9e642935fec45f2f30047be7b799120661"));
+            String sign = "3044022059ebf56d98010a932cf8ecfec54c48e6139ed6adb0728c09cbe1e4fa0915302e022007cd986c8fa870ff5d2b3a89139c9fe7e499259875357e20fcbb15571c767954";
+            // + "03"; SINGLE
+            boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
+            assertTrue(b);
+        }
+        if (false) {// ALL|ANYONECANPAY
+            SignatureTransaction st = new WitnessAnyOneCanPayAllSignatureTransaction(tx, inIndex, txOut);
+            byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
+            assertEquals("2a67f03e63a6a422125878b40b82da593be8d4efaafe88ee528af6e5a9955c6e", ByteUtil.hex(bytes));
+            CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("14af36970f5025ea3e8b5542c0f8ebe7763e674838d08808896b63c3351ffe49"));
+            String sign = "3045022100fbefd94bd0a488d50b79102b5dad4ab6ced30c4069f1eaa69a4b5a763414067e02203156c6a5c9cf88f91265f5a942e96213afae16d83321c8b31bb342142a14d163";
+            // + "81"; ALL|ANYONECANPAY
+            boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
+            assertTrue(b);
+        }
+        if (false) {// NONE|ANYONECANPAY
+            SignatureTransaction st = new WitnessAnyOneCanPayNoneSignatureTransaction(tx, inIndex, txOut);
+            byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
+            assertEquals("781ba15f3779d5542ce8ecb5c18716733a5ee42a6f51488ec96154934e2c890a", ByteUtil.hex(bytes));
+            CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("fe9a95c19eef81dde2b95c1284ef39be497d128e2aa46916fb02d552485e0323"));
+            String sign = "3045022100a5263ea0553ba89221984bd7f0b13613db16e7a70c549a86de0cc0444141a407022005c360ef0ae5a5d4f9f2f87a56c1546cc8268cab08c73501d6b3be2e1e1a8a08";
+            // + "82"; NONE|ANYONECANPAY
+            boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
+            assertTrue(b);
+        }
+        if (true) {// SINGLE|ANYONECANPAY
+            SignatureTransaction st = new WitnessAnyOneCanPaySingleSignatureTransaction(tx, inIndex, txOut);
+            byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
+            assertEquals("511e8e52ed574121fc1b654970395502128263f62662e076dc6baf05c2e6a99b", ByteUtil.hex(bytes));
+            CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("428a7aee9f0c2af0cd19af3cf1c78149951ea528726989b2e83e4778d2c3f890"));
+            String sign = "30440220525406a1482936d5a21888260dc165497a90a15669636d8edca6b9fe490d309c022032af0c646a34a44d1f4576bf6a4a74b67940f8faa84c7df9abe12a01a11e2b47";
+            // + "83"; SINGLE|ANYONECANPAY
+            boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
+            assertTrue(b);
+        }
     }
 
     @Test
