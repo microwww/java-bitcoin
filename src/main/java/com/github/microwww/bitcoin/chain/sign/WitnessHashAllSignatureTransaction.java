@@ -3,12 +3,10 @@ package com.github.microwww.bitcoin.chain.sign;
 import com.github.microwww.bitcoin.chain.*;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.wallet.CoinAccount;
-import com.github.microwww.bitcoin.wallet.Secp256k1;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.Assert;
 
 public class WitnessHashAllSignatureTransaction extends AbstractWitnessSignatureTransaction {
     private static final Logger logger = LoggerFactory.getLogger(WitnessHashAllSignatureTransaction.class);
