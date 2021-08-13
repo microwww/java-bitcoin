@@ -132,6 +132,9 @@ public enum Instruction_A6_AF implements Instruction {
                             logger.debug("Signature-Verify success : \n pk   : {}, \n sign : {}", ByteUtil.hex(pks[i]), ByteUtil.hex(bytes));
                         }
                         break;
+                    } else {
+                        if (logger.isDebugEnabled())
+                            logger.debug("Signature-Verify fail : \n pk   : {}, \n sign : {}", ByteUtil.hex(pks[i]), ByteUtil.hex(bytes));
                     }
                 }
             }

@@ -1,5 +1,7 @@
 package com.github.microwww.bitcoin.script;
 
+import com.github.microwww.bitcoin.util.ByteUtil;
+
 public class ScriptOperation<T> {
     public static final ScriptOperation[] instructions = new ScriptOperation[512];
     public final Instruction keyword;
@@ -16,5 +18,14 @@ public class ScriptOperation<T> {
      */
     public void exec(Interpreter interpreter, int index) {
         keyword.exec(interpreter, operand, index);
+    }
+
+    @Override
+    public String toString() {
+        if (operand instanceof byte[]) {
+            return keyword + "(0x" + ByteUtil.hex((byte[]) operand) + ")" ;
+        } else {
+            return keyword + "(" + operand + ")" ;
+        }
     }
 }

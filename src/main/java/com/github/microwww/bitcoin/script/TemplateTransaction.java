@@ -63,17 +63,22 @@ public enum TemplateTransaction {
         public boolean isSupport(byte[] data) {
             if (data != null && data.length > 1) {
                 if (data[data.length - 1] == OP_CHECKMULTISIG.opcode()) {
-                    byte code = data[0];
+                    int code = data[0] & 0x0F;
                     if (IsSmallInteger(code)) {
-                        new Compiler(data, 1).compile();
+                        return true;
                     }
                 }
             }
             return false;
         }
 
-        public boolean IsSmallInteger(byte opcode) {
+        public boolean IsSmallInteger(int opcode) {
             return opcode >= _1.opcode() && opcode < _16.opcode();
+        }
+
+        @Override
+        public void executor(Interpreter interpreter) {
+            interpreter.runNow();
         }
 
         @Override
@@ -116,6 +121,8 @@ public enum TemplateTransaction {
             byte[] pop = interpreter.stack.peek();
             interpreter.runNow();
             Assert.isTrue(interpreter.isSuccess(true), "P2SH address is hash160 not equals");
+            if (log.isDebugEnabled())
+                log.debug("P2SH script hash160 equals: {}", ByteUtil.hex(ByteUtil.sha256ripemd160(pop)));
             interpreter.executor(pop);
         }
 
@@ -198,9 +205,11 @@ public enum TemplateTransaction {
             if (!Arrays.equals(sha256, ByteUtil.sha256(sc))) {
                 throw new TransactionInvalidException("sha256(script) != P2WSH");
             }
+            if (log.isDebugEnabled())
+                log.debug("sha256(script) != P2WSH success : {}", ByteUtil.hex(sha256));
             byte[] bytes = ByteUtil.concat(new byte[]{(byte) sc.length}, sc);
             //TODO::这个规则需要确认
-            Assert.isTrue(bytes.length -1 == Byte.toUnsignedInt(bytes[0]), "这个规则需要确认");
+            Assert.isTrue(bytes.length - 1 == Byte.toUnsignedInt(bytes[0]), "这个规则需要确认");
             interpreter.executor(bytes, 1);
         }
     },

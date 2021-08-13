@@ -133,12 +133,15 @@ public class BytesStack {
     }
 
     public void print() {
+        if (!logger.isDebugEnabled()) {
+            return;
+        }
         StringBuilder sb = new StringBuilder();
         sb.append("Bottom").append("\n");
         stack.forEach(e -> {
             sb.append("    0x").append(ByteUtil.hex(e)).append("\n");
         });
         sb.append("Top");
-        logger.info("stack : \n{}", sb);
+        logger.debug("stack : \n{}", sb);
     }
 }

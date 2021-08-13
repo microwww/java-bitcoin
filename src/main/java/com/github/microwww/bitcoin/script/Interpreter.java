@@ -103,6 +103,7 @@ public class Interpreter {
         boolean run = false;
         for (TemplateTransaction value : TemplateTransaction.values()) {
             if (value.isSupport(aScript)) {
+                logger.debug("Run TemplateTransaction.{}", value);
                 value.executor(this);
                 run = true;
                 break;

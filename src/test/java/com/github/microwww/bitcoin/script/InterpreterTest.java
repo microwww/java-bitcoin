@@ -341,13 +341,13 @@ class InterpreterTest {
                 "2103a6d48b1131e94ba04d9737d61acdaa1322008af9602b3b14862c07a1789aac16" +
                 "2102d8b661b0b3302ee2f162b09e07a55ad5dfbe673a9f01d9f0c19617681024306b" +
                 "56" +
-                "ae";
+                "ae" ;
         if (true) { // ALL
             SignatureTransaction st = new WitnessHashAllSignatureTransaction(tx, inIndex, txOut);
             byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
             assertEquals("185c0be5263dce5b4bb50a047973c1b6272bfbd0103a89444597dc40b248ee7c", ByteUtil.hex(bytes));
             CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("730fff80e1413068a05b57d6a58261f07551163369787f349438ea38ca80fac6"));
-            String sign = "304402206ac44d672dac41f9b00e28f4df20c52eeb087207e8d758d76d92c6fab3b73e2b0220367750dbbe19290069cba53d096f44530e4f98acaa594810388cf7409a1870ce";
+            String sign = "304402206ac44d672dac41f9b00e28f4df20c52eeb087207e8d758d76d92c6fab3b73e2b0220367750dbbe19290069cba53d096f44530e4f98acaa594810388cf7409a1870ce" ;
             //+"01"; ALL
             boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
             assertTrue(b);
@@ -357,7 +357,7 @@ class InterpreterTest {
             byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
             assertEquals("e9733bc60ea13c95c6527066bb975a2ff29a925e80aa14c213f686cbae5d2f36", ByteUtil.hex(bytes));
             CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("11fa3d25a17cbc22b29c44a484ba552b5a53149d106d3d853e22fdd05a2d8bb3"));
-            String sign = "3044022068c7946a43232757cbdf9176f009a928e1cd9a1a8c212f15c1e11ac9f2925d9002205b75f937ff2f9f3c1246e547e54f62e027f64eefa2695578cc6432cdabce2715";
+            String sign = "3044022068c7946a43232757cbdf9176f009a928e1cd9a1a8c212f15c1e11ac9f2925d9002205b75f937ff2f9f3c1246e547e54f62e027f64eefa2695578cc6432cdabce2715" ;
             // + "02"; NONE
             boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
             assertTrue(b);
@@ -367,7 +367,7 @@ class InterpreterTest {
             byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
             assertEquals("1e1f1c303dc025bd664acb72e583e933fae4cff9148bf78c157d1e8f78530aea", ByteUtil.hex(bytes));
             CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("77bf4141a87d55bdd7f3cd0bdccf6e9e642935fec45f2f30047be7b799120661"));
-            String sign = "3044022059ebf56d98010a932cf8ecfec54c48e6139ed6adb0728c09cbe1e4fa0915302e022007cd986c8fa870ff5d2b3a89139c9fe7e499259875357e20fcbb15571c767954";
+            String sign = "3044022059ebf56d98010a932cf8ecfec54c48e6139ed6adb0728c09cbe1e4fa0915302e022007cd986c8fa870ff5d2b3a89139c9fe7e499259875357e20fcbb15571c767954" ;
             // + "03"; SINGLE
             boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
             assertTrue(b);
@@ -377,7 +377,7 @@ class InterpreterTest {
             byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
             assertEquals("2a67f03e63a6a422125878b40b82da593be8d4efaafe88ee528af6e5a9955c6e", ByteUtil.hex(bytes));
             CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("14af36970f5025ea3e8b5542c0f8ebe7763e674838d08808896b63c3351ffe49"));
-            String sign = "3045022100fbefd94bd0a488d50b79102b5dad4ab6ced30c4069f1eaa69a4b5a763414067e02203156c6a5c9cf88f91265f5a942e96213afae16d83321c8b31bb342142a14d163";
+            String sign = "3045022100fbefd94bd0a488d50b79102b5dad4ab6ced30c4069f1eaa69a4b5a763414067e02203156c6a5c9cf88f91265f5a942e96213afae16d83321c8b31bb342142a14d163" ;
             // + "81"; ALL|ANYONECANPAY
             boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
             assertTrue(b);
@@ -387,7 +387,7 @@ class InterpreterTest {
             byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
             assertEquals("781ba15f3779d5542ce8ecb5c18716733a5ee42a6f51488ec96154934e2c890a", ByteUtil.hex(bytes));
             CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("fe9a95c19eef81dde2b95c1284ef39be497d128e2aa46916fb02d552485e0323"));
-            String sign = "3045022100a5263ea0553ba89221984bd7f0b13613db16e7a70c549a86de0cc0444141a407022005c360ef0ae5a5d4f9f2f87a56c1546cc8268cab08c73501d6b3be2e1e1a8a08";
+            String sign = "3045022100a5263ea0553ba89221984bd7f0b13613db16e7a70c549a86de0cc0444141a407022005c360ef0ae5a5d4f9f2f87a56c1546cc8268cab08c73501d6b3be2e1e1a8a08" ;
             // + "82"; NONE|ANYONECANPAY
             boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
             assertTrue(b);
@@ -397,7 +397,7 @@ class InterpreterTest {
             byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
             assertEquals("511e8e52ed574121fc1b654970395502128263f62662e076dc6baf05c2e6a99b", ByteUtil.hex(bytes));
             CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("428a7aee9f0c2af0cd19af3cf1c78149951ea528726989b2e83e4778d2c3f890"));
-            String sign = "30440220525406a1482936d5a21888260dc165497a90a15669636d8edca6b9fe490d309c022032af0c646a34a44d1f4576bf6a4a74b67940f8faa84c7df9abe12a01a11e2b47";
+            String sign = "30440220525406a1482936d5a21888260dc165497a90a15669636d8edca6b9fe490d309c022032af0c646a34a44d1f4576bf6a4a74b67940f8faa84c7df9abe12a01a11e2b47" ;
             // + "83"; SINGLE|ANYONECANPAY
             boolean b = kr.getKeyPublic().signatureVerify(ByteUtil.hex(sign), bytes);
             assertTrue(b);
@@ -411,13 +411,15 @@ class InterpreterTest {
         TxOut txOut = new TxOut(987654321L);
 
         Interpreter exe = new Interpreter(tx).indexTxIn(inIndex, txOut)
-                .executor(tx.getTxIns()[inIndex].getScript())
-                .printStack()
                 .witnessPushStack()
                 .printStack()
-                .executor(ByteUtil.hex("0020a16b5755f7f6f96dbd65f5f0d6ab9418b89af4b1f14a1bb8a09062c35f0dcb54"))
+                .executor(tx.getTxIns()[inIndex].getScript())
+                .printStack()
+                .executor(ByteUtil.hex("a9149993a429037b5d912407a71c252019287b8d27a587"))
                 .printStack();
-        assertTrue(exe.isSuccess());
+        assertTrue(exe.isSuccess(true));
+        assertArrayEquals(new byte[]{}, exe.stack.pop());
+        assertTrue(exe.stack.isEmpty());
     }
 
     @Test
