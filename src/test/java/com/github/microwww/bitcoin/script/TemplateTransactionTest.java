@@ -35,19 +35,51 @@ class TemplateTransactionTest {
         assertEquals("36NUkt6FWUi3LAWBqWRdDmdTWbt91Yvfu7", s);
     }
 
-    @Disabled
     @Test
-    void mn() {
+    void testMNVersion1() {
         RawTransaction tx = readTx(11);
         RawTransaction from = readTx(13);
-        int in = 1;
+        Interpreter exec = new Interpreter(tx);
+        int in = 0;
+        {
+            TxOut inTx = from.getTxOuts()[tx.getTxIns()[in].getPreTxOutIndex()];
+            exec.indexTxIn(in)
+                    .executor(tx.getTxIns()[in].getScript())
+                    .printStack()
+                    .executor(inTx.getScriptPubKey())
+                    .printStack();
+            assertTrue(exec.isSuccess(true));
+            assertEquals(1, exec.stack.size());
+            assertArrayEquals(new byte[]{}, exec.stack.pop());
+        }
+        in++;
+        {
+            TxOut inTx = from.getTxOuts()[tx.getTxIns()[in].getPreTxOutIndex()];
+            exec.indexTxIn(in)
+                    .executor(tx.getTxIns()[in].getScript())
+                    .printStack()
+                    .executor(inTx.getScriptPubKey())
+                    .printStack();
+            assertTrue(exec.isSuccess(true));
+            assertEquals(1, exec.stack.size());
+            assertArrayEquals(new byte[]{}, exec.stack.pop());
+        }
+    }
+
+    @Test
+    void testMNVersion2() {
+        RawTransaction tx = readTx(22);
+        RawTransaction from = readTx(23);
+        int in = 0;
         TxOut inTx = from.getTxOuts()[tx.getTxIns()[in].getPreTxOutIndex()];
-        Interpreter executor = new Interpreter(tx)
+        Interpreter exec = new Interpreter(tx).indexTxIn(in)
                 .executor(tx.getTxIns()[in].getScript())
                 .printStack()
                 .executor(inTx.getScriptPubKey())
                 .printStack();
-        assertTrue(executor.isSuccess());
+        assertTrue(exec.isSuccess(true));
+        assertEquals(1, exec.stack.size());
+        assertArrayEquals(new byte[]{}, exec.stack.pop());
     }
 
     @BeforeAll

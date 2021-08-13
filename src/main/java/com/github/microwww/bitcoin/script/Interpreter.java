@@ -49,6 +49,7 @@ public class Interpreter {
         Assert.isTrue(transaction.getTxIns().length >= indexTxIn, "over-flow TX-IN index");
         indexTxIn = i;
         this.preout = null;
+        this.stack.clear();
         return this;
     }
 

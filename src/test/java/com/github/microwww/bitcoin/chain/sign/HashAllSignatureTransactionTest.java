@@ -38,4 +38,13 @@ class HashAllSignatureTransactionTest {
         tx.read(bf);
         return tx;
     }
+
+    @Test
+    void testData4signature() {
+        RawTransaction tx = readTx(17);
+        RawTransaction from = readTx(19);
+        Interpreter exe = new Interpreter(tx).executor(tx.getTxIns()[0].getScript())
+                .executor(from.getTxOuts()[tx.getTxIns()[0].getPreTxOutIndex()].getScriptPubKey());
+        assertTrue(exe.isSuccess());
+    }
 }

@@ -120,7 +120,7 @@ public enum Instruction_A6_AF implements Instruction {
             Assert.isTrue(req <= max, "M2N , request <= max ");
             executor.stack.assertSizeGE(req, "stack data < M2N request :" + req);
             int count = 0;
-            for (int i = 0; i < pks.length; i++) {
+            for (int i = 0; i < pks.length && count < req; i++) {
                 byte[] bytes = executor.stack.pop();
                 byte type = bytes[bytes.length - 1];
                 for (; i < pks.length; i++) {

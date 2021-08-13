@@ -51,10 +51,10 @@ public abstract class AbstractSignatureTransaction implements SignatureTransacti
         }
         ByteBuf sr = tx.serialize(0).writeBytes(new byte[]{HashType.ALL.TYPE, 0, 0, 0});
         byte[] data = ByteUtil.readAll(sr);
-        byte[] sha = ByteUtil.sha256sha256(data); // !!  文档是 sha256两次, 实际是一次 !!!
+        byte[] sha = ByteUtil.sha256sha256(data);
         if (logger.isDebugEnabled()) {
-            logger.debug("Will sign data origin: {}, \n ready: {}, \n sha256sha256: {}",
-                    ByteUtil.hex(ByteUtil.readAll(tx.serialize(0))),
+            logger.debug("Will sign data \n origin : {}, \n ready  : {}, \n dSha256: {}",
+                    ByteUtil.hex(ByteUtil.readAll(this.transaction.serialize(0))),
                     ByteUtil.hex(data),
                     ByteUtil.hex(sha));
         }

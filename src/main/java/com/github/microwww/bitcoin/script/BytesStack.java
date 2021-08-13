@@ -108,6 +108,11 @@ public class BytesStack {
         return stack.empty();
     }
 
+    public BytesStack clear() {
+        stack.clear();
+        return this;
+    }
+
     public BytesStack assertNotEmpty() {
         if (stack.size() > 0) {
             return this;
