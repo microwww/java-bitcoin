@@ -19,6 +19,6 @@ public class HashNoneSignatureTransaction extends AbstractSignatureTransaction {
     public byte[] data4signature(byte[] preScript) {
         RawTransaction tx = transaction.clone();
         tx.setTxOuts(new TxOut[]{});
-        return new HashAllSignatureTransaction(tx, inIndex).data4signature(preScript);
+        return super.data4signature(tx, preScript);
     }
 }
