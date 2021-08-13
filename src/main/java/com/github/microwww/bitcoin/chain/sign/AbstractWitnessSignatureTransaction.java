@@ -48,7 +48,10 @@ public abstract class AbstractWitnessSignatureTransaction extends AbstractSignat
         }
         {// 3.hashSequence
             buffer.clear();
-            byte[] hashSequence = hashSequence(buffer, tx);
+            byte[] hashSequence = _READ_ONLY_32_ZERO;
+            if (!isAnyOneCanPay()) {
+                hashSequence = hashSequence(buffer, tx);
+            }
             sign.writeBytes(hashSequence);
         }
 
@@ -80,7 +83,7 @@ public abstract class AbstractWitnessSignatureTransaction extends AbstractSignat
         // 9.nLockTime
         sign.writeIntLE(tx.getLockTime().intValue());
         // 10.nHashType`
-        sign.writeIntLE(supportType().toUnsignedInt());
+        sign.writeIntLE(supportType().TYPE);
 
         byte[] bytes = ByteUtil.readAll(sign);
         byte[] sha256 = ByteUtil.sha256sha256(bytes);

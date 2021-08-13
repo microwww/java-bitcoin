@@ -18,6 +18,7 @@ public abstract class AbstractSignatureTransaction implements SignatureTransacti
     protected final RawTransaction transaction;// 防止修改, 不设置 get/set 方法
     protected final int inIndex;
     protected final int preoutIndex;
+    protected boolean anyOneCanPay = false;
 
     public AbstractSignatureTransaction(RawTransaction transaction, int inIndex) {
         this.transaction = transaction;
@@ -49,7 +50,7 @@ public abstract class AbstractSignatureTransaction implements SignatureTransacti
                 txIn.setScript(preScript);
             }
         }
-        ByteBuf sr = tx.serialize(0).writeBytes(new byte[]{HashType.ALL.TYPE, 0, 0, 0});
+        ByteBuf sr = tx.serialize(0).writeBytes(new byte[]{HashType.ALL.toByte(), 0, 0, 0});
         byte[] data = ByteUtil.readAll(sr);
         byte[] sha = ByteUtil.sha256sha256(data);
         if (logger.isDebugEnabled()) {
@@ -107,5 +108,14 @@ public abstract class AbstractSignatureTransaction implements SignatureTransacti
 
     public int getPreoutIndex() {
         return preoutIndex;
+    }
+
+    public boolean isAnyOneCanPay() {
+        return anyOneCanPay;
+    }
+
+    public AbstractSignatureTransaction setAnyOneCanPay(boolean anyOneCanPay) {
+        this.anyOneCanPay = anyOneCanPay;
+        return this;
     }
 }

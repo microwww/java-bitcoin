@@ -141,7 +141,7 @@ class InterpreterTest {
         tx1.getTxIns()[1].setScript(new byte[]{});
 
         byte[] pubKey = keyPrivate.getKeyPublic().getKey();
-        tx1.getTxIns()[1].setTxWitness(new byte[][]{ByteUtil.concat(snn, new byte[]{HashType.ALL.TYPE}), pubKey});
+        tx1.getTxIns()[1].setTxWitness(new byte[][]{ByteUtil.concat(snn, new byte[]{HashType.ALL.toByte()}), pubKey});
 
         byte[][] txWitness = tx1.getTxIns()[1].getTxWitness();
         assertEquals(2, txWitness.length);
@@ -237,7 +237,7 @@ class InterpreterTest {
 
         TxIn in0 = tx.getTxIns()[0];
         in0.setScript(new byte[]{});
-        in0.setTxWitness(new byte[][]{ByteUtil.concat(snn, new byte[]{HashType.ALL.TYPE}), pk});
+        in0.setTxWitness(new byte[][]{ByteUtil.concat(snn, new byte[]{HashType.ALL.toByte()}), pk});
 
         byte[][] txWitness = in0.getTxWitness();
         assertEquals(2, txWitness.length);
@@ -305,7 +305,7 @@ class InterpreterTest {
 
         {
             byte[] preScript = ByteUtil.hex("27" + "0063ab68210392972e2eb617b2388771abe27235fd5ac44af8e61693261550447a4c3e39da98ac");
-            WitnessAnyOneCanPaySingleSignatureTransaction st = new WitnessAnyOneCanPaySingleSignatureTransaction(tx, inIndex, new TxOut(16777215L));
+            SignatureTransaction st = new WitnessSingleSignatureTransaction(tx, inIndex, new TxOut(16777215L)).setAnyOneCanPay(true);
             byte[] bytes = st.data4signature(preScript);
             assertEquals("e9071e75e25b8a1e298a72f0d2e9f4f95a0f5cdf86a533cda597eb402ed13b3a", ByteUtil.hex(bytes));
             CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("f52b3484edd96598e02a9c89c4492e9c1e2031f471c49fd721fe68b3ce37780d"));
@@ -316,7 +316,7 @@ class InterpreterTest {
         {
             inIndex++;
             byte[] preScript = ByteUtil.hex("24" + "68210392972e2eb617b2388771abe27235fd5ac44af8e61693261550447a4c3e39da98ac");
-            WitnessAnyOneCanPaySingleSignatureTransaction st = new WitnessAnyOneCanPaySingleSignatureTransaction(tx, inIndex, new TxOut(16777215L));
+            SignatureTransaction st = new WitnessSingleSignatureTransaction(tx, inIndex, new TxOut(16777215L)).setAnyOneCanPay(true);
             byte[] bytes = st.data4signature(preScript);
             assertEquals("cd72f1f1a433ee9df816857fad88d8ebd97e09a75cd481583eb841c330275e54", ByteUtil.hex(bytes));
             CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("f52b3484edd96598e02a9c89c4492e9c1e2031f471c49fd721fe68b3ce37780d"));
@@ -373,7 +373,7 @@ class InterpreterTest {
             assertTrue(b);
         }
         if (true) {// ALL|ANYONECANPAY
-            SignatureTransaction st = new WitnessAnyOneCanPayAllSignatureTransaction(tx, inIndex, txOut);
+            SignatureTransaction st = new WitnessHashAllSignatureTransaction(tx, inIndex, txOut).setAnyOneCanPay(true);
             byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
             assertEquals("2a67f03e63a6a422125878b40b82da593be8d4efaafe88ee528af6e5a9955c6e", ByteUtil.hex(bytes));
             CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("14af36970f5025ea3e8b5542c0f8ebe7763e674838d08808896b63c3351ffe49"));
@@ -383,7 +383,7 @@ class InterpreterTest {
             assertTrue(b);
         }
         if (true) {// NONE|ANYONECANPAY
-            SignatureTransaction st = new WitnessAnyOneCanPayNoneSignatureTransaction(tx, inIndex, txOut);
+            SignatureTransaction st = new WitnessNoneSignatureTransaction(tx, inIndex, txOut).setAnyOneCanPay(true);
             byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
             assertEquals("781ba15f3779d5542ce8ecb5c18716733a5ee42a6f51488ec96154934e2c890a", ByteUtil.hex(bytes));
             CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("fe9a95c19eef81dde2b95c1284ef39be497d128e2aa46916fb02d552485e0323"));
@@ -393,7 +393,7 @@ class InterpreterTest {
             assertTrue(b);
         }
         if (true) {// SINGLE|ANYONECANPAY
-            SignatureTransaction st = new WitnessAnyOneCanPaySingleSignatureTransaction(tx, inIndex, txOut);
+            SignatureTransaction st = new WitnessSingleSignatureTransaction(tx, inIndex, txOut).setAnyOneCanPay(true);
             byte[] bytes = st.data4signature(ByteUtil.hex(m6_6));
             assertEquals("511e8e52ed574121fc1b654970395502128263f62662e076dc6baf05c2e6a99b", ByteUtil.hex(bytes));
             CoinAccount.KeyPrivate kr = new CoinAccount.KeyPrivate(ByteUtil.hex("428a7aee9f0c2af0cd19af3cf1c78149951ea528726989b2e83e4778d2c3f890"));

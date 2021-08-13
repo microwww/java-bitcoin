@@ -1,7 +1,6 @@
 package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.chain.sign.*;
-import org.springframework.util.Assert;
 
 public enum HashType {
     ALL(1) {
@@ -37,44 +36,40 @@ public enum HashType {
             return new WitnessSingleSignatureTransaction(transaction, indexTxIn, preout).signatureVerify(pk, sign, scripts);
         }
     },
-    ANYONECANPAY(0x80) {
-        public int or(HashType type) {
-            Assert.isTrue(type.TYPE >= 0, "TYPE >= 0");
-            return Byte.toUnsignedInt(TYPE) | type.TYPE;
-        }
-    },
     ALL_ANYONECANPAY(0x81) {
         @Override
         public boolean witnessVerify(RawTransaction transaction, int indexTxIn, TxOut preout, byte[] pk, byte[] sign, byte[] scripts) {
-            return new WitnessAnyOneCanPayAllSignatureTransaction(transaction, indexTxIn, preout).signatureVerify(pk, sign, scripts);
+            return new WitnessHashAllSignatureTransaction(transaction, indexTxIn, preout).setAnyOneCanPay(true).signatureVerify(pk, sign, scripts);
         }
     },
     NONE_ANYONECANPAY(0x82) {
         @Override
         public boolean witnessVerify(RawTransaction transaction, int indexTxIn, TxOut preout, byte[] pk, byte[] sign, byte[] scripts) {
-            return new WitnessAnyOneCanPayNoneSignatureTransaction(transaction, indexTxIn, preout).signatureVerify(pk, sign, scripts);
+            return new WitnessNoneSignatureTransaction(transaction, indexTxIn, preout).setAnyOneCanPay(true).signatureVerify(pk, sign, scripts);
         }
     },
     SINGLE_ANYONECANPAY(0x83) {
         @Override
         public boolean witnessVerify(RawTransaction transaction, int indexTxIn, TxOut preout, byte[] pk, byte[] sign, byte[] scripts) {
-            return new WitnessAnyOneCanPaySingleSignatureTransaction(transaction, indexTxIn, preout).signatureVerify(pk, sign, scripts);
+            return new WitnessSingleSignatureTransaction(transaction, indexTxIn, preout).setAnyOneCanPay(true).signatureVerify(pk, sign, scripts);
         }
     },
     ;
-    public final byte TYPE;
+    public static final int ANY_ONE_CAN_PAY = 0x80;
+    public final int TYPE;
 
     HashType(byte type) {
-        this.TYPE = type;
+        this.TYPE = Byte.toUnsignedInt(type);
     }
 
     HashType(int type) {
-        this.TYPE = (byte) type;
+        this.TYPE = type;
     }
 
-    public static HashType select(int type) {
+    public static HashType select(byte type) {
+        int index = Byte.toUnsignedInt(type);
         for (HashType value : HashType.values()) {
-            if (value.TYPE == type) {
+            if (value.TYPE == index) {
                 return value;
             }
         }
@@ -98,7 +93,7 @@ public enum HashType {
         throw new UnsupportedOperationException();
     }
 
-    public int toUnsignedInt() {
-        return Byte.toUnsignedInt(TYPE);
+    public byte toByte() {
+        return (byte) TYPE;
     }
 }

@@ -19,12 +19,19 @@ public class WitnessHashAllSignatureTransaction extends AbstractWitnessSignature
 
     @Override
     public HashType supportType() {
+        if (isAnyOneCanPay()) {
+            return HashType.ALL_ANYONECANPAY;
+        }
         return HashType.ALL;
     }
 
     @Override
     public byte[] data4signature(byte[] preScript) {
-        return super.data4signature(this.transaction.clone(), preScript);
+        RawTransaction tx = this.transaction.clone();
+        if (isAnyOneCanPay()) {
+            tx.setTxIns(new TxIn[]{});
+        }
+        return super.data4signature(tx, preScript);
     }
 
     protected byte[] hashSequence(ByteBuf buffer, RawTransaction tx) {

@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.chain.sign;
 
 import com.github.microwww.bitcoin.chain.HashType;
 import com.github.microwww.bitcoin.chain.RawTransaction;
+import com.github.microwww.bitcoin.chain.TxIn;
 import com.github.microwww.bitcoin.chain.TxOut;
 import io.netty.buffer.ByteBuf;
 
@@ -14,6 +15,9 @@ public class WitnessSingleSignatureTransaction extends AbstractWitnessSignatureT
 
     @Override
     public HashType supportType() {
+        if (isAnyOneCanPay()) {
+            return HashType.SINGLE_ANYONECANPAY;
+        }
         return HashType.SINGLE;
     }
 
@@ -26,6 +30,9 @@ public class WitnessSingleSignatureTransaction extends AbstractWitnessSignatureT
     @Override
     public byte[] data4signature(byte[] preScript) {
         RawTransaction tx = this.transaction.clone();
+        if (isAnyOneCanPay()) {
+            tx.setTxIns(new TxIn[]{});
+        }
         if (tx.getTxOuts().length > inIndex) {
             tx.setTxOuts(new TxOut[]{tx.getTxOuts()[inIndex]});
         } else {

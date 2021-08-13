@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.chain.sign;
 
 import com.github.microwww.bitcoin.chain.HashType;
 import com.github.microwww.bitcoin.chain.RawTransaction;
+import com.github.microwww.bitcoin.chain.TxIn;
 import com.github.microwww.bitcoin.chain.TxOut;
 import io.netty.buffer.ByteBuf;
 import org.springframework.util.Assert;
@@ -15,6 +16,9 @@ public class WitnessNoneSignatureTransaction extends AbstractWitnessSignatureTra
 
     @Override
     public HashType supportType() {
+        if (isAnyOneCanPay()) {
+            return HashType.NONE_ANYONECANPAY;
+        }
         return HashType.NONE;
     }
 
@@ -27,6 +31,9 @@ public class WitnessNoneSignatureTransaction extends AbstractWitnessSignatureTra
     @Override
     public byte[] data4signature(byte[] preScript) {
         RawTransaction tx = this.transaction.clone();
+        if (isAnyOneCanPay()) {
+            tx.setTxIns(new TxIn[]{});
+        }
         Assert.isTrue(tx.getTxOuts().length > 0, "empty it next, so check it first");
         tx.setTxOuts(new TxOut[]{});
         return super.data4signature(tx, preScript);
