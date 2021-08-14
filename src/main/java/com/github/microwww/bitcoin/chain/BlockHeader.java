@@ -138,7 +138,7 @@ public class BlockHeader implements Serializable {
 
     @Override
     public String toString() {
-        return toString(new StringBuilder()).toString();
+        return toString(new StringBuilder(), "").toString();
     }
 
     public UintVar getTxCount() {
@@ -150,16 +150,15 @@ public class BlockHeader implements Serializable {
         return this;
     }
 
-    public StringBuilder toString(StringBuilder bf) {
-        bf.append("Block {")
-                .append("  hash=").append(hash())
-                .append(", version=").append(version)
-                .append(", preHash=").append(preHash)
-                .append(", merkleRoot=").append(merkleRoot)
-                .append(", time=").append(time)
-                .append(", bits=").append(bits)
-                .append(", nonce=").append(nonce)
-                .append(", _txCount=").append(txCount);
-        return bf.append('}');
+    public StringBuilder toString(StringBuilder bf, String prefix) {
+        return bf
+                .append(prefix).append(" hash   = ").append(hash())
+                .append(prefix).append(" version= ").append(version)
+                .append(prefix).append(" preHash= ").append(preHash)
+                .append(prefix).append(" merkle = ").append(merkleRoot)
+                .append(prefix).append(" time   = ").append(time)
+                .append(prefix).append(" bits   = ").append(bits)
+                .append(prefix).append(" nonce  = ").append(nonce)
+                .append(prefix).append("    _tx = ").append(txCount);
     }
 }

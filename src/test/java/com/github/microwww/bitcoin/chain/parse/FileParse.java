@@ -18,7 +18,7 @@ import java.util.List;
 /**
  * 解析bitcoin下面的 blocks/blk00000.dat 文件
  */
-public class FileParse {
+class FileParse {
 
     @Test
     public void testBlock() {
@@ -48,31 +48,32 @@ public class FileParse {
 
     @Test
     @Disabled
-    public void main() throws IOException {
-        File file = new File("D:\\Program\\bitcoin-0.21.1\\data\\regtest\\blocks\\rev00000.dat");
+    void testParseBLK00000() throws IOException, InterruptedException {
+        File file = new File("D:\\Program\\bitcoin-0.21.1\\online\\blocks\\blk00000.dat");
         try (InputStream in = new BufferedInputStream(new FileInputStream(file))) {
 
-            // ByteBuf buffer = Unpooled.buffer(1024);
-            for (int i = 0; i < 1000000; i++) {
+            ByteBuf bf = Unpooled.buffer(10 * 1024 * 1024);
+            ByteBuf buffer = Unpooled.buffer(10);
+            for (int i = 0; i < 100; i++) {
                 byte[] from = new byte[8];
                 int r = in.read(from);
                 if (r < from.length) {
                     throw new UnsupportedOperationException("文件已经结束, 或者剩余数据太小");
                 }
-                ByteBuf buffer = Unpooled.copiedBuffer(from);
+                buffer.clear().writeBytes(from);
                 int marge = buffer.readInt();
-                System.out.println("skip check marge :" + new Uint32(marge).toHex());
                 int len = buffer.readIntLE();
                 byte[] bytes = new byte[len];
                 int read = in.read(bytes);
                 if (read != len) {
                     throw new RuntimeException("文件已经结束");
                 }
-                ByteBuf bf = Unpooled.copiedBuffer(bytes);
+                bf.clear().writeBytes(bytes);
                 ChainBlock rawBlock = new ChainBlock();
                 rawBlock.readHeader(bf);
                 rawBlock.readBody(bf);
-                System.out.println(i + "" + rawBlock);
+                System.out.println("SKIP CHECK MARGE " + new Uint32(marge).toHex() + ", " + i + ", " + rawBlock.toString());
+                Thread.sleep(100);
             }
         }
     }

@@ -172,24 +172,24 @@ public class RawTransaction {
 
     @Override
     public String toString() {
-        return toString(new StringBuilder()).toString();
+        return toString(new StringBuilder(), "").toString();
     }
 
-    public StringBuilder toString(StringBuilder builder) {
-        builder.append("RawTransaction {")
-                .append("\n hash    = ").append(hash())
-                .append("\n version = ").append(version)
-                .append("\n txIns   = ").append(inputCount);
+    public StringBuilder toString(StringBuilder builder, String prefix) {
+        builder
+                .append(prefix).append(" hash    = ").append(hash())
+                .append(prefix).append(" version = ").append(version)
+                .append(prefix).append(" txIns   = ").append(inputCount);
         for (TxIn txIn : txIns) {
-            txIn.toString(builder, "\n        ");
+            txIn.toString(builder, prefix + "        ");
         }
-        builder.append("\n txOuts  = ").append(outputCount);
+        builder.append(prefix).append(" txOuts  = ").append(outputCount);
 
         for (TxOut txIn : txOuts) {
-            txIn.toString(builder, "\n        ");
+            txIn.toString(builder, prefix + "        ");
         }
 
-        builder.append("\nlockTime = ").append(lockTime);
+        builder.append(prefix).append("lockTime = ").append(lockTime);
         return builder;
     }
 }

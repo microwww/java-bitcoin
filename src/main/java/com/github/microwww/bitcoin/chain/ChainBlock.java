@@ -92,22 +92,22 @@ public class ChainBlock implements Serializable {
 
     @Override
     public String toString() {
-        return toString(new StringBuilder()).toString();
+        StringBuilder append = new StringBuilder().append("{ // _BLOCK");
+        return toString(append, "\n").append("\n").append("}").toString();
     }
 
-    public StringBuilder toString(StringBuilder sb) {
-        sb.append("Block{")
-                .append("header=").append(header.toString(sb))
-                .append(", _txCount=").append(header.getTxCount()).append(" -> ").append(txs.length)
-                .append(", txs="); //.append(Arrays.toString(txs))
+    public StringBuilder toString(StringBuilder sb, String prefix) {
+        sb.append(prefix).append(" header  = { // HEADER");
+        header.toString(sb, prefix + "      ");
+        sb.append(prefix).append("   }");
+        sb.append(prefix).append("   txs   = ").append(header.getTxCount()).append(" -> ").append(txs.length);
 
+        sb.append(prefix).append("   { // RawTransaction");
         for (RawTransaction tx : txs) {
-            sb.append("\n    ").append(tx.toString(sb));
+            tx.toString(sb, prefix + "        ");
+            sb.append(prefix);
         }
-        if (txs.length > 0) {
-            sb.append("\n");
-        }
-        sb.append('}');
+        sb.append("   }");
         return sb;
     }
 }
