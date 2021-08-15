@@ -31,6 +31,18 @@ public class CChainParams {
                 this.params.dataDirPrefix = "/";
                 params.magic = 0xf9beb4d9;
                 params.defaultPort = 8333;
+                params.subsidyHalvingInterval = 210000;
+                params.seeds = new String[]{
+                        "seed.bitcoin.sipa.be",          // Pieter Wuille, only supports x1, x5, x9, and xd
+                        "dnsseed.bluematt.me",           // Matt Corallo, only supports x9
+                        "dnsseed.bitcoin.dashjr.org",    // Luke Dashjr
+                        "seed.bitcoinstats.com",         // Christian Decker, supports x1 - xf
+                        "seed.bitcoin.jonasschnelli.ch", // Jonas Schnelli, only supports x1, x5, x9, and xd
+                        "seed.btc.petertodd.org",        // Peter Todd, only supports x1, x5, x9, and xd
+                        "seed.bitcoin.sprovoost.nl",     // Sjors Provoost
+                        "dnsseed.emzy.de",               // Stephan Oeste
+                        "seed.bitcoin.wiz.biz",          // Jason Maurice
+                };
             }
         }, TEST() {
             @Override
@@ -55,6 +67,7 @@ public class CChainParams {
                 params.dataDirPrefix = "/regtest";
                 params.magic = 0xfabfb5da;
                 params.defaultPort = 18444;
+                params.subsidyHalvingInterval = 150;
             }
         };
         public final Params params = new Params();
@@ -72,6 +85,8 @@ public class CChainParams {
         private String dataDirPrefix;
         private int magic; // 0xf9beb4d9;
         private int defaultPort; // 0xf9beb4d9;
+        private int subsidyHalvingInterval = 210000;
+        private String[] seeds = {};
 
     /*
     strNetworkID =  CBaseChainParams::REGTEST;
@@ -162,6 +177,14 @@ public class CChainParams {
 
         public int getDefaultPort() {
             return defaultPort;
+        }
+
+        public int getSubsidyHalvingInterval() {
+            return subsidyHalvingInterval;
+        }
+
+        public String[] getSeeds() {
+            return seeds;
         }
     }
 }

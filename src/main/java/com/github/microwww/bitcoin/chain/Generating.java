@@ -1,5 +1,6 @@
 package com.github.microwww.bitcoin.chain;
 
+import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.util.ByteUtil;
@@ -68,4 +69,15 @@ public class Generating {
         return genesis;
     }
 
+    public static long getBlockSubsidy(int nHeight, CChainParams.Env env) {
+        int halvings = nHeight / env.params.getSubsidyHalvingInterval();
+        // Force block reward to zero when right shift is undefined.
+        if (halvings >= 64)
+            return 0;
+
+        long nSubsidy = 50 * COIN;
+        // Subsidy is cut in half every 210,000 blocks which will occur approximately every 4 years.
+        nSubsidy >>= halvings;
+        return nSubsidy;
+    }
 }
