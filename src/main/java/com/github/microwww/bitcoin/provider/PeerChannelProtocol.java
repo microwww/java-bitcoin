@@ -188,6 +188,8 @@ public class PeerChannelProtocol {
         ChainBlock cb = request.getChainBlock();
         logger.info("Get one blocks from peer : {}", request.getChainBlock().hash());
         chain.getDiskBlock().writeBlock(cb, true);
+
+        chain.getTxMemPool().writeTransaction(cb);
     }
 
     public void service(ChannelHandlerContext ctx, Tx request) {

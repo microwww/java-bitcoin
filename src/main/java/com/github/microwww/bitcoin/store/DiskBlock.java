@@ -38,7 +38,7 @@ public class DiskBlock implements Closeable {
         try {
             File file = chainParams.settings.lockupRootDirectory();
             logger.info("Data-dir: {}", file.getCanonicalPath());
-            root = new File(file, "blocks");
+            root = new File(file, "blocks").getCanonicalFile();
             levelDB = ChainBlockStore.leveldb(root, "index", chainParams.settings.isReIndex());
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -293,7 +293,7 @@ public class DiskBlock implements Closeable {
         r.position(hb.getBlock().getPosition());
         hb.getBlock().readBlock(Unpooled.buffer(), r);
         int magic = hb.getBlock().getMagic();
-        Assert.isTrue(chainParams.getEnvParams().getMagic() == magic, "marge match !");// 校验头
+        Assert.isTrue(chainParams.getEnvParams().getMagic() == magic, "magic not match !");// 校验头
         return data;
     }
 

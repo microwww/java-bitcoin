@@ -2,4 +2,6 @@ conf:
   bitcoin:
     env: REG_TEST  ## MAIN, TEST, REG_TEST
     tx-index: true
+    peers:
+      - 192.168.2.18:18444
 #

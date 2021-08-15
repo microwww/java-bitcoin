@@ -3,11 +3,6 @@
 server:
   port: 8333
 #
-conf:
-  bitcoin:
-    peers:
-      - 192.168.1.246:18444
-#
 spring:
   profiles:
     active: regtest

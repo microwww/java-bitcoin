@@ -57,7 +57,7 @@ public class FileChainBlock {
 
     public FileChainBlock writeBlock(ByteBuf cache, FileChannel file) throws IOException {
         cache.clear();
-        cache.writeIntLE(this.magic).writeIntLE(0);
+        cache.writeInt(this.magic).writeIntLE(0);
         block.writeHeader(cache).writeTxCount(cache).writeTxBody(cache);
         int i = cache.writerIndex();
         cache.setIntLE(4, i - 8);
