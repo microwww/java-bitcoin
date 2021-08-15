@@ -21,6 +21,7 @@ import java.util.Optional;
 
 @Component
 public class TxMemPool implements Closeable {
+    private static final  String TX_INDEX_DIR = "txindex";
     private static final Logger logger = LoggerFactory.getLogger(TxMemPool.class);
     private final CChainParams chainParams;
     private final HashSet<RawTransaction> transactions;
@@ -33,8 +34,8 @@ public class TxMemPool implements Closeable {
         maxCount = chainParams.settings.getTxPoolMax();
         try {
             File file = chainParams.settings.lockupRootDirectory();
-            logger.info("Transaction Index-dir: {}{}txindex", file.getCanonicalPath(), File.separator);
-            levelDB = ChainBlockStore.leveldb(file, "txindex", chainParams.settings.isReIndex());
+            logger.info("Transaction Index-dir: {}{}", file.getCanonicalPath(), TX_INDEX_DIR);
+            levelDB = ChainBlockStore.leveldb(file, TX_INDEX_DIR, chainParams.settings.isReIndex());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

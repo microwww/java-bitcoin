@@ -1,0 +1,6 @@
+conf:
+  bitcoin:
+    env: MAIN
+    tx-index: true
+    re-index: false
+#

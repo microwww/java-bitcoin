@@ -10,13 +10,15 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.regex.Pattern;
 
 public class AccessBlockFile implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(AccessBlockFile.class);
     public static final Pattern pt = Pattern.compile("blk0*([0-9]+).dat");
     public static final String sequenceFile = "blk%05d.dat"; // blk00000.dat
-    public static int MAX_BYTES = 128 * 1024 * 1024; // 128M
+    public static int MAX_BYTES = 128 * 1024 * 1024 - 2 * 1024; // 128M
 
     private final RollingFile rollingFile = new RollingFile();
     private final File root;
@@ -32,6 +34,15 @@ public class AccessBlockFile implements Closeable {
             }
             throw new RuntimeException(e);
         }
+    }
+
+    public File[] listFile() {
+        File[] files = root.listFiles();
+        File[] fs = Arrays.stream(files)
+                .filter(f -> pt.matcher(f.getName()).matches())
+                .sorted(Comparator.comparing(File::getName))
+                .toArray(File[]::new);
+        return fs;
     }
 
     @Override

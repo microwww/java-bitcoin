@@ -121,7 +121,7 @@ public class Settings {
     }
 
     public void setReIndex(boolean reIndex) {
-        throw new UnsupportedOperationException();
+        this.reIndex = reIndex;
     }
 
     public int getBestConfirmHeight() {

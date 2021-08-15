@@ -6,7 +6,7 @@ import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint64;
 import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.net.protocol.*;
-import com.github.microwww.bitcoin.store.HeightChainBlock;
+import com.github.microwww.bitcoin.store.HeightBlock;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -125,9 +125,9 @@ public class PeerChannelProtocol {
                     j++;
                     Optional<Uint256> hash = chain.getDiskBlock().getHash(from + i);
                     if (hash.isPresent()) {
-                        Optional<HeightChainBlock> cb = chain.getDiskBlock().readBlock(hash.get());
+                        Optional<HeightBlock> cb = chain.getDiskBlock().readBlock(hash.get());
                         Assert.isTrue(cb.isPresent(), "This hash in height , but not in local file");
-                        ChainBlock fd = cb.get().getBlock();
+                        ChainBlock fd = cb.get().getBlock().getBlock();
                         bs.add(fd);
                         if (fd.hash().equals(stopping)) {
                             ctx.writeAndFlush(headers);
@@ -158,7 +158,7 @@ public class PeerChannelProtocol {
             if (height >= 0) {
                 chain.getDiskBlock().writeBlock(k, height + 1, true);
             } else {
-                Optional<HeightChainBlock> hc = chain.getDiskBlock().readBlock(preHash);
+                Optional<HeightBlock> hc = chain.getDiskBlock().readBlock(preHash);
                 if (hc.isPresent()) {
                     height = hc.get().getHeight();
                     chain.getDiskBlock().writeBlock(k, height + 1, true);
