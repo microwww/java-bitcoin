@@ -21,6 +21,7 @@ public class Secp256k1 {
         Security.addProvider(new BouncyCastleProvider());
     }
 
+    private static final String SECP_256_K1 = "secp256k1";
     private static final String ALGORITHM = "EC";
     private static final String SIGN_ALGORITHMS = "NONEwithECDSA";
     private static final String RANDOM_NUMBER_ALGORITHM = "SHA1PRNG";
@@ -67,7 +68,7 @@ public class Secp256k1 {
      */
     public static byte[] getPublicKey(byte[] privateKey, boolean compress) {
         try {
-            ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp256k1");
+            ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec(SECP_256_K1);
             ECPoint pointQ = spec.getG().multiply(new BigInteger(1, privateKey));
             return pointQ.getEncoded(compress);
         } catch (Exception e) {
@@ -114,7 +115,7 @@ public class Secp256k1 {
      */
     public static PrivateKey converterPrivateKey(byte[] privateKey) {
         try {
-            ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp256k1");
+            ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec(SECP_256_K1);
             ECKeySpec k = new ECPrivateKeySpec(new BigInteger(privateKey), spec);
             KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM);
             return keyFactory.generatePrivate(k);
@@ -131,7 +132,7 @@ public class Secp256k1 {
      */
     public static PublicKey converterPublicKey(byte[] publicKey) {
         try {
-            ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp256k1");
+            ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec(SECP_256_K1);
             ECKeySpec k = new ECPublicKeySpec(spec.getG().getCurve().decodePoint(publicKey), spec);
             KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM);
             return keyFactory.generatePublic(k);

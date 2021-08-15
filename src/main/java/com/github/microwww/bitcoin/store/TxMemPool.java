@@ -91,7 +91,9 @@ public class TxMemPool implements Closeable {
                     ip.executor(in.getScript()).witnessPushStack().executor(preout.getScriptPubKey());
                     Assert.isTrue(ip.isSuccess(), "SCRIPT run error !");
                 } catch (Exception ex) {// TODO :: ERROR
-                    logger.warn("exchange RawTransaction HASH: {}, PRE-HASH : {}, error", hash, preHash, ex);
+                    byte[] bytes = ByteUtil.readAll(tx.serialize(tx.getFlag()));
+                    logger.warn("exchange RawTransaction HASH: {}, PRE-HASH : {}, error \n TX : {}",
+                            hash, preHash, ByteUtil.hex(bytes), ex);
                     break;
                 }
             }
