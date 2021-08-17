@@ -5,6 +5,8 @@ import com.github.microwww.bitcoin.chain.Generating;
 import com.github.microwww.bitcoin.math.Uint32;
 import org.springframework.stereotype.Component;
 
+import java.math.BigInteger;
+
 @Component
 public class CChainParams {
     public final Settings settings;
@@ -68,6 +70,8 @@ public class CChainParams {
                 params.magic = 0xfabfb5da;
                 params.defaultPort = 18444;
                 params.subsidyHalvingInterval = 150;
+                params.nRuleChangeActivationThreshold = 108; // 75% for testchains
+                params.nMinerConfirmationWindow = 144; // Faster than normal for regtest (144 instead of 2016)
             }
         };
         public final Params params = new Params();
@@ -87,6 +91,13 @@ public class CChainParams {
         private int defaultPort; // 0xf9beb4d9;
         private int subsidyHalvingInterval = 210000;
         private String[] seeds = {};
+        private BigInteger powLimit = new BigInteger("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16);
+        private int nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
+        private int nPowTargetSpacing = 10 * 60;
+        private boolean fPowAllowMinDifficultyBlocks = false;
+        private boolean fPowNoRetargeting = false;
+        private int nRuleChangeActivationThreshold = 1815; // 90% of 2016
+        private int nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
 
     /*
     strNetworkID =  CBaseChainParams::REGTEST;
