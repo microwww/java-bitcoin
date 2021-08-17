@@ -122,12 +122,12 @@ public class DiskBlock implements Closeable {
         Optional<HeightBlock> opt = this.findChainBlockInLevelDB(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes);
         if (!opt.isPresent()) { // 如果没有最新的块, 需要初始化创世块
             Optional<HeightBlock> hc = this.writeBlock(generate, 0, true);
-            byte[] array = hc.get().serializeLevelDB();
+            byte[] array = hc.get().serializationLevelDB();
             levelDB.put(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes, array);
         } else {
             LinkedList<Uint256> list = new LinkedList<>();
             HeightBlock ds = opt.get();
-            ChainBlock latest = ds.getBlock().loadBlock().getBlock();
+            ChainBlock latest = ds.getFileChainBlock().loadBlock().getBlock();
             int h = ds.getHeight();
             logger.debug("Loading latest block in levelDB : {}, {}", h, latest.hash());
             while (true) {
@@ -136,7 +136,7 @@ public class DiskBlock implements Closeable {
                 Optional<HeightBlock> nv = this.readBlock(next);
                 if (nv.isPresent()) {
                     HeightBlock hc = nv.get();
-                    latest = hc.getBlock().getBlock();
+                    latest = hc.getBlock();
                     logger.debug("Init from levelDB: {}, {} --> {}", latest.hash(), latest.header.getPreHash());
                     h--;
                     Assert.isTrue(hc.getHeight() == h, "levelDB height not match");
@@ -170,15 +170,15 @@ public class DiskBlock implements Closeable {
     public Optional<HeightBlock> findChainBlockInLevelDB(byte[] key) {
         byte[] bytes = levelDB.get(key);
         if (bytes != null) {
-            HeightBlock hb = HeightBlock.unserializeLevelDB(root, bytes);
+            HeightBlock hb = HeightBlock.deserializationLevelDB(root, bytes);
             return Optional.of(hb);
         }
         return Optional.empty();
     }
 
     public DiskBlock putChainBlockToLevelDB(HeightBlock hc) {
-        byte[] key = ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hc.getBlock().getBlock().hash().fill256bit());
-        levelDB.put(key, hc.serializeLevelDB());
+        byte[] key = ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hc.getBlock().hash().fill256bit());
+        levelDB.put(key, hc.serializationLevelDB());
         return this;
     }
 
@@ -201,7 +201,7 @@ public class DiskBlock implements Closeable {
     }
 
     public Optional<ChainBlock> getChinBlock(Uint256 hash) {
-        return this.readBlock(hash).map(h -> h.getBlock().getBlock());
+        return this.readBlock(hash).map(h -> h.getBlock());
     }
 
     public int writeBlock(ChainBlock block, boolean ifExistSkip) {
@@ -256,10 +256,10 @@ public class DiskBlock implements Closeable {
 
     // ByteBuf : height + position + len + name
     public DiskBlock writeLevelDB(HeightBlock hc) {
-        Uint256 hash = hc.getBlock().getBlock().hash();
+        Uint256 hash = hc.getBlock().hash();
         levelDB.put(
                 ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hash.fill256bit()),
-                hc.serializeLevelDB()
+                hc.serializationLevelDB()
         );
         int height = hc.getHeight();
         if (height > this.getLatestHeight()) {
@@ -285,14 +285,15 @@ public class DiskBlock implements Closeable {
 
         //
         HeightBlock hb = data.get();
-        File f = hb.getBlock().getFile();
-        logger.debug("Load block height: {}, in {}, position: {}, length: {}", hb.getHeight(), hb.getBlock().getFile().getName(), hb.getBlock().getPosition());
+        FileChainBlock fc = hb.getFileChainBlock();
+        File f = fc.getFile();
+        logger.debug("Load block height: {}, in {}, position: {}, length: {}", hb.getHeight(), fc.getFile().getName(), fc.getPosition());
         //
 
         FileChannel r = new RandomAccessFile(f, "r").getChannel();
-        r.position(hb.getBlock().getPosition());
-        hb.getBlock().readBlock(Unpooled.buffer(), r);
-        int magic = hb.getBlock().getMagic();
+        r.position(fc.getPosition());
+        fc.readBlock(Unpooled.buffer(), r);
+        int magic = fc.getMagic();
         Assert.isTrue(chainParams.getEnvParams().getMagic() == magic, "magic not match !");// 校验头
         return data;
     }
@@ -333,7 +334,7 @@ public class DiskBlock implements Closeable {
 
     public boolean resetLatest(HeightBlock hb) {
         int height = hb.getHeight();
-        ChainBlock block = hb.getBlock().getBlock();
+        ChainBlock block = hb.getBlock();
         int latestHeight = this.getLatestHeight();
         if (this.getLatestHeight() >= height) {
             return false;
@@ -351,7 +352,7 @@ public class DiskBlock implements Closeable {
                 list.add(hash);
                 Optional<HeightBlock> hc = this.readBlock(hash);
                 if (hc.isPresent()) {
-                    hash = hc.get().getBlock().getBlock().header.getPreHash();
+                    hash = hc.get().getBlock().header.getPreHash();
                 }
             }
         }
@@ -363,7 +364,7 @@ public class DiskBlock implements Closeable {
             if (uint256 == null) break;
             heights.hashAdd(uint256, i + 1);
         }
-        levelDB.put(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes, hb.serializeLevelDB());
+        levelDB.put(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes, hb.serializationLevelDB());
         return true;
     }
 }

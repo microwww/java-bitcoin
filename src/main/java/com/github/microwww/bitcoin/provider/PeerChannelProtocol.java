@@ -127,7 +127,7 @@ public class PeerChannelProtocol {
                     if (hash.isPresent()) {
                         Optional<HeightBlock> cb = chain.getDiskBlock().readBlock(hash.get());
                         Assert.isTrue(cb.isPresent(), "This hash in height , but not in local file");
-                        ChainBlock fd = cb.get().getBlock().getBlock();
+                        ChainBlock fd = cb.get().getBlock();
                         bs.add(fd);
                         if (fd.hash().equals(stopping)) {
                             ctx.writeAndFlush(headers);
