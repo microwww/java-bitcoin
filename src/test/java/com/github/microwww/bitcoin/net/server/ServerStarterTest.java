@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -15,7 +16,7 @@ class ServerStarterTest {
     @Disabled
     void onApplicationEvent() throws InterruptedException, IOException {
         ServerStarter start = new ServerStarter();
-        start.chainParams = new CChainParams(new Settings());
+        start.chainParams = new CChainParams(new Settings().setDataDir("/tmp/" + UUID.randomUUID()));
         //start.handler = new ServerChannelInboundHandler();
 
         start.newThreadSTART(e -> {

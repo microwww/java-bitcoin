@@ -67,8 +67,9 @@ public class Settings {
         return dataDir;
     }
 
-    public void setDataDir(String dataDir) {
+    public Settings setDataDir(String dataDir) {
         this.dataDir = dataDir;
+        return this;
     }
 
     public String[] getConnections() {
@@ -112,8 +113,9 @@ public class Settings {
         return txIndex;
     }
 
-    public void setTxIndex(boolean txIndex) {
+    public Settings setTxIndex(boolean txIndex) {
         this.txIndex = txIndex;
+        return this;
     }
 
     public boolean isReIndex() {

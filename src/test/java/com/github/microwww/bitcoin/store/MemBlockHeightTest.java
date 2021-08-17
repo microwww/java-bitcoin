@@ -6,7 +6,8 @@ import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
-import org.iq80.leveldb.DB;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,9 +26,28 @@ class MemBlockHeightTest {
     private static final Logger logger = LoggerFactory.getLogger(MemBlockHeightTest.class);
     private static final CChainParams pa = new CChainParams(new Settings());
 
+    static {
+        pa.settings.setDataDir("/tmp/" + UUID.randomUUID());
+    }
+
+    private DiskBlock diskBlock;
+
+    @BeforeEach
+    public void init() {
+        diskBlock = new DiskBlock(pa);
+        diskBlock.init();
+    }
+
+    @AfterEach
+    public void close() {
+        try {
+            diskBlock.close();
+        } catch (IOException e) {
+        }
+    }
+
     @Test
     void tryAdd() {
-        pa.settings.setDataDir("/" + UUID.randomUUID().toString());
         MemBlockHeight mh = new MemBlockHeight(pa.env.createGenesisBlock());
         ChainBlock genesisBlock = pa.env.createGenesisBlock();
         List<ChainBlock> block = createChainBlock(genesisBlock, 100);
@@ -43,10 +63,6 @@ class MemBlockHeightTest {
 
     @Test
     void writeAndRead() throws IOException {
-        pa.settings.setDataDir("/" + UUID.randomUUID().toString());
-        DiskBlock diskBlock = new DiskBlock(pa);
-        diskBlock.init();
-        DB levelDB = diskBlock.getLevelDB();
         ChainBlock genesisBlock = pa.env.createGenesisBlock();
         List<ChainBlock> chains = createChainBlock(genesisBlock, 100);
         ChainBlock last = chains.get(chains.size() - 1);
@@ -66,9 +82,6 @@ class MemBlockHeightTest {
 
     @Test
     void conflictHeight() {
-        pa.settings.setDataDir("/" + UUID.randomUUID());
-        DiskBlock diskBlock = new DiskBlock(pa);
-        diskBlock.init();
         ChainBlock genesisBlock = pa.env.createGenesisBlock();
         List<ChainBlock> chains = createChainBlock(genesisBlock, 10);
         for (ChainBlock chain : chains) {
