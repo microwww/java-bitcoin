@@ -204,15 +204,14 @@ public class DiskBlock implements Closeable {
         return this.readBlock(hash).map(h -> h.getBlock());
     }
 
-    public int writeBlock(ChainBlock block, boolean ifExistSkip) {
+    public Optional<HeightBlock> writeBlock(ChainBlock block, boolean ifExistSkip) {
         Uint256 pre = block.header.getPreHash();
         Optional<HeightBlock> hc = this.readBlock(pre);
         if (hc.isPresent()) {
             int h = hc.get().getHeight() + 1;
-            writeBlock(block, h, ifExistSkip);
-            return h;
+            return writeBlock(block, h, ifExistSkip);
         }
-        return -1;
+        return Optional.empty();
     }
 
     /**
@@ -236,17 +235,13 @@ public class DiskBlock implements Closeable {
     }
 
     private synchronized FileChainBlock write(ChainBlock block) {
-        Uint256 hash = block.hash();
         try {
             FileChannel ch = fileAccess.channel();
             File file = fileAccess.getFile();
             fileAccess.getFileChannel();
-            long position = ch.position();
-
             FileChainBlock fc = new FileChainBlock(file);
             fc.setBlock(block);
             fc.setMagic(chainParams.getEnvParams().getMagic());
-            fc.setPosition(position);
             fc.writeBlock(Unpooled.buffer(), ch);
             return fc;
         } catch (IOException e) {
@@ -366,5 +361,9 @@ public class DiskBlock implements Closeable {
         }
         levelDB.put(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes, hb.serializationLevelDB());
         return true;
+    }
+
+    public File getRoot() {
+        return root;
     }
 }

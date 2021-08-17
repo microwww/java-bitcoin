@@ -19,6 +19,7 @@ public class FileChainBlock {
     private int magic;
     private long position;
     private ChainBlock block;
+    private FileTransaction[] fileTransactions; // run writeBlock method will set
 
     public FileChainBlock(File file) {
         this.file = file;
@@ -55,10 +56,16 @@ public class FileChainBlock {
         return this;
     }
 
+    // will set `fileTransactions`
     public FileChainBlock writeBlock(ByteBuf cache, FileChannel file) throws IOException {
         cache.clear();
         cache.writeInt(this.magic).writeIntLE(0);
-        block.writeHeader(cache).writeTxCount(cache).writeTxBody(cache);
+        this.position = file.position();
+        this.fileTransactions = block.writeHeader(cache).writeTxCount(cache).writeTxBody(cache);
+        for (FileTransaction ft : this.fileTransactions) {
+            ft.setPosition(ft.getPosition() + this.position);
+            ft.setFile(this.file);
+        }
         int i = cache.writerIndex();
         cache.setIntLE(4, i - 8);
         int write = file.write(cache.nioBuffer());
@@ -94,5 +101,9 @@ public class FileChainBlock {
     public FileChainBlock setMagic(int magic) {
         this.magic = magic;
         return this;
+    }
+
+    public FileTransaction[] getFileTransactions() {
+        return fileTransactions;
     }
 }

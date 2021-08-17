@@ -6,6 +6,7 @@ import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint64;
 import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.net.protocol.*;
+import com.github.microwww.bitcoin.store.FileTransaction;
 import com.github.microwww.bitcoin.store.HeightBlock;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
@@ -187,9 +188,11 @@ public class PeerChannelProtocol {
     public void service(ChannelHandlerContext ctx, Block request) {
         ChainBlock cb = request.getChainBlock();
         logger.info("Get one blocks from peer : {}", request.getChainBlock().hash());
-        chain.getDiskBlock().writeBlock(cb, true);
-
-        chain.getTxMemPool().writeTransaction(cb);
+        Optional<HeightBlock> hc = chain.getDiskBlock().writeBlock(cb, true);
+        if (hc.isPresent()) {
+            FileTransaction[] ft = hc.get().getFileChainBlock().getFileTransactions();
+            chain.getTxMemPool().serializationTransaction(ft);
+        }
     }
 
     public void service(ChannelHandlerContext ctx, Tx request) {

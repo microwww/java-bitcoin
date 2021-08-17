@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.math.MerkleTree;
 import com.github.microwww.bitcoin.math.Uint256;
+import com.github.microwww.bitcoin.store.FileTransaction;
 import io.netty.buffer.ByteBuf;
 import org.springframework.util.Assert;
 
@@ -49,11 +50,17 @@ public class ChainBlock implements Serializable {
         return this;
     }
 
-    public ChainBlock writeTxBody(ByteBuf bf) {
-        for (RawTransaction tx : this.txs) {
+    public FileTransaction[] writeTxBody(ByteBuf bf) {
+        FileTransaction[] fts = new FileTransaction[this.txs.length];
+        for (int i = 0; i < this.txs.length; i++) {
+            RawTransaction tx = this.txs[i];
+            int ix = bf.writerIndex();
+            FileTransaction ft = new FileTransaction(tx).setPosition(ix);
             tx.write(bf);
+            ft.setLength(bf.writerIndex() - ix);
+            fts[i] = ft;
         }
-        return this;
+        return fts;
     }
 
     public Uint256 hash() {
