@@ -19,7 +19,8 @@ public class Ping extends AbstractProtocolAdapter<Ping> {
 
     @Override
     protected void write0(ByteBuf buf) {
-        buf.writeLongLE(nonce.longValue());
+        double v = Math.random() * Long.MAX_VALUE;
+        buf.writeLongLE((long) v);
     }
 
     public Uint64 getNonce() {
