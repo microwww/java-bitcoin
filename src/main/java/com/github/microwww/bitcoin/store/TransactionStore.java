@@ -23,9 +23,9 @@ import java.util.LinkedHashSet;
 import java.util.Optional;
 
 @Component
-public class TxMemPool implements Closeable {
+public class TransactionStore implements Closeable {
     private static final String TX_INDEX_DIR = "txindex";
-    private static final Logger logger = LoggerFactory.getLogger(TxMemPool.class);
+    private static final Logger logger = LoggerFactory.getLogger(TransactionStore.class);
     private final CChainParams chainParams;
     private final HashSet<RawTransaction> transactions;
     private final int maxCount;
@@ -33,7 +33,7 @@ public class TxMemPool implements Closeable {
     @Autowired
     private DiskBlock diskBlock;
 
-    public TxMemPool(CChainParams chainParams) {
+    public TransactionStore(CChainParams chainParams) {
         this.chainParams = chainParams;
         transactions = new LinkedHashSet<>();
         maxCount = chainParams.settings.getTxPoolMax();
@@ -127,7 +127,7 @@ public class TxMemPool implements Closeable {
         return diskBlock;
     }
 
-    public TxMemPool setDiskBlock(DiskBlock diskBlock) {
+    public TransactionStore setDiskBlock(DiskBlock diskBlock) {
         this.diskBlock = diskBlock;
         return this;
     }

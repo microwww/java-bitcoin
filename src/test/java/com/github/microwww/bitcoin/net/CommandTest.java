@@ -7,7 +7,7 @@ import com.github.microwww.bitcoin.net.protocol.Version;
 import com.github.microwww.bitcoin.store.DiskBlock;
 import com.github.microwww.bitcoin.provider.LocalBlockChain;
 import com.github.microwww.bitcoin.provider.PeerChannelProtocol;
-import com.github.microwww.bitcoin.store.TxMemPool;
+import com.github.microwww.bitcoin.store.TransactionStore;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 public class CommandTest {
     private static final Logger logger = LoggerFactory.getLogger(CommandTest.class);
     private static CChainParams cp = new CChainParams(new Settings(CChainParams.Env.REG_TEST));
-    private static LocalBlockChain localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TxMemPool(cp));
+    private static LocalBlockChain localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TransactionStore(cp));
 
     @Test
     @Disabled

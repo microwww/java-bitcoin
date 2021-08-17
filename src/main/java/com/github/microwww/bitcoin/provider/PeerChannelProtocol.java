@@ -191,13 +191,13 @@ public class PeerChannelProtocol {
         Optional<HeightBlock> hc = chain.getDiskBlock().writeBlock(cb, true);
         if (hc.isPresent()) {
             FileTransaction[] ft = hc.get().getFileChainBlock().getFileTransactions();
-            chain.getTxMemPool().serializationTransaction(ft);
+            chain.getTransactionStore().serializationTransaction(ft);
         }
     }
 
     public void service(ChannelHandlerContext ctx, Tx request) {
         logger.debug("Get new tx: {}, add to pool", request.getTransaction().hash());
-        chain.getTxMemPool().add(request.getTransaction());
+        chain.getTransactionStore().add(request.getTransaction());
     }
 
     public void service(ChannelHandlerContext ctx, Inv request) {

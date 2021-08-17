@@ -8,7 +8,7 @@ import com.github.microwww.bitcoin.net.NetProtocol;
 import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.provider.LocalBlockChain;
 import com.github.microwww.bitcoin.store.DiskBlock;
-import com.github.microwww.bitcoin.store.TxMemPool;
+import com.github.microwww.bitcoin.store.TransactionStore;
 import com.github.microwww.bitcoin.util.ClassPath;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -29,7 +29,7 @@ public class VersionTest {
     @BeforeAll
     public static void inti() {
         cp.settings.setDataDir("/tmp/" + UUID.randomUUID());
-        localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TxMemPool(cp));
+        localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TransactionStore(cp));
         peer = new Peer(localBlockChain, "localhost", 8333);
     }
 

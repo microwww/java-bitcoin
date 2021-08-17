@@ -13,14 +13,14 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class TxMemPoolTest {
+class TransactionStoreTest {
     private final CChainParams params = new CChainParams(new Settings());
-    private TxMemPool tx;
+    private TransactionStore tx;
 
     {
         params.settings.setDataDir("/tmp/" + UUID.randomUUID())
                 .setTxIndex(true);
-        tx = new TxMemPool(params);
+        tx = new TransactionStore(params);
         tx.setDiskBlock(new DiskBlock(params));
     }
 
