@@ -1,8 +1,8 @@
 package com.github.microwww.bitcoin.script;
 
 import com.github.microwww.bitcoin.script.ex.TransactionInvalidException;
-import com.github.microwww.bitcoin.script.ins.Instruction_61_6A;
 import com.github.microwww.bitcoin.util.ByteUtil;
+import com.github.microwww.bitcoin.wallet.CoinAccount;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
@@ -13,6 +13,7 @@ import java.util.Arrays;
 
 import static com.github.microwww.bitcoin.script.ins.Instruction_00_4B._1;
 import static com.github.microwww.bitcoin.script.ins.Instruction_00_4B._16;
+import static com.github.microwww.bitcoin.script.ins.Instruction_61_6A.OP_RETURN;
 import static com.github.microwww.bitcoin.script.ins.Instruction_6B_7D.OP_DROP;
 import static com.github.microwww.bitcoin.script.ins.Instruction_6B_7D.OP_DUP;
 import static com.github.microwww.bitcoin.script.ins.Instruction_83_8A.OP_EQUAL;
@@ -22,9 +23,36 @@ import static com.github.microwww.bitcoin.script.ins.Instruction_A6_AF.*;
 public enum TemplateTransaction {
 
     /**
-     * [PKHash] OP_CHECKSIG
+     * [PUBLIC-KEY] OP_CHECKSIG
      */
     P2PK {
+        @Override
+        public boolean isSupport(byte[] data) {
+            return parseAddress(data) != null;
+        }
+
+        @Override
+        public byte[] parseAddress(byte[] data) {
+            byte[] v = null;
+            if (data.length >= 0x21 + 1) {
+                if (data[data.length - 1] == OP_CHECKSIG.opcode()) {
+                    if (data.length == 0x41 + 1) {
+                        if (data[1] == 0x04) { // 不压缩的公钥 04 + <64位>
+                            v = Arrays.copyOfRange(data, 1, data.length - 1);
+                        }
+                    } else if (data.length == 0x21 + 1) {
+                        if (data[1] == 0x02 || data[1] == 0x03) { // 压缩的公钥 02/03 + <32位>
+                            v = Arrays.copyOfRange(data, 1, data.length - 1);
+                        }
+                    }
+                }
+            }
+            if (v != null) {
+                v = new CoinAccount.KeyPublic(v).getAddress().getKeyPublicHash();
+            }
+            return v;
+        }
+
         @Override
         public byte[] scriptPubKey(byte[]... args) {
             Assert.isTrue(args.length > 0, "one arg for address");
@@ -38,8 +66,28 @@ public enum TemplateTransaction {
     },
     /**
      * OP_DUP OP_HASH160 [0×14][PKHash] OP_EQUALVERIFY OP_CHECKSIG
+     * <p>
+     * c++ MatchPayToPubkeyHash
      */
     P2PKH {
+        @Override
+        public boolean isSupport(byte[] data) {
+            return parseAddress(data) != null;
+        }
+
+        @Override
+        public byte[] parseAddress(byte[] data) {
+            if (data.length == 0x14 + 5) {
+                boolean padding = TemplateTransaction.paddingWith(data,
+                        new byte[]{OP_DUP.opcode(), OP_HASH160.opcode(), 0x14},
+                        new byte[]{OP_EQUALVERIFY.opcode(), OP_CHECKSIG.opcode()});
+                if (padding) {
+                    return Arrays.copyOfRange(data, 3, 3 + 0x14);
+                }
+            }
+            return null;
+        }
+
         @Override
         public byte[] scriptPubKey(byte[]... args) {
             Assert.isTrue(args.length > 0, "one arg for address");
@@ -107,13 +155,18 @@ public enum TemplateTransaction {
     P2SH {
         @Override
         public boolean isSupport(byte[] data) {
+            return parseAddress(data) != null;
+        }
+
+        @Override
+        public byte[] parseAddress(byte[] data) {
             if (data.length == 23) {
-                if (data[0] == OP_HASH160.opcode())
-                    if (data[1] == 0x14)
-                        if (data[22] == OP_EQUAL.opcode())
-                            return true;
+                boolean padding = TemplateTransaction.paddingWith(data, new byte[]{OP_HASH160.opcode(), 0x14}, new byte[]{OP_EQUAL.opcode()});
+                if (padding) {
+                    return Arrays.copyOfRange(data, 2, 0x14 + 2);
+                }
             }
-            return false;
+            return null;
         }
 
         @Override
@@ -137,10 +190,24 @@ public enum TemplateTransaction {
             return ByteUtil.readAll(bf);
         }
     },
+    /**
+     * [0x00][0x14] [Hash160(PK)]
+     */
     P2WPKH() {
         @Override
-        public boolean isSupport(byte[] data) {// [0x00][0x14] [Hash160(PK)]
-            return TemplateTransaction.p2wSupport(data, 0x14 + 2, (byte) 0, (byte) 0x14);
+        public boolean isSupport(byte[] data) {
+            return parseAddress(data) != null;
+        }
+
+        @Override
+        public byte[] parseAddress(byte[] data) {
+            if (data.length == 0x14 + 2) {
+                boolean padding = TemplateTransaction.paddingWith(data, new byte[]{0, 0x14}, new byte[]{});
+                if (padding) {
+                    return Arrays.copyOfRange(data, 2, data.length);
+                }
+            }
+            return null;
         }
 
         @Override
@@ -177,12 +244,27 @@ public enum TemplateTransaction {
             interpreter.executor(scr, 1);
         }
     },
+    /**
+     * [0x00][0x20] [SHA256(witnessScript)]
+     */
     P2WSH() {// bool CScript::IsPayToWitnessScriptHash() const
 
         @Override
-        public boolean isSupport(byte[] data) {// [0x00][0x20] [SHA256(witnessScript)]
-            return TemplateTransaction.p2wSupport(data, 0x20 + 2, (byte) 0, (byte) 0x20);
+        public boolean isSupport(byte[] data) {
+            return parseAddress(data) != null;
         }
+
+        @Override
+        public byte[] parseAddress(byte[] data) {
+            if (data.length == 0x20 + 2) {
+                boolean padding = TemplateTransaction.paddingWith(data, new byte[]{0, 0x20}, new byte[]{});
+                if (padding) {
+                    return Arrays.copyOfRange(data, 2, data.length);
+                }
+            }
+            return null;
+        }
+
 
         @Override
         public byte[] scriptPubKey(byte[]... args) {
@@ -231,14 +313,33 @@ public enum TemplateTransaction {
             P2WSH.executor(interpreter);
         }
     },
-    OP_RETURN {
+    /**
+     * OP_RETURN
+     * Default setting for nMaxDatacarrierBytes. 80 bytes of data, +1 for OP_RETURN,
+     * +2 for the pushdata opcodes.
+     */
+    RETURN {
+        private int max = 0x53;
+
+        @Override
+        public boolean isSupport(byte[] data) {
+            if (data.length <= max) {
+                if (data.length > 1) {
+                    if (data[0] == OP_RETURN.opcode()) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         @Override
         public byte[] scriptPubKey(byte[]... args) {
             Assert.isTrue(args.length > 0, "one arg for address");
             ByteBuf bf = Unpooled.buffer()
-                    .writeByte(Instruction_61_6A.OP_RETURN.opcode())
+                    .writeByte(OP_RETURN.opcode())
                     .writeByte(args[0].length).writeBytes(args[0]);
-            Assert.isTrue(20 + 2 <= bf.readableBytes(), "Length 22");
+            Assert.isTrue(max >= bf.readableBytes(), "Length 0x53(83)");
             return ByteUtil.readAll(bf);
         }
     },
@@ -258,20 +359,30 @@ public enum TemplateTransaction {
         throw new UnsupportedOperationException();
     }
 
-    private static boolean p2wSupport(byte[] data, int len, byte... bts) {
-        if (data.length == len) {
-            for (int i = 0; i < bts.length; i++) {
-                if (data[i] != bts[i]) {
-                    return false;
-                }
-            }
-            return true;
+    private static boolean paddingWith(byte[] data, byte[] start, byte[] end) {
+        if (data.length < start.length + end.length) {
+            return false;
         }
-        return false;
+        for (int i = 0; i < start.length; i++) {
+            if (start[i] != data[i]) {
+                return false;
+            }
+        }
+        int offset = data.length - end.length;
+        for (int i = 0; i < end.length; i++) {
+            if (end[i] != data[offset + i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public void executor(Interpreter interpreter) {
-        throw new UnsupportedOperationException("TemplateTransaction." + this.name());
+        interpreter.runNow();
+    }
+
+    public byte[] parseAddress(byte[] data) {
+        throw new UnsupportedOperationException();
     }
 
     public static byte[] getScriptForMultiSig(int nRequest, byte[]... pks) {
