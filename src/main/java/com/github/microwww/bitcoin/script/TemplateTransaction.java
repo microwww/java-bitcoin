@@ -23,6 +23,7 @@ import static com.github.microwww.bitcoin.script.ins.Instruction_A6_AF.*;
 public enum TemplateTransaction {
 
     /**
+     * 0x??[0x41|0x21]...0xAC
      * [PUBLIC-KEY] OP_CHECKSIG
      */
     P2PK {
@@ -36,11 +37,11 @@ public enum TemplateTransaction {
             byte[] v = null;
             if (data.length >= 0x21 + 1) {
                 if (data[data.length - 1] == OP_CHECKSIG.opcode()) {
-                    if (data.length == 0x41 + 1) {
+                    if (data.length == 1 + 0x41 + 1) {
                         if (data[1] == 0x04) { // 不压缩的公钥 04 + <64位>
                             v = Arrays.copyOfRange(data, 1, data.length - 1);
                         }
-                    } else if (data.length == 0x21 + 1) {
+                    } else if (data.length == 1 + 0x21 + 1) {
                         if (data[1] == 0x02 || data[1] == 0x03) { // 压缩的公钥 02/03 + <32位>
                             v = Arrays.copyOfRange(data, 1, data.length - 1);
                         }

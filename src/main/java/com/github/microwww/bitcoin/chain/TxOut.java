@@ -1,8 +1,12 @@
 package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.math.UintVar;
+import com.github.microwww.bitcoin.script.TemplateTransaction;
 import com.github.microwww.bitcoin.util.ByteUtil;
+import com.github.microwww.bitcoin.wallet.CoinAccount;
 import io.netty.buffer.ByteBuf;
+
+import java.util.Optional;
 
 public class TxOut {
     private long value;
@@ -51,6 +55,28 @@ public class TxOut {
     public TxOut setScriptPubKey(byte[] scriptPubKey) {
         this.scriptPubKey = scriptPubKey;
         return this;
+    }
+
+    public Optional<TemplateTransaction> loadType() {
+        for (TemplateTransaction tt : TemplateTransaction.values()) {
+            if (tt.isSupport(scriptPubKey)) {
+                return Optional.of(tt);
+            }
+        }
+        return Optional.empty();
+    }
+
+    public Optional<CoinAccount.Address> loadAddress() {
+        for (TemplateTransaction tt : TemplateTransaction.values()) {
+            try {
+                byte[] bytes = tt.parseAddress(scriptPubKey);
+                if (bytes != null) {
+                    return Optional.of(new CoinAccount.Address(bytes));
+                }
+            } catch (UnsupportedOperationException ex) {
+            }
+        }
+        return Optional.empty();
     }
 
     @Override
