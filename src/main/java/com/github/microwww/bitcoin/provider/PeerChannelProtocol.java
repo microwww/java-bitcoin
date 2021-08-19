@@ -17,9 +17,8 @@ import org.springframework.util.Assert;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static com.github.microwww.bitcoin.net.protocol.GetHeaders.MAX_LOCATOR_SZ;
@@ -35,6 +34,7 @@ public class PeerChannelProtocol {
     Settings config;
     @Autowired
     LocalBlockChain chain;
+    private Map<Uint256, LoadingBlock> readyBlocks = new ConcurrentHashMap<>(100);
 
     public void doAction(ChannelHandlerContext ctx, AbstractProtocol ver) throws UnsupportedOperationException {
         try {
@@ -81,6 +81,15 @@ public class PeerChannelProtocol {
             ctx.write(new Ping(peer));
         });
 
+        sendGetHeader(ctx);
+
+        ctx.executor().execute(() -> {
+            ctx.write(new FeeFilter(peer));
+        });
+    }
+
+    private void sendGetHeader(ChannelHandlerContext ctx) {
+        Peer peer = ctx.channel().attr(Peer.PEER).get();
         ctx.executor().execute(() -> {
             int height = chain.getDiskBlock().getLatestHeight();
             int step = 1;
@@ -97,10 +106,6 @@ public class PeerChannelProtocol {
             }
             GetHeaders hd = new GetHeaders(peer).setStarting(list);
             ctx.write(hd);
-        });
-
-        ctx.executor().execute(() -> {
-            ctx.write(new FeeFilter(peer));
         });
     }
 
@@ -148,17 +153,24 @@ public class PeerChannelProtocol {
     public void service(ChannelHandlerContext ctx, Headers request) {
         ChainBlock[] cb = request.getChainBlocks();
         for (ChainBlock k : cb) {
-            String ok = k.hash().toHexReverse256();
-            if (ok.equalsIgnoreCase(k.header.getMerkleRoot().toHexReverse256())) {
-                logger.warn("Merkle Root can not match, block hash : {}", k.hash().toHexReverse256());
-                continue;
-            }
-            logger.debug("Headers new block : {}, tx: {}", ok, k.header.getTxCount());
+            Uint256 hash = k.hash();
+            Assert.isTrue(k.header.getTxCount().intValueExact() == 0, "Headers tx.length == 0");
+            logger.debug("Headers new block : {}, tx: {}", hash.toHexReverse256(), k.header.getTxCount());
             Uint256 preHash = k.header.getPreHash();
             int height = chain.getDiskBlock().getHeight(preHash);
             if (height >= 0) {
-                chain.getDiskBlock().writeBlock(k, height + 1, true);
+                Optional<HeightBlock> hc = chain.getDiskBlock().readBlock(hash);
+                if (!hc.isPresent()) {
+                    readyBlocks.putIfAbsent(hash, new LoadingBlock(k.hash()));
+                }
             } else {
+                LoadingBlock ready = readyBlocks.get(preHash);
+                if (ready == null) {
+                    logger.warn("Not find pre-block Hash : {} -> {}", preHash, hash);
+                } else {
+                    readyBlocks.putIfAbsent(hash, new LoadingBlock(k.hash()));
+                }
+                /*
                 Optional<HeightBlock> hc = chain.getDiskBlock().readBlock(preHash);
                 if (hc.isPresent()) {
                     height = hc.get().getHeight();
@@ -166,23 +178,33 @@ public class PeerChannelProtocol {
                 } else {
                     logger.warn("Not find pre-block Hash : {} -> {}", preHash, k.hash());
                 }
+                 */
             }
         }
-        if (config.isTxIndex()) {
-            logger.info("Find blocks from headers, count : {}, and to get it", cb.length);
-            ctx.executor().execute(() -> {
-                GetData.Message[] ms = new GetData.Message[cb.length];
-                GetData data = new GetData(request.getPeer());
-                for (int i = 0; i < cb.length; i++) {
-                    ChainBlock hd = cb[i];
-                    ms[i] = new GetData.Message()
-                            .setHashIn(hd.hash())
-                            .setTypeIn(GetDataType.WITNESS_BLOCK);
-                }
-                data.setMessages(ms);
-                ctx.writeAndFlush(data);
-            });
-        }
+        logger.info("Find blocks from headers, count : {}, and to get it", cb.length);
+        loadChainBlock(ctx);
+    }
+
+    public void loadChainBlock(ChannelHandlerContext ctx) {
+        Peer peer = ctx.channel().attr(Peer.PEER).get();
+        ctx.executor().execute(() -> {
+            List<GetData.Message> ms = new ArrayList<>(10);
+            Iterator<Uint256> iterator = readyBlocks.keySet().iterator();
+            while (iterator.hasNext()) {
+                if (ms.size() < 10) {
+                    LoadingBlock v = readyBlocks.get(iterator.next());
+                    boolean ic = v.compareAndInc(0);
+                    if (ic) {
+                        GetData.Message msg = new GetData.Message()
+                                .setHashIn(v.hash)
+                                .setTypeIn(GetDataType.WITNESS_BLOCK);
+                        ms.add(msg);
+                    }
+                } else break;
+            }
+            GetData data = new GetData(peer).setMessages(ms.toArray(new GetData.Message[]{}));
+            ctx.writeAndFlush(data);
+        });
     }
 
     public void service(ChannelHandlerContext ctx, Block request) {
@@ -192,6 +214,10 @@ public class PeerChannelProtocol {
         if (hc.isPresent()) {
             FileTransaction[] ft = hc.get().getFileChainBlock().getFileTransactions();
             chain.getTransactionStore().serializationTransaction(ft);
+        }
+        readyBlocks.remove(request.getChainBlock().hash());
+        if (readyBlocks.isEmpty()) { // TODO:: 服务器断开会导致永远不为空
+            sendGetHeader(ctx);
         }
     }
 
@@ -264,4 +290,20 @@ public class PeerChannelProtocol {
         logger.warn("Peer-Reject {}:{}, request : {}, reason: {}", peer.getHost(), peer.getPort(), request.getMessage(), request.getReason());
     }
 
+    public class LoadingBlock {
+        public final Uint256 hash;
+        private int status;
+
+        public LoadingBlock(Uint256 hash) {
+            this.hash = hash;
+        }
+
+        public synchronized boolean compareAndInc(int i) {
+            if (this.status == i) {
+                this.status += 1;
+                return true;
+            }
+            return false;
+        }
+    }
 }
