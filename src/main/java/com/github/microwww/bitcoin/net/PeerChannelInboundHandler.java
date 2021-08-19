@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.net;
 
 import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
+import com.github.microwww.bitcoin.net.protocol.Reject;
 import com.github.microwww.bitcoin.net.protocol.UnsupportedNetProtocolException;
 import com.github.microwww.bitcoin.net.protocol.Version;
 import com.github.microwww.bitcoin.provider.PeerChannelProtocol;
@@ -28,26 +29,40 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, MessageHeader header) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, MessageHeader header) {
+        Peer peer = ctx.channel().attr(Peer.PEER).get();
         try {
             NetProtocol netProtocol = header.getNetProtocol();
             if (logger.isDebugEnabled()) {
                 logger.debug("Get a command : {} \n{}", netProtocol.cmd(), ByteUtil.hex(header.getPayload()));
             }
-            Peer peer = ctx.channel().attr(Peer.PEER).get();
             AbstractProtocol parse = netProtocol.parse(peer, header.getPayload());
             logger.info("Parse command: {},  data : {}", netProtocol.cmd(), parse.getClass().getSimpleName());
 
             peerChannelProtocol.doAction(ctx, parse);
 
         } catch (UnsupportedOperationException ex) {
-            logger.warn("UnsupportedOperationException service: {}", header.getCommand());
+            logger.warn("UnsupportedOperation class [{}].service: {}", peerChannelProtocol.getClass().getName(), header.getCommand());
+            ctx.writeAndFlush(reject(peer, header, ex));
         } catch (UnsupportedNetProtocolException ex) {
-            logger.warn("UnsupportedNetProtocolException : {}", header.getCommand());
+            logger.warn("Net-protocol class [{}] unsupported  {}", NetProtocol.class.getName(), header.getCommand());
+            ctx.writeAndFlush(reject(peer, header, ex));
         } catch (RuntimeException ex) {
             logger.error("Request data error {}: \n{}\n", ex.getMessage(), ByteUtil.hex(header.getPayload()));
             throw ex;
         }
+    }
+
+    public Reject reject(Peer peer, MessageHeader header, Exception ex) {
+        Reject reject = new Reject(peer);
+        reject.setMessage(header.getCommand());
+        reject.setCode(Reject.Code.REJECT_INVALID.code);
+        String er = ex.getMessage();
+        if (er == null) {
+            er = "error parsing message";
+        }
+        reject.setMessage(er);
+        return reject;
     }
 
     @Override

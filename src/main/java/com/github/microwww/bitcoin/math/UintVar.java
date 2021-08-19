@@ -54,8 +54,13 @@ public class UintVar extends BigInteger {
         return ByteUtil.readLength(bf, i);
     }
 
+    public static ByteBuf writeData(ByteBuf bf, byte[] data) {
+        UintVar.valueOf(data.length).write(bf);
+        bf.writeBytes(data);
+        return bf;
+    }
+
     public UintVar write(ByteBuf bf) {
-        byte bts = this.byteValue();
         try {
             int i = this.intValueExact();
             if (i < 0xFD) {

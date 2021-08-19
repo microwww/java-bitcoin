@@ -153,6 +153,12 @@ public enum NetProtocol {
             return new Pong(peer).read(buf);
         }
     },
+    REJECT() {
+        @Override
+        public Reject parse(Peer peer, byte[] buf) {
+            return new Reject(peer).read(buf);
+        }
+    },
     /**
      * The notfound message is a reply to a getdata message which requested an
      * object the receiving node does not have available for relay.
@@ -298,7 +304,7 @@ public enum NetProtocol {
     private static final Logger logger = LoggerFactory.getLogger(NetProtocol.class);
     private final String cmd = this.name().toLowerCase();
 
-    public AbstractProtocol parse(Peer peer, byte[] buf) {
+    public AbstractProtocol parse(Peer peer, byte[] buf) throws IgnoreNetProtocolException {
         logger.warn("Net protocol parse is not support : {}", this.cmd);
         throw new IgnoreNetProtocolException(this.cmd);
     }
