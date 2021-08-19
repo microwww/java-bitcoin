@@ -36,7 +36,7 @@ public class PeerChannelProtocol {
     @Autowired
     LocalBlockChain chain;
 
-    public void doAction(ChannelHandlerContext ctx, AbstractProtocol ver) {
+    public void doAction(ChannelHandlerContext ctx, AbstractProtocol ver) throws UnsupportedOperationException {
         try {
             Method service = PeerChannelProtocol.class.getDeclaredMethod("service", ChannelHandlerContext.class, ver.getClass());
             service.invoke(this, ctx, ver);
@@ -153,7 +153,7 @@ public class PeerChannelProtocol {
                 logger.warn("Merkle Root can not match, block hash : {}", k.hash().toHexReverse256());
                 continue;
             }
-            logger.debug("Find new block : {}, tx: {}", ok, k.header.getTxCount());
+            logger.debug("Headers new block : {}, tx: {}", ok, k.header.getTxCount());
             Uint256 preHash = k.header.getPreHash();
             int height = chain.getDiskBlock().getHeight(preHash);
             if (height >= 0) {
@@ -201,6 +201,10 @@ public class PeerChannelProtocol {
     }
 
     public void service(ChannelHandlerContext ctx, Inv request) {
+        if (true) {// TODO: 根据高度计算
+            logger.info("Skip [Inv] request");
+            return;
+        }
         ctx.executor().execute(() -> {
             request.validity();
             GetData.Message[] data = request.getData();
@@ -253,6 +257,11 @@ public class PeerChannelProtocol {
 
     public void service(ChannelHandlerContext ctx, SendHeaders request) {
         logger.info("Get SendHeaders !");
+    }
+
+    public void service(ChannelHandlerContext ctx, Reject request) {
+        Peer peer = request.getPeer();
+        logger.warn("Peer-Reject {}:{}, request : {}, reason: {}", peer.getHost(), peer.getPort(), request.getMessage(), request.getReason());
     }
 
 }

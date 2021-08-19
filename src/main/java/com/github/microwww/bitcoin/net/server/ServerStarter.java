@@ -67,14 +67,17 @@ public class ServerStarter implements Closeable {
                 });
         // connection
         try {
+            String hp = host + ":" + port;
             ChannelFuture sync = bootstrap.bind(host, port)
                     .addListener((DefaultChannelPromise e) -> {
-                        if (bindingListener != null) bindingListener.accept(e);
                         if (e.isSuccess()) {
                             logger.info("Server Bind In: {}", e.channel().localAddress());
                         } else {
+                            logger.error("Server Bind ERROR : {}", hp);
                             executors.shutdownGracefully();
                         }
+                        // client can run
+                        if (bindingListener != null) bindingListener.accept(e);
                     }).sync();
             this.server = sync.channel();
             server.closeFuture().addListener((DefaultChannelPromise e) -> {

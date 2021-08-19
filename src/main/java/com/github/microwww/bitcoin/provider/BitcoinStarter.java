@@ -51,9 +51,10 @@ public class BitcoinStarter implements ApplicationListener<ApplicationReadyEvent
 
                 // 启动server
                 ServerStarter sv = event.getApplicationContext().getBean(ServerStarter.class);
-                sv.newThreadSTART(null, null);
+                sv.newThreadSTART(f -> {
+                    future.setSuccess(null);
+                }, null);
 
-                future.setSuccess(null);
                 conf.toPeers().forEach(e -> {
                     this.addPeer(new Peer(localBlockChain, e.getHost(), e.getPort()));
                 });

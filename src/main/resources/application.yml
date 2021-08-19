@@ -1,7 +1,7 @@
 ####
 #
 server:
-  port: 8333
+  port: 8332
 #
 spring:
   profiles:
@@ -11,5 +11,5 @@ spring:
 #
 logging:
   level:
-    com.github.microwww.bitcoin.net.PeerChannelInboundHandler: DEBUG
+    com.github.microwww.bitcoin.net.PeerChannelInboundHandler: INFO
 #
