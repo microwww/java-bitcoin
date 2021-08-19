@@ -84,7 +84,7 @@ public class DiskBlock implements Closeable {
                                 .orElseThrow(() -> new RuntimeException("prehash == 000...000 is Must Generate"));
                     } else continue;
                 }
-                this.writeLevelDB(new HeightBlock(fc, height + 1));
+                this.indexBlock(fc, height + 1);
                 Uint256 hash = fc.getBlock().hash();
                 logger.info("Height: {}, Hash: {}, PreHash: {}", height + 1, hash.toHexReverse256(), preHash.toHexReverse256());
                 refreshCache(bf, pool, hash, height + 2);
@@ -99,7 +99,7 @@ public class DiskBlock implements Closeable {
         }
         for (int i = 0; i < list.size(); i++) {
             FileChainBlock cb = list.get(i);
-            this.writeLevelDB(new HeightBlock(cb, height));
+            this.indexBlock(cb, height);
             refreshCache(bf, pool, cb.getBlock().hash(), height + 1);
         }
     }
@@ -227,10 +227,7 @@ public class DiskBlock implements Closeable {
             }
         }
         FileChainBlock write = write(block);
-        logger.info("Add levelDB: {}, {} , {} , {}", write.getPosition(), height, hash, block.header.getPreHash());
-        Assert.isTrue(write.getPosition() < Integer.MAX_VALUE, "Int overflow");
-        HeightBlock hb = new HeightBlock(write, height);
-        this.writeLevelDB(hb);
+        HeightBlock hb = this.indexBlock(write, height);
         return Optional.of(hb);
     }
 
@@ -249,6 +246,17 @@ public class DiskBlock implements Closeable {
         }
     }
 
+    public HeightBlock indexBlock(FileChainBlock write, int height) {
+        ChainBlock block = write.getBlock();
+        if (logger.isDebugEnabled())
+            logger.debug("Add BLOCK to levelDB: {}, {} , {} , {}", write.getPosition(), height, block.hash(), block.header.getPreHash());
+        Assert.isTrue(write.getPosition() < Integer.MAX_VALUE, "Int overflow");
+        HeightBlock hc = new HeightBlock(write, height);
+        this.writeLevelDB(hc);
+        this.resetHeight(hc);
+        return hc;
+    }
+
     // ByteBuf : height + position + len + name
     public DiskBlock writeLevelDB(HeightBlock hc) {
         Uint256 hash = hc.getBlock().hash();
@@ -256,11 +264,14 @@ public class DiskBlock implements Closeable {
                 ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hash.fill256bit()),
                 hc.serializationLevelDB()
         );
+        return this;
+    }
+
+    public void resetHeight(HeightBlock hc) {
         int height = hc.getHeight();
         if (height > this.getLatestHeight()) {
             this.resetLatest(hc);
         }
-        return this;
     }
 
     public Optional<HeightBlock> readBlock(Uint256 hash) {
