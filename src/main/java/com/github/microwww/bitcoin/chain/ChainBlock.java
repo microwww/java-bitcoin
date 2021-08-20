@@ -3,6 +3,7 @@ package com.github.microwww.bitcoin.chain;
 import com.github.microwww.bitcoin.math.MerkleTree;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.store.FileTransaction;
+import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import org.springframework.util.Assert;
 
@@ -22,6 +23,16 @@ public class ChainBlock implements Serializable {
             throw new IllegalArgumentException("Not null");
         }
         this.header = header;
+    }
+
+    public boolean verifyMerkleTree() {
+        if (this.txs == null || this.txs.length == 0) {
+            throw new IllegalArgumentException("Not have transaction");
+        }
+        MerkleTree<RawTransaction, byte[]> mt = MerkleTree.merkleTree(Arrays.asList(this.txs),
+                e -> e.hash().fill256bit(),
+                (e1, e2) -> ByteUtil.sha256sha256(ByteUtil.concat(e1, e2)));
+        return this.header.getMerkleRoot().equalsByte(mt.getHash());
     }
 
     public ChainBlock readHeader(ByteBuf bf) {

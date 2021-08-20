@@ -84,12 +84,21 @@ public class Settings {
         return peers;
     }
 
-    public List<URI> toPeers() {
+    public List<URI> toPeers(int defPort) {
+        return toPeers(peers, defPort);
+    }
+
+    public static List<URI> toPeers(String[] peers, int defPort) {
         List<URI> list = new ArrayList<>(peers.length);
         for (String peer : peers) {
             String[] hp = peer.split(":");
             try {
-                list.add(new URI("bitcoin", null, hp[0], Integer.parseInt(hp[1]), null, null, null));
+                String host = hp[0];
+                int port = defPort;
+                if (hp.length > 1) {
+                    port = Integer.parseInt(hp[1]);
+                }
+                list.add(new URI("bitcoin", null, host, port, null, null, null));
             } catch (URISyntaxException e) {
                 throw new RuntimeException("format error : " + peer + ", example : 8.8.8.8:8333", e);
             }

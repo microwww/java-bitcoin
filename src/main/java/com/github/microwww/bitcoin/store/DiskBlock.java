@@ -64,7 +64,7 @@ public class DiskBlock implements Closeable {
             while (channel.position() < length) {
                 FileChainBlock fc = new FileChainBlock(file).setPosition(channel.position()).readBlock(bf, channel);
                 int magic = chainParams.getEnvParams().getMagic();
-                Assert.isTrue( fc.getMagic() == chainParams.getEnvParams().getMagic(), "Env is not match , need : " + magic);
+                Assert.isTrue(fc.getMagic() == chainParams.getEnvParams().getMagic(), "Env is not match , need : " + magic);
                 Uint256 preHash = fc.getBlock().header.getPreHash();
                 int height = heights.get(preHash);
                 if (height < 0) {
@@ -109,18 +109,20 @@ public class DiskBlock implements Closeable {
     public synchronized DiskBlock init() {
         logger.info("Init DiskBlock, Get block-file, And init chain-height");
 
+        ChainBlock generate = heights.getGenerate();
+        logger.info("Generate block hash : {}", generate.hash().toHexReverse256());
+
         if (chainParams.settings.isReIndex()) {
             try {
                 logger.info("Reindex BLOCK");
                 reindex();
-                logger.info("Reindex BLOCK OVER : " + heights.getLatestHeight());
+                logger.info("Reindex BLOCK OVER : {}, {}", heights.getLatestHeight(), heights.getLatestHash());
+                return this;
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
 
-        ChainBlock generate = heights.getGenerate();
-        logger.info("Generate block hash : {}", generate.hash().toHexReverse256());
         Optional<HeightBlock> opt = this.findChainBlockInLevelDB(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes);
         if (!opt.isPresent()) { // 如果没有最新的块, 需要初始化创世块
             Optional<HeightBlock> hc = this.writeBlock(generate, 0, true);

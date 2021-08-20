@@ -62,6 +62,7 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
             er = "error parsing message";
         }
         reject.setMessage(er);
+        reject.setReason(ex.getClass().getName());
         return reject;
     }
 

@@ -57,13 +57,14 @@ public class BitcoinStarter implements ApplicationListener<ApplicationReadyEvent
                     future.setSuccess(null);
                 }, null);
 
-                List<URI> peers = conf.toPeers();
+                List<URI> peers = conf.toPeers(chainParams.getEnvParams().getDefaultPort());
+                if (peers.isEmpty()) {
+                    logger.error("No find PEER, you can set it : `conf.bitcoin.peers`");
+                    peers = chainParams.getEnvParams().seedsURI();
+                }
                 peers.forEach(e -> {
                     this.addPeer(new Peer(localBlockChain, e.getHost(), e.getPort()));
                 });
-                if (peers.isEmpty()) {
-                    logger.error("No find PEER, you can set it : `conf.bitcoin.peers`");
-                }
             } catch (RuntimeException e) {
                 logger.error("Start bitcoin-server error !", e);
                 future.setFailure(e);

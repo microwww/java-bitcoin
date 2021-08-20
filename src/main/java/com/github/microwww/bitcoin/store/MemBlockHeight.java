@@ -33,7 +33,7 @@ public class MemBlockHeight {
     }
 
     public synchronized int hashAdd(Uint256 hash, int height) {
-        Assert.isTrue(chains.size() == height, "Only to add, NOT SET");
+        Assert.isTrue(chains.size() == height, "Only to add, NOT SET :" + height);
         return new Node(height, hash).add();
     }
 

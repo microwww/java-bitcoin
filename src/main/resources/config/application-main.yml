@@ -3,6 +3,10 @@ conf:
   bitcoin:
     env: MAIN
     data-dir: ${user.home}/.bitoin
+    peers:
+      - seed.bitcoin.sipa.be:8333
     tx-index: true
     re-index: false
 #
+logging:
+  file: debug.log

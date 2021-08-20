@@ -6,6 +6,8 @@ import com.github.microwww.bitcoin.math.Uint32;
 import org.springframework.stereotype.Component;
 
 import java.math.BigInteger;
+import java.net.URI;
+import java.util.List;
 
 @Component
 public class CChainParams {
@@ -196,6 +198,10 @@ public class CChainParams {
 
         public String[] getSeeds() {
             return seeds;
+        }
+
+        public List<URI> seedsURI() {
+            return Settings.toPeers(seeds, this.getDefaultPort());
         }
     }
 }
