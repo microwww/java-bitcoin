@@ -38,6 +38,16 @@ public class FileChainBlock {
     }
 
     public FileChainBlock readBlock(ByteBuf cache, FileChannel channel) throws IOException {
+        try {
+            return readBlockWithError(cache, channel);
+        } catch (RuntimeException ex) {
+            int i = cache.readerIndex();
+            logger.error("Read block error : {}[{}] bytes-index {}", this.file.getAbsolutePath(), this.position, i);
+            throw ex;
+        }
+    }
+
+    private FileChainBlock readBlockWithError(ByteBuf cache, FileChannel channel) throws IOException {
         ByteBuffer f = ByteBuffer.allocate(1 * 1024 * 1024);
         channel.position(this.position);
         channel.read(f);
@@ -59,12 +69,13 @@ public class FileChainBlock {
 
     // will set `fileTransactions`
     public FileChainBlock writeBlock(ByteBuf cache, FileChannel file) throws IOException {
-        cache.clear();
         this.position = file.position();
+        Assert.isTrue(this.magic != 0, "To set magic");
         while (true) {
             FileLock lock = file.tryLock(position, Integer.MAX_VALUE, false);
             if (lock != null) {
                 try {
+                    cache.clear();
                     cache.writeInt(this.magic).writeIntLE(0);
                     this.fileTransactions = block.writeHeader(cache).writeTxCount(cache).writeTxBody(cache);
                     for (FileTransaction ft : this.fileTransactions) {

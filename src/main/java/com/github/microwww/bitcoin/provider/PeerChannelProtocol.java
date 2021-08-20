@@ -1,13 +1,16 @@
 package com.github.microwww.bitcoin.provider;
 
 import com.github.microwww.bitcoin.chain.ChainBlock;
+import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.conf.Settings;
+import com.github.microwww.bitcoin.math.MerkleTree;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint64;
 import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.store.FileTransaction;
 import com.github.microwww.bitcoin.store.HeightBlock;
+import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
@@ -230,7 +233,9 @@ public class PeerChannelProtocol {
 
     public void service(ChannelHandlerContext ctx, Block request) {
         ChainBlock cb = request.getChainBlock();
-        logger.info("Get one blocks from peer : {}", request.getChainBlock().hash());
+        logger.info("Get one blocks from peer : {}", cb.hash());
+        MerkleTree<RawTransaction, byte[]> mt = MerkleTree.merkleTree(Arrays.asList(cb.getTxs()), e -> e.hash().reverse256bit(), (e1, e2) -> ByteUtil.sha256sha256(ByteUtil.concat(e1, e2)));
+        Assert.isTrue(cb.header.getMerkleRoot().reverseEqual(mt.getHash()), "RawTransaction MerkleRoot match");
         Optional<HeightBlock> hc = chain.getDiskBlock().writeBlock(cb, true);
         if (hc.isPresent()) {
             FileTransaction[] ft = hc.get().getFileChainBlock().getFileTransactions();

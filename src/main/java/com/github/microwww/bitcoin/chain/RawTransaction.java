@@ -21,16 +21,12 @@ public class RawTransaction {
 
     public void read(ByteBuf bf) {
         version = bf.readIntLE();
-        bf.markReaderIndex();
-        Uint8 uic = new Uint8(bf.readByte());
-        if (uic.intValue() == 0) {
-            marker = uic.byteValue();
+        inputCount = UintVar.parse(bf);
+        if (inputCount.intValueExact() == 0) {
+            marker = 0;
             flag = bf.readByte();
             Assert.isTrue(1 == flag, "Must 0x0001");
-        } else {
-            bf.resetReaderIndex();
         }
-        inputCount = UintVar.parse(bf);
         //////// IN
         Assert.isTrue(inputCount.intValue() != 0, "Must > 0");
         int len = inputCount.intValue();

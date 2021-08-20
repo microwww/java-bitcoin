@@ -61,8 +61,10 @@ public class DiskBlock implements Closeable {
             long length = file.length();
             FileChannel channel = new RandomAccessFile(file, "r").getChannel();
             channel.position(0);
-            while (channel.position() <= length) {
+            while (channel.position() < length) {
                 FileChainBlock fc = new FileChainBlock(file).setPosition(channel.position()).readBlock(bf, channel);
+                int magic = chainParams.getEnvParams().getMagic();
+                Assert.isTrue( fc.getMagic() == chainParams.getEnvParams().getMagic(), "Env is not match , need : " + magic);
                 Uint256 preHash = fc.getBlock().header.getPreHash();
                 int height = heights.get(preHash);
                 if (height < 0) {

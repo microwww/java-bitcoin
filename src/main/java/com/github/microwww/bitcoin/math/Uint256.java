@@ -92,7 +92,7 @@ public class Uint256 extends BigInteger {
 
     @Override
     public String toString() {
-        return "0x" + toHex();
+        return "0x" + toHexReverse256();
     }
 
     public static byte[] dsha256(byte[] val) {
@@ -116,5 +116,9 @@ public class Uint256 extends BigInteger {
 
     public boolean equalsByte(byte[] x) {
         return Arrays.equals(x, this.fill256bit());
+    }
+
+    public boolean reverseEqual(byte[] x) {
+        return Arrays.equals(x, this.reverse256bit());
     }
 }
