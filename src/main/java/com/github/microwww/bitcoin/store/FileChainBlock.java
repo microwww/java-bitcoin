@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 
 public class FileChainBlock {
     private static final Logger logger = LoggerFactory.getLogger(FileChainBlock.class);
@@ -59,18 +60,33 @@ public class FileChainBlock {
     // will set `fileTransactions`
     public FileChainBlock writeBlock(ByteBuf cache, FileChannel file) throws IOException {
         cache.clear();
-        cache.writeInt(this.magic).writeIntLE(0);
         this.position = file.position();
-        this.fileTransactions = block.writeHeader(cache).writeTxCount(cache).writeTxBody(cache);
-        for (FileTransaction ft : this.fileTransactions) {
-            ft.setPosition(ft.getPosition() + this.position);
-            ft.setFile(this.file);
+        while (true) {
+            FileLock lock = file.tryLock(position, Integer.MAX_VALUE, false);
+            if (lock != null) {
+                try {
+                    cache.writeInt(this.magic).writeIntLE(0);
+                    this.fileTransactions = block.writeHeader(cache).writeTxCount(cache).writeTxBody(cache);
+                    for (FileTransaction ft : this.fileTransactions) {
+                        ft.setPosition(ft.getPosition() + this.position);
+                        ft.setFile(this.file);
+                    }
+                    int i = cache.writerIndex();
+                    cache.setIntLE(4, i - 8);
+                    int write = file.write(cache.nioBuffer());
+                    Assert.isTrue(write == i, "Write ALL");
+                } finally {
+                    lock.release();
+                }
+            } else {
+                try {
+                    logger.debug("Not get file lock, wait ... 100 ms ");
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                }
+            }
+            return this;
         }
-        int i = cache.writerIndex();
-        cache.setIntLE(4, i - 8);
-        int write = file.write(cache.nioBuffer());
-        Assert.isTrue(write == i, "Write ALL");
-        return this;
     }
 
     public File getFile() {
