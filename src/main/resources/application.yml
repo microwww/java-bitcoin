@@ -5,7 +5,7 @@ server:
 #
 spring:
   profiles:
-    active: regtest
+    active: main
   application:
     name: bitcoin
 #

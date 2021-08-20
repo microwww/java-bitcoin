@@ -1,6 +1,8 @@
+####
 conf:
   bitcoin:
     env: MAIN
+    data-dir: ${user.home}/.bitoin
     tx-index: true
     re-index: false
 #

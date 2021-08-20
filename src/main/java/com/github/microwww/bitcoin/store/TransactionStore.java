@@ -40,7 +40,7 @@ public class TransactionStore implements Closeable {
         if (chainParams.settings.isTxIndex()) {
             try {
                 File file = chainParams.settings.lockupRootDirectory();
-                logger.info("Transaction Index-dir: {}{}{}", file.getCanonicalPath(), File.separator, TX_INDEX_DIR);
+                logger.info("Transaction Index-dir: {}{}", file.getCanonicalPath(), TX_INDEX_DIR);
                 DB db = ChainBlockStore.leveldb(file, TX_INDEX_DIR, chainParams.settings.isReIndex());
                 levelDB = Optional.of(db);
             } catch (IOException e) {

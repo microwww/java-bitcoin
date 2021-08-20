@@ -25,9 +25,9 @@ public class ChainBlockStore {
     }
 
     @Bean
-    public Wallet wallet() {
+    public Wallet wallet(CChainParams params) {
         try {
-            Wallet wallet = new Wallet();
+            Wallet wallet = new Wallet(params.settings.lockupRootDirectory());
             wallet.init();
             return wallet;
         } catch (SQLException | IOException ex) {

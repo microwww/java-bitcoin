@@ -93,7 +93,7 @@ public class AccessBlockFile implements Closeable {
                 if (current != null) current.close();
                 currentFile = file;
                 current = new RandomAccessFile(currentFile, "rwd").getChannel().position(length);
-                logger.info("Rolling file : {} , from position: {}", currentFile.getCanonicalPath(), length);
+                logger.info("Block file in-rolling: {} , from position: {}", currentFile.getCanonicalPath(), length);
                 break;
             }
             return current;

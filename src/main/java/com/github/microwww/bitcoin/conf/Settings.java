@@ -20,7 +20,7 @@ public class Settings {
     private String agent = "/j-bitcoin-0.18.1:0.0.1/";
     private String dataDir = "/bitcion";
     private String[] connections;
-    private String[] peers;
+    private String[] peers = {};
     private boolean txIndex = false;
     private boolean reIndex = false;
     private int bestConfirmHeight = 6;

@@ -29,8 +29,7 @@ public class Wallet implements Closeable {
         }
     }
 
-    public Wallet() throws SQLException, IOException {
-        File root = new File(this.getClass().getResource("/").getFile());
+    public Wallet(File root) throws SQLException, IOException {
         wallet = new File(new File(root, "wallet"), name).getCanonicalFile();
         conn = DriverManager.getConnection("jdbc:h2:file:" + wallet.getCanonicalPath());
     }

@@ -21,7 +21,9 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.net.URI;
 import java.nio.channels.FileLock;
+import java.util.List;
 
 @Component
 public class BitcoinStarter implements ApplicationListener<ApplicationReadyEvent>, Closeable {
@@ -55,9 +57,13 @@ public class BitcoinStarter implements ApplicationListener<ApplicationReadyEvent
                     future.setSuccess(null);
                 }, null);
 
-                conf.toPeers().forEach(e -> {
+                List<URI> peers = conf.toPeers();
+                peers.forEach(e -> {
                     this.addPeer(new Peer(localBlockChain, e.getHost(), e.getPort()));
                 });
+                if (peers.isEmpty()) {
+                    logger.error("No find PEER, you can set it : `conf.bitcoin.peers`");
+                }
             } catch (RuntimeException e) {
                 logger.error("Start bitcoin-server error !", e);
                 future.setFailure(e);
