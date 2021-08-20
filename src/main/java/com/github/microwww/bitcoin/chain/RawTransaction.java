@@ -26,6 +26,7 @@ public class RawTransaction {
             marker = 0;
             flag = bf.readByte();
             Assert.isTrue(1 == flag, "Must 0x0001");
+            inputCount = UintVar.parse(bf);
         }
         //////// IN
         Assert.isTrue(inputCount.intValue() != 0, "Must > 0");
