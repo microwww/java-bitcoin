@@ -8,6 +8,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 
 /**
  * 头部 80 个字节,
@@ -23,7 +24,7 @@ public class BlockHeader implements Serializable {
     private Uint256 preHash;
     private Uint256 merkleRoot;
     private Uint32 time;
-    private Uint32 bits;
+    private Uint32 bits; // POW 难度 // CalculateNextWorkRequired
     private Uint32 nonce;
     // 上面属性 hash
 
@@ -120,6 +121,12 @@ public class BlockHeader implements Serializable {
 
     public Uint32 getBits() {
         return bits;
+    }
+
+    public BigInteger threshold() {
+        long exponent = (bits.longValue() >>> 24) - 3;
+        long coefficient = bits.longValue() & 0x00FFFFFF;
+        return Uint256.valueOf(coefficient).shiftLeft((int) exponent * 8);
     }
 
     public BlockHeader setBits(Uint32 bits) {
