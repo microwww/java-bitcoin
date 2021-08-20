@@ -9,6 +9,8 @@ import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.store.FileTransaction;
 import com.github.microwww.bitcoin.store.HeightBlock;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.util.Attribute;
+import io.netty.util.AttributeKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +20,6 @@ import org.springframework.util.Assert;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static com.github.microwww.bitcoin.net.protocol.GetHeaders.MAX_LOCATOR_SZ;
@@ -29,12 +30,11 @@ import static com.github.microwww.bitcoin.net.protocol.GetHeaders.MAX_LOCATOR_SZ
 @Component
 public class PeerChannelProtocol {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelProtocol.class);
-
+    private static final AttributeKey<List<Uint256>> LOADING_BLOCKS = AttributeKey.newInstance("loading-blocks");
     @Autowired
     Settings config;
     @Autowired
     LocalBlockChain chain;
-    private Map<Uint256, LoadingBlock> readyBlocks = new ConcurrentHashMap<>(100);
 
     public void doAction(ChannelHandlerContext ctx, AbstractProtocol ver) throws UnsupportedOperationException {
         try {
@@ -46,8 +46,6 @@ public class PeerChannelProtocol {
         } catch (NoSuchMethodException e) {
             logger.warn("Unsupported handler in {} : {}", this.getClass().getSimpleName(), e.getMessage());
             throw new UnsupportedOperationException("" + this.getClass().getSimpleName() + " Unsupported handler", e);
-        } catch (UnsupportedOperationException e) {
-            throw e;
         }
     }
 
@@ -102,7 +100,13 @@ public class PeerChannelProtocol {
                 if (list.size() > GetHeaders.MAX_UNCONNECTING_HEADERS) {
                     step *= 2;
                 }
-                list.add(chain.getDiskBlock().getHash(i).get());
+                Optional<Uint256> hash = chain.getDiskBlock().getHash(i);
+                if (hash.isPresent()) {
+                    list.add(hash.get());
+                } else {
+                    logger.error("Not hear !!!");
+                    return;
+                }
             }
             GetHeaders hd = new GetHeaders(peer).setStarting(list);
             ctx.write(hd);
@@ -151,6 +155,11 @@ public class PeerChannelProtocol {
 
     // PeerManager::ProcessHeadersMessage
     public void service(ChannelHandlerContext ctx, Headers request) {
+        Attribute<List<Uint256>> loading = ctx.channel().attr(LOADING_BLOCKS);
+        if (loading.get() != null && !loading.get().isEmpty()) {
+            return;
+        }
+        Map<Uint256, ChainBlock> readyBlocks = new LinkedHashMap<>();
         ChainBlock[] cb = request.getChainBlocks();
         for (ChainBlock k : cb) {
             Uint256 hash = k.hash();
@@ -161,50 +170,62 @@ public class PeerChannelProtocol {
             if (height >= 0) {
                 Optional<HeightBlock> hc = chain.getDiskBlock().readBlock(hash);
                 if (!hc.isPresent()) {
-                    readyBlocks.putIfAbsent(hash, new LoadingBlock(k.hash()));
+                    readyBlocks.putIfAbsent(hash, k);
                 }
             } else {
-                LoadingBlock ready = readyBlocks.get(preHash);
+                ChainBlock ready = readyBlocks.get(preHash);
                 if (ready == null) {
                     logger.warn("Not find pre-block Hash : {} -> {}", preHash, hash);
                 } else {
-                    readyBlocks.putIfAbsent(hash, new LoadingBlock(k.hash()));
+                    readyBlocks.putIfAbsent(hash, k);
                 }
-                /*
-                Optional<HeightBlock> hc = chain.getDiskBlock().readBlock(preHash);
-                if (hc.isPresent()) {
-                    height = hc.get().getHeight();
-                    chain.getDiskBlock().writeBlock(k, height + 1, true);
-                } else {
-                    logger.warn("Not find pre-block Hash : {} -> {}", preHash, k.hash());
-                }
-                 */
             }
         }
-        logger.info("Find blocks from headers, count : {}, and to get it", cb.length);
+        if (readyBlocks.isEmpty()) {
+            return;
+        }
+        loading.set(new LinkedList<>(readyBlocks.keySet()));
         loadChainBlock(ctx);
     }
 
     public void loadChainBlock(ChannelHandlerContext ctx) {
         Peer peer = ctx.channel().attr(Peer.PEER).get();
         ctx.executor().execute(() -> {
+            Attribute<List<Uint256>> loading = ctx.channel().attr(LOADING_BLOCKS);
+            if (loading.get() == null || loading.get().isEmpty()) {
+                return;
+            }
             List<GetData.Message> ms = new ArrayList<>(10);
-            Iterator<Uint256> iterator = readyBlocks.keySet().iterator();
+            Iterator<Uint256> iterator = loading.get().iterator();
             while (iterator.hasNext()) {
                 if (ms.size() < 10) {
-                    LoadingBlock v = readyBlocks.get(iterator.next());
-                    boolean ic = v.compareAndInc(0);
-                    if (ic) {
-                        GetData.Message msg = new GetData.Message()
-                                .setHashIn(v.hash)
-                                .setTypeIn(GetDataType.WITNESS_BLOCK);
-                        ms.add(msg);
-                    }
+                    Uint256 hash = iterator.next();
+                    iterator.remove();
+                    GetData.Message msg = new GetData.Message()
+                            .setHashIn(hash)
+                            .setTypeIn(GetDataType.WITNESS_BLOCK);
+                    ms.add(msg);
                 } else break;
             }
             GetData data = new GetData(peer).setMessages(ms.toArray(new GetData.Message[]{}));
             ctx.writeAndFlush(data);
         });
+    }
+
+    public void sendLoadOneChainBlock(ChannelHandlerContext ctx) {
+        Peer peer = ctx.channel().attr(Peer.PEER).get();
+        Attribute<List<Uint256>> loading = ctx.channel().attr(LOADING_BLOCKS);
+        if (loading.get() == null || loading.get().isEmpty()) {
+            sendGetHeader(ctx);
+            return;
+        }
+        Uint256 one = loading.get().remove(0);
+        GetData data = new GetData(peer).setMessages(new GetData.Message[]{
+                new GetData.Message()
+                        .setHashIn(one)
+                        .setTypeIn(GetDataType.WITNESS_BLOCK)
+        });
+        ctx.writeAndFlush(data);
     }
 
     public void service(ChannelHandlerContext ctx, Block request) {
@@ -215,10 +236,7 @@ public class PeerChannelProtocol {
             FileTransaction[] ft = hc.get().getFileChainBlock().getFileTransactions();
             chain.getTransactionStore().serializationTransaction(ft);
         }
-        readyBlocks.remove(request.getChainBlock().hash());
-        if (readyBlocks.isEmpty()) { // TODO:: 服务器断开会导致永远不为空
-            sendGetHeader(ctx);
-        }
+        sendLoadOneChainBlock(ctx);
     }
 
     public void service(ChannelHandlerContext ctx, Tx request) {
@@ -292,6 +310,7 @@ public class PeerChannelProtocol {
 
     public class LoadingBlock {
         public final Uint256 hash;
+        private ChainBlock chainBlock;
         private int status;
 
         public LoadingBlock(Uint256 hash) {
@@ -304,6 +323,16 @@ public class PeerChannelProtocol {
                 return true;
             }
             return false;
+        }
+
+        public ChainBlock getChainBlock() {
+            return chainBlock;
+        }
+
+        public synchronized void setChainBlockIfNull(ChainBlock chainBlock) {
+            if (this.chainBlock == null) {
+                this.chainBlock = chainBlock;
+            }
         }
     }
 }
