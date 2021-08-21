@@ -1,7 +1,6 @@
 package com.github.microwww.bitcoin.provider;
 
 import com.github.microwww.bitcoin.conf.CChainParams;
-import com.github.microwww.bitcoin.conf.ChainBlockStore;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.event.BitcoinAddPeerEvent;
 import com.github.microwww.bitcoin.net.Peer;
@@ -59,8 +58,8 @@ public class BitcoinStarter implements ApplicationListener<ApplicationReadyEvent
 
                 List<URI> peers = conf.toPeers(chainParams.getEnvParams().getDefaultPort());
                 if (peers.isEmpty()) {
-                    logger.error("No find PEER, you can set it : `conf.bitcoin.peers`");
                     peers = chainParams.getEnvParams().seedsURI();
+                    logger.warn("No find PEER, you can set it : `conf.bitcoin.peers`, START with system params.seeds {}", peers.size());
                 }
                 peers.forEach(e -> {
                     this.addPeer(new Peer(localBlockChain, e.getHost(), e.getPort()));

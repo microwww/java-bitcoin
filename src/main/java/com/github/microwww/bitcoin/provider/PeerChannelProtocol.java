@@ -1,16 +1,14 @@
 package com.github.microwww.bitcoin.provider;
 
 import com.github.microwww.bitcoin.chain.ChainBlock;
-import com.github.microwww.bitcoin.chain.RawTransaction;
-import com.github.microwww.bitcoin.conf.Settings;
-import com.github.microwww.bitcoin.math.MerkleTree;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint64;
 import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.net.protocol.*;
+import com.github.microwww.bitcoin.store.FileChainBlock;
 import com.github.microwww.bitcoin.store.FileTransaction;
 import com.github.microwww.bitcoin.store.HeightBlock;
-import com.github.microwww.bitcoin.util.ByteUtil;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
@@ -23,6 +21,7 @@ import org.springframework.util.Assert;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static com.github.microwww.bitcoin.net.protocol.GetHeaders.MAX_LOCATOR_SZ;
@@ -34,10 +33,10 @@ import static com.github.microwww.bitcoin.net.protocol.GetHeaders.MAX_LOCATOR_SZ
 public class PeerChannelProtocol {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelProtocol.class);
     private static final AttributeKey<List<Uint256>> LOADING_BLOCKS = AttributeKey.newInstance("loading-blocks");
-    @Autowired
-    Settings config;
+
     @Autowired
     LocalBlockChain chain;
+    private LoadingHeaderManager loadingHeaderManager = new LoadingHeaderManager();
 
     public void doAction(ChannelHandlerContext ctx, AbstractProtocol ver) throws UnsupportedOperationException {
         try {
@@ -82,14 +81,14 @@ public class PeerChannelProtocol {
             ctx.write(new Ping(peer));
         });
 
-        sendGetHeader(ctx);
+        loadingHeaderManager.sendGetHeader(peer, ctx);
 
         ctx.executor().execute(() -> {
             ctx.write(new FeeFilter(peer));
         });
     }
 
-    private void sendGetHeader(ChannelHandlerContext ctx) {
+    public void sendGetHeader(ChannelHandlerContext ctx) {
         Peer peer = ctx.channel().attr(Peer.PEER).get();
         ctx.executor().execute(() -> {
             int height = chain.getDiskBlock().getLatestHeight();
@@ -167,7 +166,8 @@ public class PeerChannelProtocol {
         for (ChainBlock k : cb) {
             Uint256 hash = k.hash();
             Assert.isTrue(k.header.getTxCount().intValueExact() == 0, "Headers tx.length == 0");
-            logger.debug("Headers new block : {}, tx: {}", hash.toHexReverse256(), k.header.getTxCount());
+            if (logger.isDebugEnabled())
+                logger.debug("Headers new block : {}, tx: {}", hash.toHexReverse256(), k.header.getTxCount());
             Uint256 preHash = k.header.getPreHash();
             int height = chain.getDiskBlock().getHeight(preHash);
             if (height >= 0) {
@@ -187,6 +187,8 @@ public class PeerChannelProtocol {
         if (readyBlocks.isEmpty()) {
             return;
         }
+        Peer peer = ctx.channel().attr(Peer.PEER).get();
+        logger.info("Get head : {}, from {}:{}, will loading it !", readyBlocks.size(), peer.getHost(), peer.getPort());
         loading.set(new LinkedList<>(readyBlocks.keySet()));
         loadChainBlock(ctx);
     }
@@ -219,7 +221,7 @@ public class PeerChannelProtocol {
         Peer peer = ctx.channel().attr(Peer.PEER).get();
         Attribute<List<Uint256>> loading = ctx.channel().attr(LOADING_BLOCKS);
         if (loading.get() == null || loading.get().isEmpty()) {
-            sendGetHeader(ctx);
+            loadingHeaderManager.stopAndNext(peer);
             return;
         }
         Uint256 one = loading.get().remove(0);
@@ -231,16 +233,33 @@ public class PeerChannelProtocol {
         ctx.writeAndFlush(data);
     }
 
+    private long current = System.currentTimeMillis();
+
     public void service(ChannelHandlerContext ctx, Block request) {
         ChainBlock cb = request.getChainBlock();
         if (!cb.verifyMerkleTree()) {
-            logger.error("RawTransaction MerkleRoot do not match : {}, TEST so skip", cb.hash());
+            logger.error("RawTransaction MerkleRoot do not match : {}, Now is test so skip", cb.hash());
         }
         Optional<HeightBlock> hc = chain.getDiskBlock().writeBlock(cb, true);
-        logger.info("Get one blocks from peer : {}, {}", hc.map(HeightBlock::getHeight).orElse(-1), cb.hash());
+        if (logger.isInfoEnabled()) {
+            long next = System.currentTimeMillis();
+            if (next - current > 5000) {
+                current = next;
+                logger.info("Get one blocks, height: {}, {}", hc.map(HeightBlock::getHeight).orElse(-1), cb.hash());
+            }
+        }
         if (hc.isPresent()) {
-            FileTransaction[] ft = hc.get().getFileChainBlock().getFileTransactions();
-            chain.getTransactionStore().serializationTransaction(ft);
+            FileChainBlock fc = hc.get().getFileChainBlock();
+            if (!fc.isCache()) {
+                FileTransaction[] ft = fc.getFileTransactions();
+                chain.getTransactionStore().serializationTransaction(ft);
+            } else {
+                logger.warn("WHY ! load one exist ?");
+            }
+        } else {
+            logger.warn("STOP ! Not find pre-block");
+            Attribute<List<Uint256>> loading = ctx.channel().attr(LOADING_BLOCKS);
+            loading.set(null);
         }
         sendLoadOneChainBlock(ctx);
     }
@@ -314,31 +333,52 @@ public class PeerChannelProtocol {
         logger.warn("Peer-Reject {}:{}, request : {}, reason: {}", peer.getHost(), peer.getPort(), request.getMessage(), request.getReason());
     }
 
-    public class LoadingBlock {
-        public final Uint256 hash;
-        private ChainBlock chainBlock;
-        private int status;
+    public void channelClose(Peer peer) {
+        loadingHeaderManager.peerClose(peer);
+    }
 
-        public LoadingBlock(Uint256 hash) {
-            this.hash = hash;
+    class LoadingHeaderManager {
+        private Map<String, ChannelHandlerContext> peers = new ConcurrentHashMap();// 注意 channel 可以被回收
+        private Peer current;
+
+        public void sendGetHeader(Peer peer, ChannelHandlerContext ctx) {
+            ChannelHandlerContext channel = peers.putIfAbsent(peer.getURI(), ctx);
+            if (channel == null)
+                logger.info("Add peer : {}, Peers {}", peer.getURI(), peers.size());
+
+            stopAndNext(peer);
         }
 
-        public synchronized boolean compareAndInc(int i) {
-            if (this.status == i) {
-                this.status += 1;
-                return true;
+        public synchronized void stopAndNext(Peer peer) {
+            if (current == null || current == peer) {
+                logger.warn("CHANGE peer to GET header: {}:{}", peer.getHost(), peer.getPort());
+                current = null;
+                int h = chain.getDiskBlock().getLatestHeight();
+                ChannelHandlerContext[] can = peers.values().stream().filter(e -> {
+                    Channel ch = e.channel();
+                    Peer next = ch.attr(Peer.PEER).get();
+                    return next.getBlockHeight() > h && next.isMeReady() && next.isRemoteReady() && ch.isWritable();
+                }).toArray(ChannelHandlerContext[]::new);
+
+                int len = can.length;
+                if (len == 0) {
+                    logger.warn("Not have peers to GET header");
+                } else {
+                    int r = (int) (Math.random() * len);
+                    current = can[r].channel().attr(Peer.PEER).get();
+                    PeerChannelProtocol.this.sendGetHeader(can[r]);
+                    logger.info("GET header by peer : {}", current.getURI());
+                }
+            } else logger.debug("U [{}:{}] can not stop it", peer.getHost(), peer.getPort());
+        }
+
+        public void peerClose(Peer peer) {
+            ChannelHandlerContext remove = peers.remove(peer.getURI());
+            if (remove != null) {
+                logger.info("Remove peer : {}, Peers {}", peer.getURI(), peers.size());
+                stopAndNext(peer);
             }
-            return false;
         }
 
-        public ChainBlock getChainBlock() {
-            return chainBlock;
-        }
-
-        public synchronized void setChainBlockIfNull(ChainBlock chainBlock) {
-            if (this.chainBlock == null) {
-                this.chainBlock = chainBlock;
-            }
-        }
     }
 }

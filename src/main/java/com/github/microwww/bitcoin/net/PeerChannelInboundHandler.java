@@ -6,8 +6,10 @@ import com.github.microwww.bitcoin.net.protocol.UnsupportedNetProtocolException;
 import com.github.microwww.bitcoin.net.protocol.Version;
 import com.github.microwww.bitcoin.provider.PeerChannelProtocol;
 import com.github.microwww.bitcoin.util.ByteUtil;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.util.Attribute;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
 @Component
+@ChannelHandler.Sharable
 public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<MessageHeader> {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelInboundHandler.class);
 
@@ -37,7 +40,7 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
                 logger.debug("Get a command : {} \n{}", netProtocol.cmd(), ByteUtil.hex(header.getPayload()));
             }
             AbstractProtocol parse = netProtocol.parse(peer, header.getPayload());
-            logger.info("Parse command: {},  data : {}", netProtocol.cmd(), parse.getClass().getSimpleName());
+            logger.debug("Parse command: {},  data : {}", netProtocol.cmd(), parse.getClass().getSimpleName());
 
             peerChannelProtocol.doAction(ctx, parse);
 
@@ -51,6 +54,15 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
             logger.error("Request data error {}: \n{}\n", ex.getMessage(), ByteUtil.hex(header.getPayload()));
             throw ex;
         }
+    }
+
+    @Override
+    public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
+        Peer peer = ctx.channel().attr(Peer.PEER).get();
+        if (peer != null) {
+            peerChannelProtocol.channelClose(peer);
+        }
+        super.channelUnregistered(ctx);
     }
 
     public Reject reject(Peer peer, MessageHeader header, Exception ex) {
@@ -67,8 +79,10 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.error("Connection Error !", cause);
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        Attribute<Peer> attr = ctx.channel().attr(Peer.PEER);
+        Peer peer = attr.get();
+        logger.warn("Parse Request OR execute ERROR , peer {}:{}", peer.getHost(), peer.getPort(), cause);
     }
 
 }

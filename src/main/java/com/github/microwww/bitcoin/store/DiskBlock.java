@@ -31,6 +31,7 @@ public class DiskBlock implements Closeable {
     private final DB levelDB;
     private final MemBlockHeight heights;
     private final AccessBlockFile fileAccess;
+    private BlockCache cache = new BlockCache();
 
     public DiskBlock(CChainParams chainParams) {
         this.chainParams = chainParams;
@@ -133,7 +134,7 @@ public class DiskBlock implements Closeable {
             HeightBlock ds = opt.get();
             ChainBlock latest = ds.getFileChainBlock().loadBlock().getBlock();
             int h = ds.getHeight();
-            logger.debug("Loading latest block in levelDB : {}, {}", h, latest.hash());
+            logger.info("Loading latest block in levelDB : {}, {}, long time", h, latest.hash());
             while (true) {
                 list.add(latest.hash());
                 Uint256 next = latest.header.getPreHash();
@@ -226,12 +227,14 @@ public class DiskBlock implements Closeable {
     public Optional<HeightBlock> writeBlock(ChainBlock block, int height, boolean ifExistSkip) {
         Uint256 hash = block.hash();
         if (ifExistSkip) {
-            if (findChainBlockInLevelDB(hash).isPresent()) {
-                return Optional.empty();
+            Optional<HeightBlock> fd = findChainBlockInLevelDB(hash);
+            if (fd.isPresent()) {
+                return fd;
             }
         }
         FileChainBlock write = write(block);
         HeightBlock hb = this.indexBlock(write, height);
+        cache.put(hash, hb);
         return Optional.of(hb);
     }
 
@@ -280,8 +283,10 @@ public class DiskBlock implements Closeable {
 
     public Optional<HeightBlock> readBlock(Uint256 hash) {
         try {
-            return tryReadBlock(hash);
-        } catch (IOException e) {
+            return cache.get(hash, () -> {
+                return tryReadBlock(hash);
+            });
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

@@ -1,6 +1,5 @@
 package com.github.microwww.bitcoin.net;
 
-import com.github.microwww.bitcoin.event.BitcoinAddPeerEvent;
 import com.github.microwww.bitcoin.provider.LocalBlockChain;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
@@ -9,7 +8,6 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 
 import java.io.Closeable;
@@ -17,7 +15,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 
 @Component
-public class PeerConnection implements ApplicationListener<BitcoinAddPeerEvent>, Closeable {
+public class PeerConnection implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(PeerConnection.class);
     private static EventLoopGroup executors = new NioEventLoopGroup();
 
@@ -26,16 +24,13 @@ public class PeerConnection implements ApplicationListener<BitcoinAddPeerEvent>,
     @Autowired
     PeerChannelInboundHandler peerChannelInboundHandlerEventPublisher;
 
-    @Override
-    public void onApplicationEvent(BitcoinAddPeerEvent event) {
-        Peer peer = event.getBitcoinSource();
+    public void connection(Peer peer) {
         Bootstrap bootstrap = new Bootstrap()
                 .group(executors)
                 .channel(NioSocketChannel.class)
                 .handler(new ChannelInitializer<NioSocketChannel>() {
                     @Override
                     protected void initChannel(NioSocketChannel ch) {
-                        ch.attr(Peer.PEER).set(peer);
                         ch.pipeline()
                                 .addLast(new BitcoinNetEncode(localBlockChain.getChainParams()))
                                 .addLast(new BitcoinNetDecode(localBlockChain.getChainParams()))
@@ -44,19 +39,19 @@ public class PeerConnection implements ApplicationListener<BitcoinAddPeerEvent>,
                 });
         // connection
         try {
-            bootstrap.connect(peer.getHost(), peer.getPort())
-                    .addListener((DefaultChannelPromise e) -> {
-                        if (e.isSuccess()) {
-                            InetSocketAddress address = (InetSocketAddress) e.channel().localAddress();
-                            peer.setLocalAddress(address);
-                            logger.info("Connection FROM: " + e.channel().localAddress() + ", TO: " + e.channel().remoteAddress());
-                        }
-                    })
-                    .sync().channel().closeFuture()
-                    .sync()
-                    .addListener(e -> {
-                        logger.info("Close Peer {}:{}", peer.getHost(), peer.getPort());
-                    });
+            ChannelFuture channelFuture = bootstrap.connect(peer.getHost(), peer.getPort()).addListener((DefaultChannelPromise e) -> {
+                if (e.isSuccess()) {
+                    Channel ch = e.channel();
+                    ch.attr(Peer.PEER).set(peer);
+                    InetSocketAddress address = (InetSocketAddress) ch.localAddress();
+                    peer.setLocalAddress(address);
+                    logger.info("Connection FROM: " + ch.localAddress() + ", TO: " + ch.remoteAddress());
+                }
+            });
+            ChannelFuture closeFuture = channelFuture.sync().channel().closeFuture();
+            closeFuture.addListener(e -> {
+                logger.info("CLOSE connection, Peer {}:{}", peer.getHost(), peer.getPort());
+            });
         } catch (InterruptedException e) {
             logger.error("Peer error : {}", peer, e);
         }
@@ -66,4 +61,5 @@ public class PeerConnection implements ApplicationListener<BitcoinAddPeerEvent>,
     public void close() throws IOException {
         executors.shutdownGracefully();
     }
+
 }

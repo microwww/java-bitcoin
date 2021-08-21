@@ -31,6 +31,10 @@ public class Peer {
         return host;
     }
 
+    public String getURI() {
+        return "bitcoin://" + host + ":" + port;
+    }
+
     public int getPort() {
         return port;
     }

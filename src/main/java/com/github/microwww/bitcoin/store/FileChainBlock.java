@@ -133,4 +133,8 @@ public class FileChainBlock {
     public FileTransaction[] getFileTransactions() {
         return fileTransactions;
     }
+
+    public boolean isCache() {
+        return block == null;
+    }
 }
