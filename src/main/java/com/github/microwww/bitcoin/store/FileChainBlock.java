@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.store;
 
 import com.github.microwww.bitcoin.chain.ChainBlock;
+import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
@@ -62,6 +63,7 @@ public class FileChainBlock {
             cache.writeBytes(f);
         }
         this.block = new ChainBlock().readHeader(cache).readBody(cache);
+        Assert.isTrue(cache.readerIndex() == len + 8, "Fill block bytes == block length");
         channel.position(this.position + cache.readerIndex());
         logger.debug("Read File : {}, Position: {}", file.getName(), this.position);
         return this;

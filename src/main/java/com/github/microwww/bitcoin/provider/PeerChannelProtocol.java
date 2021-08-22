@@ -351,7 +351,7 @@ public class PeerChannelProtocol {
 
         public synchronized void stopAndNext(Peer peer) {
             if (current == null || current == peer) {
-                logger.warn("CHANGE peer to GET header: {}:{}", peer.getHost(), peer.getPort());
+                logger.debug("CHANGE peer to GET header: {}:{}", peer.getHost(), peer.getPort());
                 current = null;
                 int h = chain.getDiskBlock().getLatestHeight();
                 ChannelHandlerContext[] can = peers.values().stream().filter(e -> {
@@ -367,7 +367,7 @@ public class PeerChannelProtocol {
                     int r = (int) (Math.random() * len);
                     current = can[r].channel().attr(Peer.PEER).get();
                     PeerChannelProtocol.this.sendGetHeader(can[r]);
-                    logger.info("GET header by peer : {}", current.getURI());
+                    logger.info("CHANGE ! GET header by peer {} in {} : {}", r, len, current.getURI());
                 }
             } else logger.debug("U [{}:{}] can not stop it", peer.getHost(), peer.getPort());
         }

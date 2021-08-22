@@ -55,15 +55,17 @@ public class DiskBlock implements Closeable {
      * @throws IOException
      */
     public synchronized void reindex() throws IOException {
-        ByteBuf bf = Unpooled.buffer(10 * 1024 * 1024);
+        ByteBuf bf = Unpooled.buffer(1024 * 1024);
         File[] files = this.fileAccess.listFile();
         HashMap<Uint256, List<FileChainBlock>> pool = new HashMap<>(); // prehash, block
+        long time = System.currentTimeMillis();
         for (File file : files) {
             long length = file.length();
             FileChannel channel = new RandomAccessFile(file, "r").getChannel();
             channel.position(0);
             while (channel.position() < length) {
-                FileChainBlock fc = new FileChainBlock(file).setPosition(channel.position()).readBlock(bf, channel);
+                FileChainBlock fc = new FileChainBlock(file).setPosition(channel.position())
+                        .readBlock(bf, channel);
                 int magic = chainParams.getEnvParams().getMagic();
                 Assert.isTrue(fc.getMagic() == chainParams.getEnvParams().getMagic(), "Env is not match , need : " + magic);
                 Uint256 preHash = fc.getBlock().header.getPreHash();
@@ -89,7 +91,11 @@ public class DiskBlock implements Closeable {
                 }
                 this.indexBlock(fc, height + 1);
                 Uint256 hash = fc.getBlock().hash();
-                logger.info("Height: {}, Hash: {}, PreHash: {}", height + 1, hash.toHexReverse256(), preHash.toHexReverse256());
+                long next = System.currentTimeMillis();
+                if (next - time > 5000) {
+                    logger.info("Re-index Height: {}, Hash: {}, PreHash: {}", height + 1, hash.toHexReverse256(), preHash.toHexReverse256());
+                    time = next;
+                }
                 refreshCache(bf, pool, hash, height + 2);
             }
         }
@@ -115,7 +121,7 @@ public class DiskBlock implements Closeable {
 
         if (chainParams.settings.isReIndex()) {
             try {
-                logger.info("Reindex BLOCK");
+                logger.info("Reindex BLOCK, long time");
                 reindex();
                 logger.info("Reindex BLOCK OVER : {}, {}", heights.getLatestHeight(), heights.getLatestHash());
                 return this;
@@ -134,7 +140,7 @@ public class DiskBlock implements Closeable {
             HeightBlock ds = opt.get();
             ChainBlock latest = ds.getFileChainBlock().loadBlock().getBlock();
             int h = ds.getHeight();
-            logger.info("Loading latest block in levelDB : {}, {}, long time", h, latest.hash());
+            logger.info("Long time, loading latest block in levelDB : {}, {}, long time", h, latest.hash());
             while (true) {
                 list.add(latest.hash());
                 Uint256 next = latest.header.getPreHash();
