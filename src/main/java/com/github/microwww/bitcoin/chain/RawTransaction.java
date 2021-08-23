@@ -90,12 +90,12 @@ public class RawTransaction {
         if (witness != 0) {
             bf.writeBytes(new byte[]{marker, (byte) witness});
         }
-        bf.writeByte(txIns.length);
+        UintVar.valueOf(txIns.length).write(bf);
         for (TxIn txIn : txIns) {
             txIn.write(bf);
         }
         ////// OUT
-        bf.writeByte(txOuts.length);
+        UintVar.valueOf(txOuts.length).write(bf);
         for (TxOut txOut : txOuts) {
             txOut.write(bf);
         }

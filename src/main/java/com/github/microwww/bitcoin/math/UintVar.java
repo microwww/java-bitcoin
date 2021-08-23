@@ -11,10 +11,9 @@ import java.math.BigInteger;
 public class UintVar extends BigInteger {
 
     public static final UintVar ZERO = new UintVar((byte) 0x0);
-    public static final int MAX_LENGTH = 9;
 
-    public UintVar(byte... val) {
-        super(ByteUtil.concat(new byte[]{0}, val));
+    private UintVar(byte... val) {
+        super(1, val);
     }
 
     /**
@@ -28,9 +27,9 @@ public class UintVar extends BigInteger {
 
     public static UintVar parse(ByteBuf bf) {
         byte b0 = bf.readByte();
-        long v0 = unsignedByte(b0);
+        long v0 = Byte.toUnsignedLong(b0);
         if (v0 < 0xFD) {
-            return new UintVar(b0);
+            return UintVar.valueOf(b0);
         }
         byte b1 = bf.readByte();
         byte b2 = bf.readByte();
@@ -75,9 +74,5 @@ public class UintVar extends BigInteger {
             bf.writeByte(0xFF).writeLongLE(l);
         }
         return this;
-    }
-
-    public static long unsignedByte(long value) {
-        return value << 56 >>> 56;
     }
 }
