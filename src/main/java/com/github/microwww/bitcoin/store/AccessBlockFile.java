@@ -1,6 +1,9 @@
 package com.github.microwww.bitcoin.store;
 
+import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.util.FilesUtil;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
@@ -9,7 +12,9 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.regex.Pattern;
@@ -22,9 +27,12 @@ public class AccessBlockFile implements Closeable {
 
     private final RollingFile rollingFile = new RollingFile();
     private final File root;
+    private final int magic;
 
-    public AccessBlockFile(File root) {
+    public AccessBlockFile(File root, int magic) {
+        Assert.isTrue(magic != 0, "To set magic");
         this.root = root;
+        this.magic = magic;
         try {
             rollingFile.tryRollingFile();
         } catch (IOException e) {
@@ -55,29 +63,27 @@ public class AccessBlockFile implements Closeable {
      *
      * @return
      */
-    public FileChannel channel() {
-        try {
-            return getFileChannel();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public FileChannel getFileChannel() throws IOException {
+    public void tryRollingFile() throws IOException {
         long position = rollingFile.current.position();
         if (position >= MAX_BYTES) {
             rollingFile.tryRollingFile();
         }
-        return rollingFile.current;
     }
 
     public File getFile() {
         return rollingFile.currentFile;
     }
 
+    public FileChainBlock writeBlock(ChainBlock block) throws IOException {
+        tryRollingFile();
+        return rollingFile.writeBlock(block);
+    }
+
     public class RollingFile {
         private FileChannel current; //
         private File currentFile; //
+        private ByteBuf cache = Unpooled.buffer(1024 * 1024);
+        private long position = 0;
 
         private synchronized FileChannel tryRollingFile() throws IOException {
             int from = 0;
@@ -92,6 +98,7 @@ public class AccessBlockFile implements Closeable {
                 }
                 if (current != null) current.close();
                 currentFile = file;
+                position = file.length();
                 current = new RandomAccessFile(currentFile, "rwd").getChannel().position(length);
                 logger.info("Block file in-rolling: {} , from position: {}", currentFile.getCanonicalPath(), length);
                 break;
@@ -104,6 +111,47 @@ public class AccessBlockFile implements Closeable {
             File f = new File(root, String.format(sequenceFile, sequence));
             FilesUtil.createCanWriteFile(f);
             return f;
+        }
+
+        // will set `fileTransactions`
+        public synchronized FileChainBlock writeBlock(ChainBlock block) throws IOException {
+            FileChainBlock fc = new FileChainBlock(this.currentFile);
+            Assert.isTrue(position == current.position(), "Position only append");
+            fc.setPosition(position);
+            FileChannel file = this.current;
+            while (true) {
+                FileLock lock = file.tryLock(position, Integer.MAX_VALUE, false);
+                if (lock != null) {
+                    try {
+                        cache.clear();
+                        cache.writeInt(magic).writeIntLE(0);
+                        FileTransaction[] fts = block.writeHeader(cache).writeTxCount(cache).writeTxBody(cache);
+                        fc.setFileTransactions(fts);
+                        for (FileTransaction ft : fts) {
+                            ft.setPosition(ft.getPosition() + position);
+                            ft.setFile(this.currentFile);
+                        }
+                        int i = cache.writerIndex();
+                        cache.setIntLE(4, i - 8);
+                        ByteBuffer f = cache.nioBuffer();
+                        while (f.hasRemaining()) {
+                            file.write(f);
+                        }
+                        file.force(false);
+                        position += cache.writerIndex();
+                        logger.debug("Write block file {}, position {}", currentFile.getName(), position);
+                        return fc;
+                    } finally {
+                        lock.release();
+                    }
+                } else {
+                    try {
+                        logger.debug("Not get file lock, wait ... 100 ms ");
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                    }
+                }
+            }
         }
     }
 }

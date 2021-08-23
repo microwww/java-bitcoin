@@ -7,11 +7,14 @@ import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.util.ClassPath;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -74,6 +77,56 @@ class FileParse {
                 rawBlock.readBody(bf);
                 System.out.println("SKIP CHECK MARGE " + new Uint32(marge).toHex() + ", " + i + ", " + rawBlock.toString());
                 Thread.sleep(100);
+            }
+        }
+    }
+
+    @Test
+    @Disabled
+    void testParseBLK() throws Exception {
+        String f = "G:\\bitoin\\data\\blocks\\blk00000.dat";
+        RandomAccessFile r = new RandomAccessFile(f, "r");
+        FileChannel ch = r.getChannel();
+        ByteBuffer bf = ByteBuffer.allocate(1024);
+        ByteBuf ub = Unpooled.buffer();
+        int position = 0;
+        for (int i = 0; i < Integer.MAX_VALUE; i++) {
+            bf.clear();
+            int read = ch.read(bf);
+            if (read < 0) {
+                break;
+            }
+            bf.rewind();
+            ub.clear();
+            while (bf.hasRemaining()) {
+                ub.writeBytes(bf);
+            }
+            byte[] magic = ByteUtil.readLength(ub, 4);
+            Assert.assertArrayEquals(new byte[]{(byte) 0xf9, (byte) 0xbe, (byte) 0xb4, (byte) 0xd9}, magic);
+            int len = ub.readIntLE();
+            while (ub.readableBytes() < len) {
+                bf.clear();
+                read = ch.read(bf);
+                if (read < 0) {
+                    return;
+                }
+                bf.rewind();
+                while (bf.hasRemaining()) {
+                    ub.writeBytes(bf);
+                }
+            }
+            Assert.assertTrue(ub.readableBytes() >= len);
+            Assert.assertTrue(len > 80 && len < 4_000_000);
+            position += len + 8;
+            ch.position(position);
+
+            // System.out.println(i + ", magic : " + ByteUtil.hex(magic) + ", position " + position + ", len " + len);
+            try {
+                ChainBlock chainBlock = new ChainBlock().readHeader(ub).readBody(ub);
+                System.out.println(chainBlock.hash() + " , " + chainBlock.header.getPreHash());
+            } catch (RuntimeException e) {
+                ub.readerIndex(0);
+                System.out.println(ByteUtil.hex(ByteUtil.readLength(ub, len + 8)));
             }
         }
     }

@@ -46,7 +46,7 @@ public class DiskBlock implements Closeable {
         }
         ChainBlock genesisBlock = chainParams.env.createGenesisBlock();
         heights = new MemBlockHeight(genesisBlock);
-        this.fileAccess = new AccessBlockFile(root);
+        this.fileAccess = new AccessBlockFile(root, chainParams.getEnvParams().getMagic());
     }
 
     /**
@@ -57,8 +57,7 @@ public class DiskBlock implements Closeable {
     public synchronized void reindex() throws IOException {
         ByteBuf bf = Unpooled.buffer(1024 * 1024);
         File[] files = this.fileAccess.listFile();
-        HashMap<Uint256, List<FileChainBlock>> pool = new HashMap<>(); // prehash, block
-        long time = System.currentTimeMillis();
+        long time = 0;
         for (File file : files) {
             long length = file.length();
             FileChannel channel = new RandomAccessFile(file, "r").getChannel();
@@ -69,47 +68,28 @@ public class DiskBlock implements Closeable {
                 int magic = chainParams.getEnvParams().getMagic();
                 Assert.isTrue(fc.getMagic() == chainParams.getEnvParams().getMagic(), "Env is not match , need : " + magic);
                 Uint256 preHash = fc.getBlock().header.getPreHash();
+                Uint256 hash = fc.getBlock().hash();
                 int height = heights.get(preHash);
                 if (height < 0) {
                     Optional<HeightBlock> opt = this.findChainBlockInLevelDB(preHash.fill256bit());
                     if (opt.isPresent()) {
                         height = opt.get().getHeight();
+                    } else {
+                        int exist = heights.get(hash);// gen 0
+                        if (exist < 0) {
+                            Assert.isTrue(height >= 0, "prehash must exist");
+                        } else {
+                            height = exist - 1;
+                        }
                     }
-                }
-                if (height < 0) {
-                    List<FileChainBlock> list = pool.get(preHash); //, fc.getBlock());
-                    if (list == null) {
-                        list = new ArrayList<>();
-                        pool.put(preHash, list);
-                    }
-                    list.add(fc);
-                    if (preHash.equalsByte(new byte[32])) {
-                        heights.get(0)
-                                .filter(e -> e.equals(fc.getBlock().hash()))
-                                .orElseThrow(() -> new RuntimeException("prehash == 000...000 is Must Generate"));
-                    } else continue;
                 }
                 this.indexBlock(fc, height + 1);
-                Uint256 hash = fc.getBlock().hash();
                 long next = System.currentTimeMillis();
                 if (next - time > 5000) {
                     logger.info("Re-index Height: {}, Hash: {}, PreHash: {}", height + 1, hash.toHexReverse256(), preHash.toHexReverse256());
                     time = next;
                 }
-                refreshCache(bf, pool, hash, height + 2);
             }
-        }
-    }
-
-    public void refreshCache(ByteBuf bf, HashMap<Uint256, List<FileChainBlock>> pool, Uint256 hash, int height) {
-        List<FileChainBlock> list = pool.get(hash);
-        if (list == null || list.isEmpty()) {
-            return;
-        }
-        for (int i = 0; i < list.size(); i++) {
-            FileChainBlock cb = list.get(i);
-            this.indexBlock(cb, height);
-            refreshCache(bf, pool, cb.getBlock().hash(), height + 1);
         }
     }
 
@@ -246,13 +226,9 @@ public class DiskBlock implements Closeable {
 
     private synchronized FileChainBlock write(ChainBlock block) {
         try {
-            FileChannel ch = fileAccess.channel();
-            File file = fileAccess.getFile();
-            fileAccess.getFileChannel();
-            FileChainBlock fc = new FileChainBlock(file);
+            FileChainBlock fc = fileAccess.writeBlock(block);
             fc.setBlock(block);
             fc.setMagic(chainParams.getEnvParams().getMagic());
-            fc.writeBlock(Unpooled.buffer(), ch);
             return fc;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -349,7 +325,7 @@ public class DiskBlock implements Closeable {
         try {
             levelDB.close();
         } finally {
-            fileAccess.channel().close();
+            fileAccess.close();
         }
     }
 
