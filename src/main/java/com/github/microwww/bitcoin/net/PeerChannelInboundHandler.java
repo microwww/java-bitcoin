@@ -51,7 +51,7 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
             logger.warn("Net-protocol class [{}] unsupported  {}", NetProtocol.class.getName(), header.getCommand());
             ctx.writeAndFlush(reject(peer, header, ex));
         } catch (RuntimeException ex) {
-            logger.error("Request data error {}: \n{}\n", ex.getMessage(), ByteUtil.hex(header.getPayload()));
+            logger.error("Server internal error {}: \n{}\n", ex.getMessage(), ByteUtil.hex(header.getPayload()));
             throw ex;
         }
     }

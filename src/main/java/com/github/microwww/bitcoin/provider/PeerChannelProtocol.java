@@ -38,13 +38,13 @@ public class PeerChannelProtocol {
     LocalBlockChain chain;
     private LoadingHeaderManager loadingHeaderManager = new LoadingHeaderManager();
 
-    public void doAction(ChannelHandlerContext ctx, AbstractProtocol ver) throws UnsupportedOperationException {
+    public void doAction(ChannelHandlerContext ctx, AbstractProtocol request) throws UnsupportedOperationException {
         try {
-            Method service = PeerChannelProtocol.class.getDeclaredMethod("service", ChannelHandlerContext.class, ver.getClass());
-            service.invoke(this, ctx, ver);
+            Method service = PeerChannelProtocol.class.getDeclaredMethod("service", ChannelHandlerContext.class, request.getClass());
+            service.invoke(this, ctx, request);
         } catch (IllegalAccessException | InvocationTargetException e) {
-            logger.warn("Request error !", e);
-            throw new UnsupportedOperationException(e);
+            logger.warn("Server executor error !", e);
+            throw new RuntimeException(e);
         } catch (NoSuchMethodException e) {
             logger.warn("Unsupported handler in {} : {}", this.getClass().getSimpleName(), e.getMessage());
             throw new UnsupportedOperationException("" + this.getClass().getSimpleName() + " Unsupported handler", e);
@@ -367,7 +367,7 @@ public class PeerChannelProtocol {
                     int r = (int) (Math.random() * len);
                     current = can[r].channel().attr(Peer.PEER).get();
                     PeerChannelProtocol.this.sendGetHeader(can[r]);
-                    logger.info("CHANGE ! GET header by peer {} in {} : {}", r, len, current.getURI());
+                    logger.info("Change, get header by peer {}, index :{}, length: {}", current.getURI(), r, len);
                 }
             } else logger.debug("U [{}:{}] can not stop it", peer.getHost(), peer.getPort());
         }
