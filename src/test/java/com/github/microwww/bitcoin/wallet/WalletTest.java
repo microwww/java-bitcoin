@@ -2,17 +2,17 @@ package com.github.microwww.bitcoin.wallet;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.UUID;
 
 class WalletTest {
 
     @Test
     public void testCreate() throws SQLException, IOException {
-        Wallet w = new Wallet();
+        Wallet w = new Wallet(new File("/tmp/" + UUID.randomUUID()));
         w.init();
 
         CoinAccount.KeyPrivate keyPrivate = CoinAccount.KeyPrivate.create();
