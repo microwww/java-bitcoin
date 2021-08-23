@@ -27,9 +27,9 @@ public class UintVar extends BigInteger {
 
     public static UintVar parse(ByteBuf bf) {
         byte b0 = bf.readByte();
-        long v0 = Byte.toUnsignedLong(b0);
+        int v0 = Byte.toUnsignedInt(b0);
         if (v0 < 0xFD) {
-            return UintVar.valueOf(b0);
+            return UintVar.valueOf(v0);
         }
         byte b1 = bf.readByte();
         byte b2 = bf.readByte();
