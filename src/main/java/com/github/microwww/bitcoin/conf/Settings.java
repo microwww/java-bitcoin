@@ -26,6 +26,7 @@ public class Settings {
     private int bestConfirmHeight = 6;
     private String bind; // host:port
     private int txPoolMax = 500;
+    private int maxPeers = 10;
 
     private CChainParams.Env env = CChainParams.Env.MAIN;
 
@@ -169,5 +170,13 @@ public class Settings {
 
     public void setTxPoolMax(int txPoolMax) {
         this.txPoolMax = txPoolMax;
+    }
+
+    public int getMaxPeers() {
+        return maxPeers;
+    }
+
+    public void setMaxPeers(int maxPeers) {
+        this.maxPeers = maxPeers;
     }
 }

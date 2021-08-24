@@ -31,11 +31,10 @@ public class ServerStarter implements Closeable {
 
     private Channel server;
 
-    public Channel newThreadSTART(Consumer<DefaultChannelPromise> bindingListener, Consumer<DefaultChannelPromise> stopListener) {
+    public void newThreadSTART(Consumer<DefaultChannelPromise> bindingListener, Consumer<DefaultChannelPromise> stopListener) {
         executors.next().execute(() -> {
             start(bindingListener, stopListener);
         });
-        return server;
     }
 
     public void start() {
@@ -71,14 +70,14 @@ public class ServerStarter implements Closeable {
             ChannelFuture sync = bootstrap.bind(host, port)
                     .addListener((DefaultChannelPromise e) -> {
                         if (e.isSuccess()) {
-                            logger.info("Server Bind In: {}", e.channel().localAddress());
+                            logger.info("Server listener : {}", e.channel().localAddress());
                         } else {
                             logger.error("Server Bind ERROR : {}", hp);
                             executors.shutdownGracefully();
                         }
                         // client can run
                         if (bindingListener != null) bindingListener.accept(e);
-                    }).sync();
+                    });
             this.server = sync.channel();
             server.closeFuture().addListener((DefaultChannelPromise e) -> {
                 if (stopListener != null) stopListener.accept(e);

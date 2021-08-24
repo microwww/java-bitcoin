@@ -33,7 +33,12 @@ public enum NetProtocol {
      * The addr (IP address) message relays connection information for peers on the
      * network.
      */
-    ADDR,
+    ADDR {
+        @Override
+        public Addr parse(Peer peer, byte[] buf) throws IgnoreNetProtocolException {
+            return new Addr(peer).read(buf);
+        }
+    },
     /**
      * The addrv2 message relays connection information for peers on the network just
      * like the addr message, but is extended to allow gossiping of longer node

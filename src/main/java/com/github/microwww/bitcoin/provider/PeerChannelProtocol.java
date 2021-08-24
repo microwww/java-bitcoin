@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.provider;
 
 import com.github.microwww.bitcoin.chain.ChainBlock;
+import com.github.microwww.bitcoin.event.BitcoinAddPeerEvent;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint64;
 import com.github.microwww.bitcoin.net.Peer;
@@ -15,11 +16,16 @@ import io.netty.util.AttributeKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
@@ -36,6 +42,8 @@ public class PeerChannelProtocol {
 
     @Autowired
     LocalBlockChain chain;
+    @Autowired
+    ApplicationEventPublisher publisher;
     private LoadingHeaderManager loadingHeaderManager = new LoadingHeaderManager();
 
     public void doAction(ChannelHandlerContext ctx, AbstractProtocol request) throws UnsupportedOperationException {
@@ -328,6 +336,18 @@ public class PeerChannelProtocol {
         logger.info("Get SendHeaders !");
     }
 
+    public void service(ChannelHandlerContext ctx, Addr request) {
+        PeerNode[] nodes = request.getNodes();
+        logger.info("Get peer address from peer, count: {}", nodes.length);
+        for (PeerNode node : nodes) {
+            try {// not block
+                publisher.publishEvent(new BitcoinAddPeerEvent(Peer.uri(node.getInetAddress().getHostAddress(), node.getPort())));
+            } catch (UnknownHostException e) {
+                logger.warn("Addr protocol get a IP address is wrong, IGNORE", e);
+            }
+        }
+    }
+
     public void service(ChannelHandlerContext ctx, Reject request) {
         Peer peer = request.getPeer();
         logger.warn("Peer-Reject {}:{}, request : {}, reason: {}", peer.getHost(), peer.getPort(), request.getMessage(), request.getReason());
@@ -367,7 +387,7 @@ public class PeerChannelProtocol {
                     int r = (int) (Math.random() * len);
                     current = can[r].channel().attr(Peer.PEER).get();
                     PeerChannelProtocol.this.sendGetHeader(can[r]);
-                    logger.info("Change, get header by peer {}, index :{}, length: {}", current.getURI(), r, len);
+                    logger.info("Change, get header by peer {}, index: {}, length: {}", current.getURI(), r, len);
                 }
             } else logger.debug("U [{}:{}] can not stop it", peer.getHost(), peer.getPort());
         }

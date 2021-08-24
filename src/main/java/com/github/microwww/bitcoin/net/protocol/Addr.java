@@ -15,17 +15,24 @@ public class Addr extends AbstractProtocolAdapter<Addr> {
         super(peer);
     }
 
+    //   count: 01
+    //    time: 867f2361              # only when version is >= 31402)
+    // service: 0d04000000000000
+    //      ip: 00000000000000000000ffffbca67a38
+    //    port: 208d
     @Override
     public Addr read(byte[] buf) {
         ByteBuf buffer = Unpooled.copiedBuffer(buf);
         int len = UintVar.parse(buffer).intValueExact();
         PeerNode[] ns = new PeerNode[len];
-        for (int i = 0; i < len; i++) { // TODO:: 有出入, 需要真实数据验证
+        for (int i = 0; i < len; i++) {
+            int time = buffer.readIntLE();
             long service = buffer.readLongLE();
             byte[] addr = new byte[16];
             buffer.readBytes(addr);
             short port = buffer.readShortLE();
             PeerNode peerNode = new PeerNode(service, port).setAddress(addr);
+            peerNode.setTime(time);
             ns[i] = peerNode;
         }
         this.nodes = ns;

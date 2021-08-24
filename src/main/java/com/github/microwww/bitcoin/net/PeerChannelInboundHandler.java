@@ -45,13 +45,15 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
             peerChannelProtocol.doAction(ctx, parse);
 
         } catch (UnsupportedOperationException ex) {
-            logger.warn("UnsupportedOperation class [{}].service: {}", peerChannelProtocol.getClass().getName(), header.getCommand());
+            logger.warn("UnsupportedOperation class [{}].service: {} \n {}", peerChannelProtocol.getClass().getName(),
+                    header.getCommand(), ByteUtil.hex(header.getPayload()));
             ctx.writeAndFlush(reject(peer, header, ex));
         } catch (UnsupportedNetProtocolException ex) {
-            logger.warn("Net-protocol class [{}] unsupported  {}", NetProtocol.class.getName(), header.getCommand());
+            logger.warn("Net-protocol class [{}] unsupported PROTOCOL: {} \n {}", NetProtocol.class.getName(), header.getCommand(),
+                    ByteUtil.hex(header.getPayload()));
             ctx.writeAndFlush(reject(peer, header, ex));
         } catch (RuntimeException ex) {
-            logger.error("Server internal error {}: \n{}\n", ex.getMessage(), ByteUtil.hex(header.getPayload()));
+            logger.error("Server internal error {}: \n{}\n", ex.getMessage(), ByteUtil.hex(header.getPayload()), ex);
             throw ex;
         }
     }

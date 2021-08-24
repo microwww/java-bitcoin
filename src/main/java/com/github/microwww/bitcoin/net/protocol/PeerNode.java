@@ -3,11 +3,15 @@ package com.github.microwww.bitcoin.net.protocol;
 import io.netty.buffer.ByteBuf;
 import org.springframework.util.Assert;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Date;
 
 public class PeerNode {
     public static final int PEER_NODE_ADDRESS_LENGTH = 16;
     public static final int PEER_NODE_LENGTH = 4 + PEER_NODE_ADDRESS_LENGTH + 2;
+    private int time;
     private long services;
     private byte[] address = new byte[PEER_NODE_ADDRESS_LENGTH];
     private short port;
@@ -30,13 +34,17 @@ public class PeerNode {
         return address;
     }
 
+    public InetAddress getInetAddress() throws UnknownHostException {
+        return InetAddress.getByAddress(address);
+    }
+
     public PeerNode setAddress(byte[] address) {
         this.address = address;
         return this;
     }
 
-    public short getPort() {
-        return port;
+    public int getPort() {
+        return Short.toUnsignedInt(port);
     }
 
     public PeerNode setPort(short port) {
@@ -60,9 +68,22 @@ public class PeerNode {
         return node;
     }
 
+    public int getTime() {
+        return time;
+    }
+
+    public Date getDate() {
+        return new Date(Integer.toUnsignedLong(time) * 1000);
+    }
+
+    public void setTime(int time) {
+        this.time = time;
+    }
+
     @Override
     public String toString() {
         return "PeerNode{" +
+                "time=" + this.getDate() +
                 "services=" + services +
                 ", address=" + Arrays.toString(address) +
                 ", port=" + port +

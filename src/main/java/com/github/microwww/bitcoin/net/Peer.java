@@ -2,11 +2,14 @@ package com.github.microwww.bitcoin.net;
 
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
+import com.github.microwww.bitcoin.event.BitcoinAddPeerEvent;
 import com.github.microwww.bitcoin.net.protocol.Version;
 import com.github.microwww.bitcoin.provider.LocalBlockChain;
 import io.netty.util.AttributeKey;
 
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 public class Peer {
     public static final AttributeKey<Peer> PEER = AttributeKey.newInstance("connection-peer");
@@ -25,6 +28,18 @@ public class Peer {
         this.localBlockChain = localBlockChain;
         this.host = host;
         this.port = port;
+    }
+
+    public static URI uri(String host, short port) {
+        return uri(host, Short.toUnsignedInt(port));
+    }
+
+    public static URI uri(String host, int port) {
+        try {
+            return new URI("bitcoin", null, host, port, "/", null, null);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public String getHost() {

@@ -7,8 +7,12 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 @Configuration
 public class PeerEventListener {
+    private static final ExecutorService exec = Executors.newSingleThreadExecutor();
 
     @Component
     public static class BitcoinAddPeerListener implements ApplicationListener<BitcoinAddPeerEvent> {
@@ -17,7 +21,9 @@ public class PeerEventListener {
 
         @Override
         public void onApplicationEvent(BitcoinAddPeerEvent event) {
-            peerConnection.connection(event.getBitcoinSource());
+            exec.submit(() -> {
+                peerConnection.connection(event.getBitcoinSource());// no block !!
+            });
         }
     }
 }

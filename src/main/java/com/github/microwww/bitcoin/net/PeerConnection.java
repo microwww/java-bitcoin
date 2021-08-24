@@ -1,5 +1,6 @@
 package com.github.microwww.bitcoin.net;
 
+import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.provider.LocalBlockChain;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
@@ -9,10 +10,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.util.*;
+import java.util.concurrent.DelayQueue;
+import java.util.concurrent.Delayed;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class PeerConnection implements Closeable {
@@ -23,8 +30,23 @@ public class PeerConnection implements Closeable {
     LocalBlockChain localBlockChain;
     @Autowired
     PeerChannelInboundHandler peerChannelInboundHandlerEventPublisher;
+    @Autowired
+    CChainParams params;
 
-    public void connection(Peer peer) {
+    private DelayQueue<DelayedConnection> connections = new DelayQueue<>();
+    private Map<URI, Peer> peers = new LinkedHashMap<>();
+
+    /**
+     * Not block
+     *
+     * @param uri
+     */
+    public synchronized void connection(URI uri) {
+        logger.info("Connection {}, success: {}, waiting: {}", uri, peers.size(), connections.size());
+        if (peers.size() > params.settings.getMaxPeers()) {
+            connections.add(new DelayedConnection(uri, 0));
+            return;
+        }
         Bootstrap bootstrap = new Bootstrap()
                 .group(executors)
                 .channel(NioSocketChannel.class)
@@ -38,6 +60,7 @@ public class PeerConnection implements Closeable {
                     }
                 });
         // connection
+        Peer peer = new Peer(localBlockChain, uri.getHost(), uri.getPort());
         try {
             ChannelFuture channelFuture = bootstrap.connect(peer.getHost(), peer.getPort()).addListener((DefaultChannelPromise e) -> {
                 if (e.isSuccess()) {
@@ -46,20 +69,67 @@ public class PeerConnection implements Closeable {
                     InetSocketAddress address = (InetSocketAddress) ch.localAddress();
                     peer.setLocalAddress(address);
                     logger.info("Connection FROM: " + ch.localAddress() + ", TO: " + ch.remoteAddress());
+                    peers.put(uri, peer);
                 }
             });
             ChannelFuture closeFuture = channelFuture.sync().channel().closeFuture();
             closeFuture.addListener(e -> {
                 logger.info("CLOSE connection, Peer {}:{}", peer.getHost(), peer.getPort());
+                this.restart(uri);
+                connections.add(new DelayedConnection(uri));
             });
         } catch (InterruptedException e) {
             logger.error("Peer error : {}", peer, e);
+            peers.remove(uri);
+        }
+    }
+
+    private void restart(URI uri) {
+        peers.remove(uri);
+        if (peers.size() < params.settings.getMaxPeers()) {
+            while (true) {
+                try {
+                    DelayedConnection poll = connections.take();// block
+                    if (poll != null) {
+                        this.connection(poll.uri);
+                    }
+                } catch (InterruptedException e) {
+                }
+                return;
+            }
         }
     }
 
     @Override
     public void close() throws IOException {
         executors.shutdownGracefully();
+    }
+
+    public static class DelayedConnection implements Delayed {
+        public static final int TimeMillis = 10 * 1000;
+        private final long start = System.currentTimeMillis();
+        public final URI uri;
+        public final int waitingMillis;
+
+        public DelayedConnection(URI uri, int waitingMillis) {
+            Assert.isTrue(uri != null, "Not null");
+            this.uri = uri;
+            this.waitingMillis = waitingMillis;
+        }
+
+        public DelayedConnection(URI uri) {
+            this(uri, TimeMillis);
+        }
+
+        @Override
+        public long getDelay(TimeUnit unit) {
+            return unit.convert(start + waitingMillis - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+        }
+
+        @Override
+        public int compareTo(Delayed o) {
+            return 0;
+        }
     }
 
 }

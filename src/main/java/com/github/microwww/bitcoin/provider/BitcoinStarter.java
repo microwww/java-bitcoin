@@ -73,8 +73,8 @@ public class BitcoinStarter implements ApplicationListener<ApplicationReadyEvent
 
     public void addPeer(Peer peer) {
         future.addListener((e) -> {
-            logger.info("load peer : {}:{}", peer.getHost(), peer.getPort());
-            publisher.publishEvent(new BitcoinAddPeerEvent(peer));
+            logger.debug("find peer : {}:{}", peer.getHost(), peer.getPort());
+            publisher.publishEvent(new BitcoinAddPeerEvent(Peer.uri(peer.getHost(), peer.getPort())));
         });
     }
 
