@@ -2,9 +2,11 @@ package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.math.MerkleTree;
 import com.github.microwww.bitcoin.math.Uint256;
+import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.store.FileTransaction;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.springframework.util.Assert;
 
 import java.io.Serializable;
@@ -57,7 +59,7 @@ public class ChainBlock implements Serializable {
     }
 
     public ChainBlock writeTxCount(ByteBuf bf) {
-        bf.writeByte(txs.length);
+        UintVar.valueOf(txs.length).write(bf);
         return this;
     }
 
@@ -127,5 +129,11 @@ public class ChainBlock implements Serializable {
         }
         sb.append("   }");
         return sb;
+    }
+
+    public byte[] serialization() {
+        ByteBuf buffer = Unpooled.buffer();
+        this.writeHeader(buffer).writeTxCount(buffer).writeTxBody(buffer);
+        return ByteUtil.readAll(buffer);
     }
 }

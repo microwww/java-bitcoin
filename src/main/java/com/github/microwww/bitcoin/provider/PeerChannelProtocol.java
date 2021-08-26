@@ -248,6 +248,9 @@ public class PeerChannelProtocol {
         if (!cb.verifyMerkleTree()) {
             logger.error("RawTransaction MerkleRoot do not match : {}, Now is test so skip", cb.hash());
         }
+        if (logger.isDebugEnabled()) { // 校验数据是否正确
+            Assert.isTrue(Arrays.equals(request.getPayload(), request.getChainBlock().serialization()), "block format serialization error !");
+        }
         Optional<HeightBlock> hc = chain.getDiskBlock().writeBlock(cb, true);
         if (logger.isInfoEnabled()) {
             long next = System.currentTimeMillis();

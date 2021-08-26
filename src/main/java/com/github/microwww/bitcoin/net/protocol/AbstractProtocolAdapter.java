@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 public abstract class AbstractProtocolAdapter<T extends AbstractProtocol> implements AbstractProtocol<T> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractProtocolAdapter.class);
-
+    private byte[] payload;
     protected final Peer peer;
 
     public AbstractProtocolAdapter(Peer peer) {
@@ -50,5 +50,13 @@ public abstract class AbstractProtocolAdapter<T extends AbstractProtocol> implem
 
     public Peer getPeer() {
         return peer;
+    }
+
+    public byte[] getPayload() {
+        return payload;
+    }
+
+    public void setPayload(byte[] payload) {
+        this.payload = payload;
     }
 }

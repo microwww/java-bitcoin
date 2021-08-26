@@ -1,9 +1,6 @@
 package com.github.microwww.bitcoin.net;
 
-import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
-import com.github.microwww.bitcoin.net.protocol.Reject;
-import com.github.microwww.bitcoin.net.protocol.UnsupportedNetProtocolException;
-import com.github.microwww.bitcoin.net.protocol.Version;
+import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.provider.PeerChannelProtocol;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.channel.ChannelHandler;
@@ -40,6 +37,9 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
                 logger.debug("Get a command : {} \n{}", netProtocol.cmd(), ByteUtil.hex(header.getPayload()));
             }
             AbstractProtocol parse = netProtocol.parse(peer, header.getPayload());
+            if (parse instanceof AbstractProtocolAdapter) {
+                ((AbstractProtocolAdapter<?>) parse).setPayload(header.getPayload());
+            }
             logger.debug("Parse command: {},  data : {}", netProtocol.cmd(), parse.getClass().getSimpleName());
 
             peerChannelProtocol.doAction(ctx, parse);
