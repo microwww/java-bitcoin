@@ -10,7 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GetHeaders extends AbstractProtocolAdapter<GetHeaders> {
-    public static final int MAX_UNCONNECTING_HEADERS = 10;
+    public static final int MAX_UN_CONNECTING_HEADERS = 10;
+    public static final int MAX_GET_BLOCK_SZ = 10;
     public static final int MAX_LOCATOR_SZ = 101;
     public static final int MAX_HEADERS_RESULTS = 2000;
 
@@ -79,7 +80,8 @@ public class GetHeaders extends AbstractProtocolAdapter<GetHeaders> {
         return stopping;
     }
 
-    public void setStopping(Uint256 stopping) {
+    public GetHeaders setStopping(Uint256 stopping) {
         this.stopping = stopping;
+        return this;
     }
 }

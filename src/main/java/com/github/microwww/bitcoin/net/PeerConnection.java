@@ -50,6 +50,7 @@ public class PeerConnection implements Closeable {
         Bootstrap bootstrap = new Bootstrap()
                 .group(executors)
                 .channel(NioSocketChannel.class)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10_000)
                 .handler(new ChannelInitializer<NioSocketChannel>() {
                     @Override
                     protected void initChannel(NioSocketChannel ch) {

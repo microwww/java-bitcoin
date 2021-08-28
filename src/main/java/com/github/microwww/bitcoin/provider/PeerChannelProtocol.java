@@ -9,10 +9,7 @@ import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.store.FileChainBlock;
 import com.github.microwww.bitcoin.store.FileTransaction;
 import com.github.microwww.bitcoin.store.HeightBlock;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.util.Attribute;
-import io.netty.util.AttributeKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,15 +19,11 @@ import org.springframework.util.Assert;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.Inet4Address;
-import java.net.Inet6Address;
-import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ThreadLocalRandom;
-
-import static com.github.microwww.bitcoin.net.protocol.GetHeaders.MAX_LOCATOR_SZ;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * `net_processing.cpp`
@@ -38,7 +31,7 @@ import static com.github.microwww.bitcoin.net.protocol.GetHeaders.MAX_LOCATOR_SZ
 @Component
 public class PeerChannelProtocol {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelProtocol.class);
-    private static final AttributeKey<List<Uint256>> LOADING_BLOCKS = AttributeKey.newInstance("loading-blocks");
+    public static final Logger verify = LoggerFactory.getLogger("mode.test");
 
     @Autowired
     LocalBlockChain chain;
@@ -89,7 +82,7 @@ public class PeerChannelProtocol {
             ctx.write(new Ping(peer));
         });
 
-        loadingHeaderManager.sendGetHeader(peer, ctx);
+        loadingHeaderManager.sendGetHeader(ctx);
 
         ctx.executor().execute(() -> {
             ctx.write(new FeeFilter(peer));
@@ -104,10 +97,10 @@ public class PeerChannelProtocol {
             // TODO:: 这个规则需要确认
             List<Uint256> list = new ArrayList<>();
             for (int i = height; i >= 0; i -= step) {
-                if (list.size() >= MAX_LOCATOR_SZ) {
+                if (list.size() >= GetHeaders.MAX_LOCATOR_SZ) {
                     break;
                 }
-                if (list.size() > GetHeaders.MAX_UNCONNECTING_HEADERS) {
+                if (list.size() > GetHeaders.MAX_UN_CONNECTING_HEADERS) {
                     step *= 2;
                 }
                 Optional<Uint256> hash = chain.getDiskBlock().getHash(i);
@@ -126,7 +119,7 @@ public class PeerChannelProtocol {
     // if (msg_type == NetMsgType::GETHEADERS) {
     public void service(ChannelHandlerContext ctx, GetHeaders request) {
         List<Uint256> list = request.getStarting();
-        if (list.size() > GetHeaders.MAX_UNCONNECTING_HEADERS) {
+        if (list.size() > GetHeaders.MAX_UN_CONNECTING_HEADERS) {
             return;
         }
         int from = -1;
@@ -165,8 +158,7 @@ public class PeerChannelProtocol {
 
     // PeerManager::ProcessHeadersMessage
     public void service(ChannelHandlerContext ctx, Headers request) {
-        Attribute<List<Uint256>> loading = ctx.channel().attr(LOADING_BLOCKS);
-        if (loading.get() != null && !loading.get().isEmpty()) {
+        if (!loadingHeaderManager.isEmpty()) {
             return;
         }
         Map<Uint256, ChainBlock> readyBlocks = new LinkedHashMap<>();
@@ -175,7 +167,7 @@ public class PeerChannelProtocol {
             Uint256 hash = k.hash();
             Assert.isTrue(k.header.getTxCount().intValueExact() == 0, "Headers tx.length == 0");
             if (logger.isDebugEnabled())
-                logger.debug("Headers new block : {}, tx: {}", hash.toHexReverse256(), k.header.getTxCount());
+                logger.debug("Headers new block : {}, tx: {}", hash, k.header.getTxCount());
             Uint256 preHash = k.header.getPreHash();
             int height = chain.getDiskBlock().getHeight(preHash);
             if (height >= 0) {
@@ -197,64 +189,26 @@ public class PeerChannelProtocol {
         }
         Peer peer = ctx.channel().attr(Peer.PEER).get();
         logger.info("Get head : {}, from {}:{}, will loading it !", readyBlocks.size(), peer.getHost(), peer.getPort());
-        loading.set(new LinkedList<>(readyBlocks.keySet()));
-        loadChainBlock(ctx);
-    }
-
-    public void loadChainBlock(ChannelHandlerContext ctx) {
-        Peer peer = ctx.channel().attr(Peer.PEER).get();
-        ctx.executor().execute(() -> {
-            Attribute<List<Uint256>> loading = ctx.channel().attr(LOADING_BLOCKS);
-            if (loading.get() == null || loading.get().isEmpty()) {
-                return;
-            }
-            List<GetData.Message> ms = new ArrayList<>(10);
-            Iterator<Uint256> iterator = loading.get().iterator();
-            while (iterator.hasNext()) {
-                if (ms.size() < 10) {
-                    Uint256 hash = iterator.next();
-                    iterator.remove();
-                    GetData.Message msg = new GetData.Message()
-                            .setHashIn(hash)
-                            .setTypeIn(GetDataType.WITNESS_BLOCK);
-                    ms.add(msg);
-                } else break;
-            }
-            GetData data = new GetData(peer).setMessages(ms.toArray(new GetData.Message[]{}));
-            ctx.writeAndFlush(data);
-        });
-    }
-
-    public void sendLoadOneChainBlock(ChannelHandlerContext ctx) {
-        Peer peer = ctx.channel().attr(Peer.PEER).get();
-        Attribute<List<Uint256>> loading = ctx.channel().attr(LOADING_BLOCKS);
-        if (loading.get() == null || loading.get().isEmpty()) {
-            loadingHeaderManager.stopAndNext(peer);
-            return;
-        }
-        Uint256 one = loading.get().remove(0);
-        GetData data = new GetData(peer).setMessages(new GetData.Message[]{
-                new GetData.Message()
-                        .setHashIn(one)
-                        .setTypeIn(GetDataType.WITNESS_BLOCK)
-        });
-        ctx.writeAndFlush(data);
+        // 1. headers
+        loadingHeaderManager.addAllHeaders(readyBlocks.keySet());
+        loadingHeaderManager.loadChainBlock(ctx);
     }
 
     private long current = System.currentTimeMillis();
 
     public void service(ChannelHandlerContext ctx, Block request) {
         ChainBlock cb = request.getChainBlock();
+        loadingHeaderManager.loading.decrementAndGet();
         if (!cb.verifyMerkleTree()) {
             logger.error("RawTransaction MerkleRoot do not match : {}, Now is test so skip", cb.hash());
         }
-        if (logger.isDebugEnabled()) { // 校验数据是否正确
+        if (verify.isDebugEnabled()) { // 校验数据是否正确
             Assert.isTrue(Arrays.equals(request.getPayload(), request.getChainBlock().serialization()), "block format serialization error !");
         }
         Optional<HeightBlock> hc = chain.getDiskBlock().writeBlock(cb, true);
         if (logger.isInfoEnabled()) {
             long next = System.currentTimeMillis();
-            if (next - current > 5000) {
+            if (logger.isDebugEnabled() || next - current > 5000) {
                 current = next;
                 logger.info("Get one blocks, height: {}, {}", hc.map(HeightBlock::getHeight).orElse(-1), cb.hash());
             }
@@ -265,14 +219,13 @@ public class PeerChannelProtocol {
                 FileTransaction[] ft = fc.getFileTransactions();
                 chain.getTransactionStore().serializationTransaction(ft);
             } else {
-                logger.warn("WHY ! load one exist ?");
+                logger.warn("WHY ! load one exist : {}", fc.loadBlock().getBlock().hash());
             }
         } else {
-            logger.warn("STOP ! Not find pre-block");
-            Attribute<List<Uint256>> loading = ctx.channel().attr(LOADING_BLOCKS);
-            loading.set(null);
+            logger.warn("STOP ! Not find pre-block: {}, loss: {}", cb.header.getPreHash(), loadingHeaderManager.loading.intValue());
+            loadingHeaderManager.headers.clear();
         }
-        sendLoadOneChainBlock(ctx);
+        loadingHeaderManager.sendLoadOneChainBlock(ctx);
     }
 
     public void service(ChannelHandlerContext ctx, Tx request) {
@@ -361,47 +314,126 @@ public class PeerChannelProtocol {
     }
 
     class LoadingHeaderManager {
-        private Map<String, ChannelHandlerContext> peers = new ConcurrentHashMap();// 注意 channel 可以被回收
-        private Peer current;
+        private Queue<ChannelHandlerContext> queue = new ConcurrentLinkedDeque();// 注意 channel 可以被回收
+        private ChannelHandlerContext current;
+        private Queue<Uint256> headers = new LinkedList();
+        private AtomicInteger loading = new AtomicInteger();
 
-        public void sendGetHeader(Peer peer, ChannelHandlerContext ctx) {
-            ChannelHandlerContext channel = peers.putIfAbsent(peer.getURI(), ctx);
-            if (channel == null)
-                logger.info("Add peer : {}, Peers {}", peer.getURI(), peers.size());
-
-            stopAndNext(peer);
+        public void sendGetHeader(ChannelHandlerContext ctx) {
+            queue.add(ctx);
+            stopAndNext(ctx);
         }
 
-        public synchronized void stopAndNext(Peer peer) {
-            if (current == null || current == peer) {
-                logger.debug("CHANGE peer to GET header: {}:{}", peer.getHost(), peer.getPort());
-                current = null;
-                int h = chain.getDiskBlock().getLatestHeight();
-                ChannelHandlerContext[] can = peers.values().stream().filter(e -> {
-                    Channel ch = e.channel();
-                    Peer next = ch.attr(Peer.PEER).get();
-                    return next.getBlockHeight() > h && next.isMeReady() && next.isRemoteReady() && ch.isWritable();
-                }).toArray(ChannelHandlerContext[]::new);
+        public synchronized void clear() {
+            this.headers.clear();
+            this.loading.set(0);
+        }
 
-                int len = can.length;
-                if (len == 0) {
-                    logger.warn("Not have peers to GET header");
-                } else {
-                    int r = (int) (Math.random() * len);
-                    current = can[r].channel().attr(Peer.PEER).get();
-                    PeerChannelProtocol.this.sendGetHeader(can[r]);
-                    logger.info("Change, get header by peer {}, index: {}, length: {}", current.getURI(), r, len);
+        public synchronized boolean isEmpty() {
+            return this.headers.isEmpty() && this.loading.get() == 0;
+        }
+
+        private synchronized void stopAndNext(ChannelHandlerContext ctx) {
+            if (current != null) {
+                if (current == ctx) {
+                    Peer peer = current.channel().attr(Peer.PEER).get();
+                    logger.debug("CHANGE peer to GET header: {}:{}", peer.getHost(), peer.getPort());
+                    current = null;
+                    this.queue.add(ctx);
                 }
-            } else logger.debug("U [{}:{}] can not stop it", peer.getHost(), peer.getPort());
-        }
+            }
+            if (current == null) {
+                int h = chain.getDiskBlock().getLatestHeight();
+                while (true) {
+                    ChannelHandlerContext c = queue.poll();
+                    Peer next = c.channel().attr(Peer.PEER).get();
+                    if (next.isMeReady() && next.isRemoteReady()) {
+                        if (next.getBlockHeight() > h && c.channel().isWritable()) {
+                            current = c;
+                            PeerChannelProtocol.this.sendGetHeader(current);
+                            logger.info("Change, get header by peer {}, length: {}", next.getURI(), queue.size());
+                            break;
+                        }
+                    } else {
+                        queue.add(c);
+                        continue;
+                    }
+                }
 
-        public void peerClose(Peer peer) {
-            ChannelHandlerContext remove = peers.remove(peer.getURI());
-            if (remove != null) {
-                logger.info("Remove peer : {}, Peers {}", peer.getURI(), peers.size());
-                stopAndNext(peer);
+                if (current == null) {
+                    logger.warn("Not have peers to GET header, Maybe is Max-Height");
+                }
+            } else {
+                Peer peer = current.channel().attr(Peer.PEER).get();
+                logger.debug("U [{}:{}] can not stop it", peer.getHost(), peer.getPort());
             }
         }
 
+        public synchronized void peerClose(Peer peer) {
+            Peer c = current.channel().attr(Peer.PEER).get();
+            if (peer == c) {
+                logger.info("Remove peer : {}, Peers {}", peer.getURI(), queue.size());
+                stopAndNext(current);
+            } else {
+                Optional<ChannelHandlerContext> any = queue.stream().filter(e -> {
+                    return e.channel().attr(Peer.PEER).get() == peer;
+                }).findAny();
+
+                if (any.isPresent()) {
+                    queue.remove(any.get());
+                }
+            }
+        }
+
+        public void loadChainBlock(ChannelHandlerContext ctx) {
+            Peer peer = ctx.channel().attr(Peer.PEER).get();
+            ctx.executor().execute(() -> {
+                if (headers.isEmpty()) {
+                    return;
+                }
+                int max = GetHeaders.MAX_GET_BLOCK_SZ;
+                List<GetData.Message> ms = new ArrayList<>(max);
+                for (int i = 0; i < max; i++) {
+                    Uint256 hash = headers.poll();
+                    if (hash == null) {
+                        break;
+                    }
+                    GetData.Message msg = new GetData.Message()
+                            .setHashIn(hash)
+                            .setTypeIn(GetDataType.WITNESS_BLOCK);
+                    ms.add(msg);
+                    logger.debug("Add Batch GET-BLOCK request: {}", hash);
+                }
+                loading.addAndGet(ms.size());
+                GetData data = new GetData(peer).setMessages(ms.toArray(new GetData.Message[]{}));
+                ctx.writeAndFlush(data);
+            });
+        }
+
+        public void sendLoadOneChainBlock(ChannelHandlerContext ctx) {
+            Peer peer = ctx.channel().attr(Peer.PEER).get();
+            if (headers.isEmpty()) {
+                int i = loading.get();
+                if (i <= 0) {
+                    Assert.isTrue(i == 0, "Error loading < 0");
+                    this.stopAndNext(ctx);
+                }
+                return;
+            }
+            Uint256 one = headers.poll();
+            GetData data = new GetData(peer).setMessages(new GetData.Message[]{
+                    new GetData.Message()
+                            .setHashIn(one)
+                            .setTypeIn(GetDataType.WITNESS_BLOCK)
+            });
+            logger.debug("Add one request: {}", one);
+            loading.incrementAndGet();
+            ctx.writeAndFlush(data);
+        }
+
+        public boolean addAllHeaders(Collection<? extends Uint256> c) {
+            logger.info("Add all {} + {}", headers.size(), c.size());
+            return headers.addAll(c);
+        }
     }
 }
