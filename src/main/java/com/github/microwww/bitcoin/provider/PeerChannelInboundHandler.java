@@ -1,7 +1,9 @@
-package com.github.microwww.bitcoin.net;
+package com.github.microwww.bitcoin.provider;
 
+import com.github.microwww.bitcoin.net.MessageHeader;
+import com.github.microwww.bitcoin.net.NetProtocol;
+import com.github.microwww.bitcoin.net.PeerChannelProtocol;
 import com.github.microwww.bitcoin.net.protocol.*;
-import com.github.microwww.bitcoin.provider.PeerChannelProtocol;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;

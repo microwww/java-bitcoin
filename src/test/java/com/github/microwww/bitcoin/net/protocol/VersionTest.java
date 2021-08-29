@@ -5,7 +5,7 @@ import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.net.MessageHeader;
 import com.github.microwww.bitcoin.net.NetProtocol;
-import com.github.microwww.bitcoin.net.Peer;
+import com.github.microwww.bitcoin.provider.Peer;
 import com.github.microwww.bitcoin.provider.LocalBlockChain;
 import com.github.microwww.bitcoin.store.DiskBlock;
 import com.github.microwww.bitcoin.store.TransactionStore;

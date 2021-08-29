@@ -1,7 +1,6 @@
 package com.github.microwww.bitcoin.provider;
 
 import com.github.microwww.bitcoin.event.BitcoinAddPeerEvent;
-import com.github.microwww.bitcoin.net.PeerConnection;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Configuration;

@@ -3,7 +3,7 @@ package com.github.microwww.bitcoin.net.protocol;
 import cn.hutool.core.util.RandomUtil;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
-import com.github.microwww.bitcoin.net.Peer;
+import com.github.microwww.bitcoin.provider.Peer;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

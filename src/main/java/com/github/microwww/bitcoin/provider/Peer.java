@@ -1,10 +1,8 @@
-package com.github.microwww.bitcoin.net;
+package com.github.microwww.bitcoin.provider;
 
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
-import com.github.microwww.bitcoin.event.BitcoinAddPeerEvent;
 import com.github.microwww.bitcoin.net.protocol.Version;
-import com.github.microwww.bitcoin.provider.LocalBlockChain;
 import io.netty.util.AttributeKey;
 
 import java.net.InetSocketAddress;

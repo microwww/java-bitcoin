@@ -1,7 +1,7 @@
 package com.github.microwww.bitcoin.net.protocol;
 
 import com.github.microwww.bitcoin.math.Uint32;
-import com.github.microwww.bitcoin.net.Peer;
+import com.github.microwww.bitcoin.provider.Peer;
 import io.netty.buffer.ByteBuf;
 
 public class SendCmpct extends AbstractProtocolAdapter<SendCmpct> {

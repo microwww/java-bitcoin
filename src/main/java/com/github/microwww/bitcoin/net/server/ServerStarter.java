@@ -3,7 +3,7 @@ package com.github.microwww.bitcoin.net.server;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.net.BitcoinNetDecode;
 import com.github.microwww.bitcoin.net.BitcoinNetEncode;
-import com.github.microwww.bitcoin.net.PeerChannelInboundHandler;
+import com.github.microwww.bitcoin.provider.PeerChannelInboundHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;

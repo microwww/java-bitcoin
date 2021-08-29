@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.net;
 
 import com.github.microwww.bitcoin.net.protocol.*;
+import com.github.microwww.bitcoin.provider.Peer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

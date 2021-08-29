@@ -1,7 +1,7 @@
 package com.github.microwww.bitcoin.net.protocol;
 
 import com.github.microwww.bitcoin.net.MessageHeader;
-import com.github.microwww.bitcoin.net.Peer;
+import com.github.microwww.bitcoin.provider.Peer;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

@@ -1,11 +1,12 @@
-package com.github.microwww.bitcoin.provider;
+package com.github.microwww.bitcoin.net;
 
 import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.event.BitcoinAddPeerEvent;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint64;
-import com.github.microwww.bitcoin.net.Peer;
 import com.github.microwww.bitcoin.net.protocol.*;
+import com.github.microwww.bitcoin.provider.LocalBlockChain;
+import com.github.microwww.bitcoin.provider.Peer;
 import com.github.microwww.bitcoin.store.FileChainBlock;
 import com.github.microwww.bitcoin.store.FileTransaction;
 import com.github.microwww.bitcoin.store.HeightBlock;
