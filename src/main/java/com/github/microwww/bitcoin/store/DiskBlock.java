@@ -2,19 +2,20 @@ package com.github.microwww.bitcoin.store;
 
 import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.conf.CChainParams;
-import com.github.microwww.bitcoin.conf.ChainBlockStore;
 import com.github.microwww.bitcoin.math.Uint256;
-import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import org.iq80.leveldb.DB;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
-import java.io.*;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.Optional;
 
 /**
  * struct CDiskTxPos : public FlatFilePos
@@ -28,7 +29,7 @@ public class DiskBlock implements Closeable {
     private final int bestConfirmHeight;
     private final CChainParams chainParams;
     private final File root;
-    private final DB levelDB;
+    private final IndexBlock levelDB;
     private final MemBlockHeight heights;
     private final AccessBlockFile fileAccess;
     private BlockCache cache = new BlockCache();
@@ -40,7 +41,7 @@ public class DiskBlock implements Closeable {
             File file = chainParams.settings.lockupRootDirectory();
             logger.info("Data-dir: {}", file.getCanonicalPath());
             root = new File(file, "blocks").getCanonicalFile();
-            levelDB = ChainBlockStore.leveldb(root, "index", chainParams.settings.isReIndex());
+            levelDB = new IndexBlock(chainParams);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -71,7 +72,7 @@ public class DiskBlock implements Closeable {
                 Uint256 hash = fc.getBlock().hash();
                 int height = heights.get(preHash);
                 if (height < 0) {
-                    Optional<HeightBlock> opt = this.findChainBlockInLevelDB(preHash.fill256bit());
+                    Optional<HeightBlock> opt = levelDB.findChainBlockInLevelDB(preHash);
                     if (opt.isPresent()) {
                         height = opt.get().getHeight();
                     } else {
@@ -110,11 +111,10 @@ public class DiskBlock implements Closeable {
             }
         }
 
-        Optional<HeightBlock> opt = this.findChainBlockInLevelDB(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes);
+        Optional<HeightBlock> opt = levelDB.getLastBlock();
         if (!opt.isPresent()) { // 如果没有最新的块, 需要初始化创世块
             Optional<HeightBlock> hc = this.writeBlock(generate, 0, true);
-            byte[] array = hc.get().serializationLevelDB();
-            levelDB.put(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes, array);
+            levelDB.setLastBlock(hc.get());
         } else {
             LinkedList<Uint256> list = new LinkedList<>();
             HeightBlock ds = opt.get();
@@ -154,22 +154,11 @@ public class DiskBlock implements Closeable {
     }
 
     public Optional<HeightBlock> findChainBlockInLevelDB(Uint256 hash) {
-        byte[] key = ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hash.fill256bit());
-        return this.findChainBlockInLevelDB(key);
-    }
-
-    public Optional<HeightBlock> findChainBlockInLevelDB(byte[] key) {
-        byte[] bytes = levelDB.get(key);
-        if (bytes != null) {
-            HeightBlock hb = HeightBlock.deserializationLevelDB(root, bytes);
-            return Optional.of(hb);
-        }
-        return Optional.empty();
+        return levelDB.findChainBlockInLevelDB(hash);
     }
 
     public DiskBlock putChainBlockToLevelDB(HeightBlock hc) {
-        byte[] key = ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hc.getBlock().hash().fill256bit());
-        levelDB.put(key, hc.serializationLevelDB());
+        levelDB.putChainBlockToLevelDB(hc);
         return this;
     }
 
@@ -241,20 +230,11 @@ public class DiskBlock implements Closeable {
             logger.debug("Add BLOCK to levelDB: {}, {} , {} , {}", write.getPosition(), height, block.hash(), block.header.getPreHash());
         Assert.isTrue(write.getPosition() < Integer.MAX_VALUE, "Int overflow");
         HeightBlock hc = new HeightBlock(write, height);
-        this.writeLevelDB(hc);
+        levelDB.putChainBlockToLevelDB(hc);
         this.resetHeight(hc);
         return hc;
     }
 
-    // ByteBuf : height + position + len + name
-    public DiskBlock writeLevelDB(HeightBlock hc) {
-        Uint256 hash = hc.getBlock().hash();
-        levelDB.put(
-                ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hash.fill256bit()),
-                hc.serializationLevelDB()
-        );
-        return this;
-    }
 
     public void resetHeight(HeightBlock hc) {
         int height = hc.getHeight();
@@ -295,10 +275,6 @@ public class DiskBlock implements Closeable {
         return data;
     }
 
-    private void levelDBPut(byte[] k1, byte[] k2, byte[] v1, byte[] v2) {
-        levelDB.put(ByteUtil.concat(k1, k2), ByteUtil.concat(v1, v2));
-    }
-
     /**
      * 从 0 开始
      *
@@ -314,10 +290,6 @@ public class DiskBlock implements Closeable {
      */
     public int getHeight(Uint256 hash) {
         return heights.get(hash);
-    }
-
-    public DB getLevelDB() {
-        return levelDB;
     }
 
     @Override
@@ -361,7 +333,7 @@ public class DiskBlock implements Closeable {
             if (uint256 == null) break;
             heights.hashAdd(uint256, i + 1);
         }
-        levelDB.put(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes, hb.serializationLevelDB());
+        levelDB.setLastBlock(hb);
         return true;
     }
 
