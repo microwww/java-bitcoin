@@ -31,7 +31,7 @@ public class TxOut {
     public void write(ByteBuf bf) {
         bf.writeLongLE(value);
         //scriptLength = new Uint8(bf.readByte());
-        bf.writeByte(scriptPubKey.length);
+        UintVar.valueOf(scriptPubKey.length).write(bf);
         bf.writeBytes(scriptPubKey);
     }
 
