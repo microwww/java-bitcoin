@@ -204,14 +204,14 @@ public class PeerChannelProtocol {
             logger.error("RawTransaction MerkleRoot do not match : {}, Now is test so skip", cb.hash());
         }
         if (verify.isDebugEnabled()) { // 校验数据是否正确
-            Assert.isTrue(Arrays.equals(request.getPayload(), request.getChainBlock().serialization()), "block format serialization error !");
+            Assert.isTrue(Arrays.equals(request.getPayload(), request.getChainBlock().serialization()), "BLOCK format serialization error !");
         }
         Optional<HeightBlock> hc = chain.getDiskBlock().writeBlock(cb, true);
         if (logger.isInfoEnabled()) {
             long next = System.currentTimeMillis();
             if (logger.isDebugEnabled() || next - current > 5000) {
                 current = next;
-                logger.info("Get one blocks, height: {}, {}", hc.map(HeightBlock::getHeight).orElse(-1), cb.hash());
+                logger.info("Get blocks {}, height: {}, {}", request.getPeer().getURI(), hc.map(HeightBlock::getHeight).orElse(-1), cb.hash());
             }
         }
         if (hc.isPresent()) {
@@ -236,7 +236,7 @@ public class PeerChannelProtocol {
 
     public void service(ChannelHandlerContext ctx, Inv request) {
         if (true) {// TODO: 根据高度计算
-            logger.info("Skip [Inv] request");
+            logger.info("Skip [Inv] request : {}", request.getPeer().getURI());
             return;
         }
         ctx.executor().execute(() -> {
@@ -274,6 +274,7 @@ public class PeerChannelProtocol {
 
     // TODO :: 需要坚持是否连通
     public void service(ChannelHandlerContext ctx, Ping request) {
+        logger.info("Peer send ping, {}", request.getPeer().getURI());
         long l = ThreadLocalRandom.current().nextLong(Long.MIN_VALUE, Long.MAX_VALUE);
         Pong pong = new Pong(request.getPeer()).setNonce(new Uint64(l));
         ctx.writeAndFlush(pong);
@@ -338,7 +339,7 @@ public class PeerChannelProtocol {
             if (current != null) {
                 if (current == ctx) {
                     Peer peer = current.channel().attr(Peer.PEER).get();
-                    logger.debug("CHANGE peer to GET header: {}:{}", peer.getHost(), peer.getPort());
+                    logger.info("CHANGE peer to GET header: {} , in: {}", peer.getURI(), queue.size());
                     current = null;
                     this.queue.add(ctx);
                 }

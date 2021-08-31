@@ -1,10 +1,8 @@
 package com.github.microwww.bitcoin.store;
 
-import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.ChainBlockStore;
 import com.github.microwww.bitcoin.math.Uint256;
-import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -33,48 +31,6 @@ public class IndexBlock implements Closeable {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public void setLastBlock(HeightBlock heightBlock) {
-        levelDB.put(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes, this.serializationLevelDB(heightBlock));
-    }
-
-    public Optional<HeightBlock> getLastBlock() {
-        byte[] bytes = levelDB.get(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes);
-        if (bytes != null) {
-            HeightBlock hb = this.deserializationLevelDB(bytes);
-            return Optional.of(hb);
-        }
-        return Optional.empty();
-    }
-
-    /**
-     * @param block
-     * @return 返回添加高度, -1 添加失败
-     */
-    public synchronized int tryAdd(ChainBlock block) {
-        Uint256 preHash = block.header.getPreHash();
-        HeightBlock last = this.getLastBlock().get();
-        Uint256 pre = last.getBlock().hash();
-        if (pre.equals(preHash)) {
-            hashAdd(block.hash(), last.getHeight() + 1);
-
-        }
-        return -1;
-    }
-
-    public synchronized void hashAdd(Uint256 hash, int height) {
-        byte[] key = ByteUtil.concat(new byte[]{LevelDBPrefix.DB_HEAD_BLOCKS.prefixByte}, new Uint32(height).toBytes());
-        levelDB.put(key, hash.toByteArray());
-    }
-
-    public synchronized Optional<Uint256> get(int index) {
-        byte[] key = ByteUtil.concat(new byte[]{LevelDBPrefix.DB_HEAD_BLOCKS.prefixByte}, new Uint32(index).toBytes());
-        byte[] bytes = levelDB.get(key);
-        if (bytes != null) {
-            return Optional.of(new Uint256(bytes));
-        }
-        return Optional.empty();
     }
 
     public IndexBlock putChainBlockToLevelDB(HeightBlock hc) {
@@ -115,6 +71,10 @@ public class IndexBlock implements Closeable {
         byte[] name = block.getFileChainBlock().getFile().getName().getBytes(StandardCharsets.UTF_8);
         pool.clear().writeIntLE(block.getHeight()).writeIntLE((int) block.getFileChainBlock().getPosition()).writeByte(name.length).writeBytes(name);
         return ByteUtil.readAll(pool);
+    }
+
+    DB getLevelDB() {
+        return levelDB;
     }
 
     public void close() throws IOException {

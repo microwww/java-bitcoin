@@ -9,6 +9,8 @@ conf:
     re-index: false
 #
 logging:
+  file:
+    path: ${conf.bitcoin.data-dir}
   level:
     mode.test: debug
 #

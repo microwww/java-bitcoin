@@ -36,7 +36,7 @@ public class CChainParams {
                 params.magic = 0xf9beb4d9;
                 params.defaultPort = 8333;
                 params.subsidyHalvingInterval = 210000;
-                params.seeds = new String[]{
+                params.seeds = random(new String[]{
                         "seed.bitcoin.sipa.be",          // Pieter Wuille, only supports x1, x5, x9, and xd
                         "dnsseed.bluematt.me",           // Matt Corallo, only supports x9
                         "dnsseed.bitcoin.dashjr.org",    // Luke Dashjr
@@ -46,7 +46,7 @@ public class CChainParams {
                         "seed.bitcoin.sprovoost.nl",     // Sjors Provoost
                         "dnsseed.emzy.de",               // Stephan Oeste
                         "seed.bitcoin.wiz.biz",          // Jason Maurice
-                };
+                });
             }
         }, TEST() {
             @Override
@@ -203,5 +203,16 @@ public class CChainParams {
         public List<URI> seedsURI() {
             return Settings.toPeers(seeds, this.getDefaultPort());
         }
+    }
+
+    public static String[] random(String[] arr) {
+        int len = arr.length;
+        for (int i = 0; i < len; i++) {
+            int r = (int) (Math.random() * len % len);
+            String v = arr[i];
+            arr[i] = arr[r];
+            arr[r] = v;
+        }
+        return arr;
     }
 }
