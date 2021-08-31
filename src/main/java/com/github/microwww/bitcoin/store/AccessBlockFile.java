@@ -17,6 +17,7 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class AccessBlockFile implements Closeable {
@@ -88,7 +89,10 @@ public class AccessBlockFile implements Closeable {
         private synchronized FileChannel tryRollingFile() throws IOException {
             int from = 0;
             if (currentFile != null) {
-                from = Integer.valueOf(pt.matcher(currentFile.getName()).group(1));
+                String name = currentFile.getName();
+                Matcher matcher = pt.matcher(name);
+                Assert.isTrue(matcher.matches(), "Not find match string: " + pt.pattern() + ", " + name);
+                from = Integer.valueOf(matcher.group(1));
             }
             for (int i = from; i < Integer.MAX_VALUE; i++) {
                 File file = sequenceFile(i);
