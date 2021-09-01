@@ -12,15 +12,35 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.UUID;
+
 public class CommandTest {
     private static final Logger logger = LoggerFactory.getLogger(CommandTest.class);
-    private static CChainParams cp = new CChainParams(new Settings(CChainParams.Env.REG_TEST));
-    private static LocalBlockChain localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TransactionStore(cp));
+    private CChainParams cp;
+    private LocalBlockChain localBlockChain;
+
+    @BeforeEach
+    public void init() {
+        cp = new CChainParams(new Settings(CChainParams.Env.REG_TEST));
+        cp.settings.setDataDir("/tmp/" + UUID.randomUUID());
+        localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TransactionStore(cp));
+    }
+
+    @AfterEach
+    public void close() {
+        try {
+            localBlockChain.getDiskBlock().close();
+        } catch (IOException e) {
+        }
+    }
 
     @Test
     @Disabled
