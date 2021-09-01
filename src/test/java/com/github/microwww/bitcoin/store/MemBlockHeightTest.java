@@ -1,11 +1,13 @@
 package com.github.microwww.bitcoin.store;
 
+import cn.hutool.core.io.FileUtil;
 import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,23 +45,24 @@ class MemBlockHeightTest {
     public void close() {
         try {
             diskBlock.close();
+            pa.settings.setDataDir("/tmp/" + UUID.randomUUID());
         } catch (IOException e) {
         }
     }
 
     @Test
     void tryAdd() {
-        MemBlockHeight mh = new MemBlockHeight(pa.env.createGenesisBlock());
-        ChainBlock genesisBlock = pa.env.createGenesisBlock();
-        List<ChainBlock> block = createChainBlock(genesisBlock, 100);
+        HeightBlock start = diskBlock.getIndexHeight().getLastBlock();
+        List<ChainBlock> block = createChainBlock(start.getBlock(), 100);
+        IndexHeight mh = diskBlock.getIndexHeight();
         for (int i = 1; i < block.size(); i++) {
             ChainBlock chainBlock = block.get(i);
-            mh.tryAdd(chainBlock);
+            mh.tryPush(chainBlock);
         }
         System.out.println(mh.toString());
-        assertEquals(100, mh.getLatestHeight());
-        assertEquals(mh.get(0).get(), genesisBlock.hash());
-        assertEquals(mh.get(mh.getLatestHeight()).get(), block.get(block.size() - 1).hash());
+        assertEquals(100, mh.getLastHeight().getHeight());
+        assertEquals(mh.get(start.getHeight()).get(), start.getBlock().hash());
+        assertEquals(mh.get(mh.getLastHeight().getHeight()).get(), block.get(block.size() - 1).hash());
     }
 
     @Test
@@ -82,21 +86,22 @@ class MemBlockHeightTest {
 
     @Test
     void conflictHeight() {
-        ChainBlock genesisBlock = pa.env.createGenesisBlock();
-        List<ChainBlock> chains = createChainBlock(genesisBlock, 10);
+        HeightBlock start = diskBlock.getIndexHeight().getLastBlock();
+        List<ChainBlock> chains = createChainBlock(start.getBlock(), 10);
+        int latest = start.getHeight() + 10;
         for (ChainBlock chain : chains) {
             diskBlock.writeBlock(chain, true);
         }
         int latestHeight = diskBlock.getLatestHeight();
-        assertEquals(10, latestHeight);
-        Uint256 h10 = diskBlock.getHash(10).get();
+        assertEquals(latest, latestHeight);
+        Uint256 h10 = diskBlock.getHash(latest).get();
 
         List<ChainBlock> inv = createChainBlock(chains.get(8), 5);
         for (ChainBlock chain : inv) {
             diskBlock.writeBlock(chain, true);
         }
         latestHeight = diskBlock.getLatestHeight();
-        Uint256 h10_2 = diskBlock.getHash(10).get();
+        Uint256 h10_2 = diskBlock.getHash(latest).get();
         assertNotEquals(h10, h10_2);
         assertEquals(13, latestHeight);
 
@@ -134,4 +139,8 @@ class MemBlockHeightTest {
         return list;
     }
 
+    @AfterAll
+    public static void del() {
+        FileUtil.del(new File(pa.settings.getDataDir()));
+    }
 }

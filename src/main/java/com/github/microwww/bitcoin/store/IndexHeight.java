@@ -23,8 +23,8 @@ public class IndexHeight {
 
     private void init() {
         Uint256 hash = generate.hash();
-        Optional<Height> latest = this.getLastBlock();
-        if (!latest.isPresent()) {
+        Height latest = this.getLastHeight();
+        if (latest == null) {
             this.setHeight(hash, 0);
             this.setLastBlock(hash, 0);
         }
@@ -38,22 +38,22 @@ public class IndexHeight {
         levelDB.put(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes, height.serialization());
     }
 
-    public Height getLatest() {
-        return this.getLastBlock().get();
-    }
-
-    public Optional<Height> getLastBlock() {
+    public Height getLastHeight() {
         byte[] bytes = levelDB.get(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes);
         if (bytes != null) {
-            Height hb = Height.deserialization(bytes);
-            return Optional.of(hb);
+            return Height.deserialization(bytes);
         }
-        return Optional.empty();
+        return null;
+    }
+
+    public HeightBlock getLastBlock() {
+        Height lastHeight = this.getLastHeight();
+        return indexBlock.findChainBlockInLevelDB(lastHeight.getHash()).get();
     }
 
     public synchronized int tryPush(ChainBlock block) {
         Uint256 preHash = block.header.getPreHash();
-        Height last = this.getLastBlock().get();
+        Height last = this.getLastHeight();
         if (last.getHash().equals(preHash)) {
             int h = last.getHeight() + 1;
             this.putResetLatest(block.hash(), h);
@@ -67,7 +67,7 @@ public class IndexHeight {
     }
 
     private synchronized void putResetLatest(Uint256 hash, int height) {
-        int h = this.getLastBlock().get().getHeight();
+        int h = this.getLastHeight().getHeight();
         Assert.isTrue(h + 1 == height, "Only add to HEADER : " + h);
         setHeight(hash, height);
         this.setLastBlock(hash, height);
@@ -75,6 +75,7 @@ public class IndexHeight {
 
     /**
      * 直接 set 一个高度值
+     *
      * @param hash
      * @param height
      */
@@ -84,7 +85,7 @@ public class IndexHeight {
     }
 
     public synchronized Optional<Uint256> get(int height) {
-        int max = this.getLastBlock().get().getHeight();
+        int max = this.getLastHeight().getHeight();
         if (height <= max) {
             byte[] key = ByteUtil.concat(new byte[]{LevelDBPrefix.DB_HEAD_BLOCKS.prefixByte}, new Uint32(height).toBytes());
             byte[] bytes = levelDB.get(key);
@@ -104,7 +105,7 @@ public class IndexHeight {
     }
 
     public void removeTail(int count) {
-        int height = this.getLastBlock().get().getHeight() - count;
+        int height = this.getLastHeight().getHeight() - count;
         this.setLastBlock(new Height(this.get(height).get(), height));
     }
 }

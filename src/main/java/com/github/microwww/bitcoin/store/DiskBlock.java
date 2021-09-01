@@ -14,7 +14,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
-import java.util.LinkedList;
 import java.util.Optional;
 
 /**
@@ -29,10 +28,9 @@ public class DiskBlock implements Closeable {
     private final int bestConfirmHeight;
     private final CChainParams chainParams;
     private final File root;
-    private final IndexBlock levelDB;
-    private final IndexHeight heights;
+    private final IndexBlock indexBlock;
+    private final IndexHeight indexHeight;
     private final AccessBlockFile fileAccess;
-    private BlockCache cache = new BlockCache();
 
     public DiskBlock(CChainParams chainParams) {
         this.chainParams = chainParams;
@@ -41,12 +39,12 @@ public class DiskBlock implements Closeable {
             File file = chainParams.settings.lockupRootDirectory();
             logger.info("Data-dir: {}", file.getCanonicalPath());
             root = new File(file, "blocks").getCanonicalFile();
-            levelDB = new IndexBlock(chainParams);
+            indexBlock = new IndexBlock(chainParams);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         ChainBlock genesisBlock = chainParams.env.createGenesisBlock();
-        heights = new IndexHeight(levelDB, genesisBlock);
+        indexHeight = new IndexHeight(indexBlock, genesisBlock);
         this.fileAccess = new AccessBlockFile(root, chainParams.getEnvParams().getMagic());
     }
 
@@ -70,13 +68,13 @@ public class DiskBlock implements Closeable {
                 Assert.isTrue(fc.getMagic() == chainParams.getEnvParams().getMagic(), "Env is not match , need : " + magic);
                 Uint256 preHash = fc.getBlock().header.getPreHash();
                 Uint256 hash = fc.getBlock().hash();
-                int height = heights.getHeight(preHash);
+                int height = indexHeight.getHeight(preHash);
                 if (height < 0) {
-                    Optional<HeightBlock> opt = levelDB.findChainBlockInLevelDB(preHash);
+                    Optional<HeightBlock> opt = indexBlock.findChainBlockInLevelDB(preHash);
                     if (opt.isPresent()) {
                         height = opt.get().getHeight();
                     } else {
-                        int exist = heights.getHeight(hash);// gen 0
+                        int exist = indexHeight.getHeight(hash);// gen 0
                         if (exist < 0) {
                             Assert.isTrue(height >= 0, "prehash must exist");
                         } else {
@@ -97,43 +95,43 @@ public class DiskBlock implements Closeable {
     public synchronized DiskBlock init() {
         logger.info("Init DiskBlock, Get block-file, And init chain-height");
 
-        ChainBlock generate = heights.getGenerate();
+        ChainBlock generate = indexHeight.getGenerate();
         logger.info("Generate block hash : {}", generate.hash().toHexReverse256());
 
         if (chainParams.settings.isReIndex()) {
             try {
                 logger.info("Reindex BLOCK, long time");
                 reindex();
-                logger.info("Reindex BLOCK OVER : {}", heights.getLastBlock());
+                logger.info("Reindex BLOCK OVER : {}", indexHeight.getLastHeight());
                 return this;
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
 
-        Height opt = heights.getLastBlock().get();
+        Height opt = indexHeight.getLastHeight();
         if (opt.getHeight() <= 0) { // 如果没有最新的块, 需要初始化创世块
             this.writeBlock(generate, 0, true);
         }
-        logger.info("Init block-chain TO : {}, {}", heights.getLastBlock());
+        logger.info("Init block-chain TO : {}, {}", indexHeight.getLastHeight());
         return this;
     }
 
     public Optional<HeightBlock> findChainBlockInLevelDB(Uint256 hash) {
-        return levelDB.findChainBlockInLevelDB(hash);
+        return indexBlock.findChainBlockInLevelDB(hash);
     }
 
     public DiskBlock putChainBlockToLevelDB(HeightBlock hc) {
-        levelDB.putChainBlockToLevelDB(hc);
+        indexBlock.writeChainBlockToLevelDB(hc);
         return this;
     }
 
     public Optional<Uint256> getHash(int height) {// TODO : block file !
-        return heights.get(height);
+        return indexHeight.get(height);
     }
 
     public ChainBlock getLatestBlock() {
-        int height = heights.getLastBlock().get().getHeight();
+        int height = indexHeight.getLastHeight().getHeight();
         if (height > bestConfirmHeight) {
             height -= bestConfirmHeight;
         } else {
@@ -175,7 +173,6 @@ public class DiskBlock implements Closeable {
         }
         FileChainBlock write = write(block);
         HeightBlock hb = this.indexBlock(write, height);
-        cache.put(hash, hb);
         return Optional.of(hb);
     }
 
@@ -196,7 +193,7 @@ public class DiskBlock implements Closeable {
             logger.debug("Add BLOCK to levelDB: {}, {} , {} , {}", write.getPosition(), height, block.hash(), block.header.getPreHash());
         Assert.isTrue(write.getPosition() < Integer.MAX_VALUE, "Int overflow");
         HeightBlock hc = new HeightBlock(write, height);
-        levelDB.putChainBlockToLevelDB(hc);
+        indexBlock.writeChainBlockToLevelDB(hc);
         this.resetHeight(hc);
         return hc;
     }
@@ -209,35 +206,13 @@ public class DiskBlock implements Closeable {
         }
     }
 
-    public Optional<HeightBlock> readBlock(Uint256 hash) {
-        try {
-            return cache.get(hash, () -> {
-                return tryReadBlock(hash);
-            });
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private synchronized Optional<HeightBlock> tryReadBlock(Uint256 hash) throws IOException {
+    public synchronized Optional<HeightBlock> readBlock(Uint256 hash) {
         Optional<HeightBlock> data = this.findChainBlockInLevelDB(hash);
         if (!data.isPresent()) {
             return Optional.empty();
         }
         logger.debug("Get block from levelDB: {}", hash.toHexReverse256());
-
-        //
-        HeightBlock hb = data.get();
-        FileChainBlock fc = hb.getFileChainBlock();
-        File f = fc.getFile();
-        logger.debug("Load block height: {}, in {}, position: {}, length: {}", hb.getHeight(), fc.getFile().getName(), fc.getPosition());
-        //
-
-        FileChannel r = new RandomAccessFile(f, "r").getChannel();
-        r.position(fc.getPosition());
-        fc.readBlock(Unpooled.buffer(), r);
-        int magic = fc.getMagic();
-        Assert.isTrue(chainParams.getEnvParams().getMagic() == magic, "magic not match !");// 校验头
+        data.get().getFileChainBlock().loadBlock();
         return data;
     }
 
@@ -247,7 +222,7 @@ public class DiskBlock implements Closeable {
      * @return
      */
     public int getLatestHeight() {
-        return heights.getLastBlock().get().getHeight();
+        return indexHeight.getLastHeight().getHeight();
     }
 
     /**
@@ -255,54 +230,60 @@ public class DiskBlock implements Closeable {
      * @return 找不到返回 -1
      */
     public int getHeight(Uint256 hash) {
-        return heights.getHeight(hash);
-    }
-
-    @Override
-    public void close() throws IOException {
-        try {
-            levelDB.close();
-        } finally {
-            fileAccess.close();
-        }
+        return indexHeight.getHeight(hash);
     }
 
     public synchronized boolean resetLatest(HeightBlock hb) {
         int height = hb.getHeight();
         ChainBlock block = hb.getBlock();
-        Height ht = heights.getLatest();
+        Height ht = indexHeight.getLastHeight();
         int latest = ht.getHeight();
         if (latest >= height) {
             return false;
-        } else if (latest + 1 == height) {// 大部分情况走这里
-            int i = heights.tryPush(hb.getBlock());
-            if (i >= 0) {
-                return true;
-            }
+        }
+        Assert.isTrue(latest + 1 == height, "Only one by one !");
+        int h = indexHeight.tryPush(hb.getBlock());
+        if (h >= 0) {// 大部分情况走这里
+            return true;
         }
         // TODO:: 需要截断, 然后新增, 例如: 出现分叉的时候的回滚, 也许数据量会很大, 不在内存中计算, 可能是个长时间的任务
         ChainBlock next = block;
-        for (int i = height - 1; i > 0; i--) {
+        for (int i = latest; i > 0; i--) {
             Uint256 pre = next.header.getPreHash();
-            Optional<Uint256> r = heights.get(i);
-            Optional<HeightBlock> ph = this.findChainBlockInLevelDB(pre);
-            Assert.isTrue(ph.isPresent(), "Must exist in DB : " + pre);
-            Assert.isTrue(ph.get().getHeight() == i, "PreHash Must height - 1 : " + i);
-            if (r.isPresent()) {
-                Assert.isTrue(i == ph.get().getHeight(), "Search Height != LevelDB height");
+            Uint256 r = indexHeight.get(i).get();
+            HeightBlock ph = this.findChainBlockInLevelDB(pre).get();
+            Assert.isTrue(ph.getHeight() == i, "PreHash Must height - 1 : " + i);
+            if (r.equals(pre)) {
                 break;
             }
             if (logger.isDebugEnabled()) { // TODO :: 出错了, 仍然可以运行在新的高度
-                heights.push(hb.getBlock().hash(), hb.getHeight());
+                indexHeight.push(hb.getBlock().hash(), hb.getHeight());
             }
-            heights.setHeight(pre, i);
-            next = ph.get().getBlock();
+            indexHeight.setHeight(pre, i);
+            next = ph.getBlock();
         }
-        heights.push(hb.getBlock().hash(), hb.getHeight());
+        indexHeight.push(hb.getBlock().hash(), hb.getHeight());
         return true;
     }
 
     public File getRoot() {
         return root;
+    }
+
+    public IndexBlock getIndexBlock() {
+        return indexBlock;
+    }
+
+    public IndexHeight getIndexHeight() {
+        return indexHeight;
+    }
+
+    @Override
+    public void close() throws IOException {
+        try {
+            indexBlock.close();
+        } finally {
+            fileAccess.close();
+        }
     }
 }

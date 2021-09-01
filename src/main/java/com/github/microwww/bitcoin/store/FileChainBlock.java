@@ -26,14 +26,18 @@ public class FileChainBlock {
     }
 
     public FileChainBlock loadBlock() {
-        try {
+        return loadBlock(false);
+    }
+
+    public FileChainBlock loadBlock(boolean force) {
+        if (block == null || force) try {
             FileChannel channel = new RandomAccessFile(file, "r").getChannel();
             channel.position(this.position);
             readBlock(Unpooled.buffer(), channel);
-            return this;
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
+        return this;
     }
 
     public FileChainBlock readBlock(ByteBuf cache, FileChannel channel) throws IOException {

@@ -21,6 +21,7 @@ public class IndexBlock implements Closeable {
 
     private final File root;
     private final DB levelDB;
+    private BlockCache cache = new BlockCache();
 
     public IndexBlock(CChainParams chainParams) {
         try {
@@ -33,21 +34,24 @@ public class IndexBlock implements Closeable {
         }
     }
 
-    public IndexBlock putChainBlockToLevelDB(HeightBlock hc) {
+    public IndexBlock writeChainBlockToLevelDB(HeightBlock hc) {
         byte[] key = ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hc.getBlock().hash().fill256bit());
         levelDB.put(key, this.serializationLevelDB(hc));
         return this;
     }
 
     public Optional<HeightBlock> findChainBlockInLevelDB(Uint256 hash) {
-        byte[] key = ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hash.fill256bit());
-        return this.findChainBlockInLevelDB(key);
+        return cache.get(hash, () -> {
+            byte[] key = ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hash.fill256bit());
+            return this.findChainBlockInLevelDB(key);
+        });
     }
 
-    private Optional<HeightBlock> findChainBlockInLevelDB(byte[] key) {
+    private synchronized Optional<HeightBlock> findChainBlockInLevelDB(byte[] key) {
         byte[] bytes = levelDB.get(key);
         if (bytes != null) {
             HeightBlock hb = this.deserializationLevelDB(bytes);
+            hb.getFileChainBlock().loadBlock();
             return Optional.of(hb);
         }
         return Optional.empty();

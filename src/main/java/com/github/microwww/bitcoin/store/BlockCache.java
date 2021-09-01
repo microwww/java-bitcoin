@@ -4,9 +4,12 @@ import com.github.microwww.bitcoin.math.Uint256;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.concurrent.Callable;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 public class BlockCache {
     private static final Logger logger = LoggerFactory.getLogger(BlockCache.class);
@@ -15,13 +18,13 @@ public class BlockCache {
     private AtomicInteger count = new AtomicInteger();
     private AtomicInteger hit = new AtomicInteger();
 
-    public Optional<HeightBlock> get(Uint256 key, Callable<Optional<HeightBlock>> supplier) throws Exception {
+    public Optional<HeightBlock> get(Uint256 key, Supplier<Optional<HeightBlock>> supplier) {
         int v = count.incrementAndGet();
         if (logger.isDebugEnabled() && v % 100 == 0)
             logger.debug("Cache HIT {}/{} ", hit.intValue(), v);
         HeightBlock h = cache.get(key);
         if (h == null) {
-            return supplier.call();
+            return supplier.get();
         }
         hit.incrementAndGet();
         return Optional.of(h);
