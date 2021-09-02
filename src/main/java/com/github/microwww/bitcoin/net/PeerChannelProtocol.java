@@ -185,10 +185,12 @@ public class PeerChannelProtocol {
                 }
             }
         }
-        if (readyBlocks.isEmpty()) {
+        Peer peer = ctx.channel().attr(Peer.PEER).get();
+        if (readyBlocks.isEmpty()) {// no more HEADER
+            loadingHeaderManager.removePeer(peer);
+            logger.info("No have new Block by Get-Header delete it : {}", peer.getURI());
             return;
         }
-        Peer peer = ctx.channel().attr(Peer.PEER).get();
         logger.info("Get head : {}, from {}:{}, will loading it !", readyBlocks.size(), peer.getHost(), peer.getPort());
         // 1. headers
         loadingHeaderManager.addAllHeaders(readyBlocks.keySet());
@@ -366,12 +368,16 @@ public class PeerChannelProtocol {
                     logger.warn("Not have peers to GET header, Maybe is Max-Height");
                 }
             } else {
-                Peer peer = current.channel().attr(Peer.PEER).get();
-                logger.debug("U [{}:{}] can not stop it", peer.getHost(), peer.getPort());
+                Peer peer = ctx.channel().attr(Peer.PEER).get();
+                logger.info("U [{}:{}] can not stop it", peer.getHost(), peer.getPort());
             }
         }
 
-        public synchronized void peerClose(Peer peer) {
+        public void peerClose(Peer peer) {
+            this.removePeer(peer);
+        }
+
+        public synchronized void removePeer(Peer peer) {
             Peer c = current.channel().attr(Peer.PEER).get();
             if (peer == c) {
                 logger.info("Remove peer : {}, Peers {}", peer.getURI(), queue.size());

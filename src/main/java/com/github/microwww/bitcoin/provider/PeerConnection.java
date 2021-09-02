@@ -43,8 +43,9 @@ public class PeerConnection implements Closeable {
      * @param uri
      */
     public synchronized void connection(URI uri) {
-        logger.info("Connection {}, success: {}, waiting: {}", uri, peers.size(), connections.size());
-        if (peers.size() > params.settings.getMaxPeers()) {
+        int max = params.settings.getMaxPeers();
+        logger.info("Ready connection {}, max: {}, success: {}, waiting: {}", max, uri, peers.size(), connections.size());
+        if (peers.size() > max) {
             connections.add(new DelayedConnection(uri, 0));
             return;
         }
@@ -79,7 +80,7 @@ public class PeerConnection implements Closeable {
                 logger.info("CLOSE connection, Peer {}:{}", peer.getHost(), peer.getPort());
                 this.restart(uri);
                 connections.add(new DelayedConnection(uri));
-            });
+            }).await(5_000);
         } catch (InterruptedException e) {
             logger.error("Peer error : {}", peer, e);
             peers.remove(uri);
