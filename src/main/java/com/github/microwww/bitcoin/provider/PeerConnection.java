@@ -17,7 +17,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
@@ -131,7 +132,13 @@ public class PeerConnection implements Closeable {
 
         @Override
         public int compareTo(Delayed o) {
-            return 0;
+            if (this == o) {
+                return 0;
+            }
+            if (o instanceof DelayedConnection) {
+                return uri.compareTo(((DelayedConnection) o).uri);
+            }
+            throw new UnsupportedOperationException();
         }
     }
 
