@@ -7,7 +7,7 @@ import com.github.microwww.bitcoin.net.protocol.Version;
 import com.github.microwww.bitcoin.provider.Peer;
 import com.github.microwww.bitcoin.store.DiskBlock;
 import com.github.microwww.bitcoin.provider.LocalBlockChain;
-import com.github.microwww.bitcoin.store.TransactionStore;
+import com.github.microwww.bitcoin.store.IndexTransaction;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -31,7 +31,7 @@ public class CommandTest {
     public void init() {
         cp = new CChainParams(new Settings(CChainParams.Env.REG_TEST));
         cp.settings.setDataDir("/tmp/" + UUID.randomUUID());
-        localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new TransactionStore(cp));
+        localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new IndexTransaction(cp));
     }
 
     @AfterEach
