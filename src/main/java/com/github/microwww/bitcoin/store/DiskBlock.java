@@ -130,7 +130,7 @@ public class DiskBlock implements Closeable {
         return indexHeight.get(height);
     }
 
-    public ChainBlock getLatestBlock() {
+    public HeightBlock getBestBlock() {
         int height = indexHeight.getLastHeight().getHeight();
         if (height > bestConfirmHeight) {
             height -= bestConfirmHeight;
@@ -144,8 +144,8 @@ public class DiskBlock implements Closeable {
         });
     }
 
-    public Optional<ChainBlock> getChinBlock(Uint256 hash) {
-        return this.readBlock(hash).map(h -> h.getBlock());
+    public Optional<HeightBlock> getChinBlock(Uint256 hash) {
+        return this.readBlock(hash);
     }
 
     public Optional<HeightBlock> writeBlock(ChainBlock block, boolean ifExistSkip) {
