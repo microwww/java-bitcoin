@@ -58,6 +58,7 @@ public class FileChainBlock {
         cache.clear().writeBytes(f);
         this.magic = cache.readInt();
         int len = cache.readIntLE();
+        Assert.isTrue(len > 80 && len < 4_000_000, "Data format error, 80 < ? < 4M");
         while (cache.readableBytes() < len) {
             f.clear();
             channel.read(f);

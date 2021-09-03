@@ -24,6 +24,10 @@ public class Uint256 extends BigInteger {
         super(1, val);
     }
 
+    public Uint256(BigInteger big) {
+        this(big.toByteArray());
+    }
+
     /**
      * 不支持有前导的负号
      *

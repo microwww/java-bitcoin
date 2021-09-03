@@ -4,6 +4,14 @@ public class ChainHeight {
     private ChainBlock chainBlock;
     private int height;
 
+    public ChainHeight() {
+    }
+
+    public ChainHeight(int height, ChainBlock chainBlock) {
+        this.chainBlock = chainBlock;
+        this.height = height;
+    }
+
     public ChainBlock getChainBlock() {
         return chainBlock;
     }

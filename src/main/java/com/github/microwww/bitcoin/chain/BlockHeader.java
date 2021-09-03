@@ -124,9 +124,11 @@ public class BlockHeader implements Serializable {
     }
 
     public BigInteger threshold() {
-        long exponent = (bits.longValue() >>> 24) - 3;
-        long coefficient = bits.longValue() & 0x00FFFFFF;
-        return Uint256.valueOf(coefficient).shiftLeft((int) exponent * 8);
+        return PowDifficulty.difficultyUncompress(this.bits);
+    }
+
+    public Uint256 difficulty() {
+        return new Uint256(PowDifficulty.difficultyUncompress(this.bits));
     }
 
     public BlockHeader setBits(Uint32 bits) {
