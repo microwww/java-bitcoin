@@ -76,13 +76,10 @@ public class DiskBlock implements Closeable {
                     Optional<HeightBlock> opt = indexBlock.findChainBlockInLevelDB(preHash);
                     if (opt.isPresent()) {
                         height = opt.get().getHeight();
+                    } else if (hash.equals(indexHeight.getGenerate().hash())) {
+                        height = -1;
                     } else {
-                        int exist = indexHeight.getHeight(hash);// gen 0
-                        if (exist < 0) {
-                            Assert.isTrue(height >= 0, "prehash must exist");
-                        } else {
-                            height = exist - 1;
-                        }
+                        Assert.isTrue(height >= 0, "prehash must exist");
                     }
                 }
                 this.indexBlock(fc, height + 1);

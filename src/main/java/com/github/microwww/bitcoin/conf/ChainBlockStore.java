@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.conf;
 
 import com.github.microwww.bitcoin.store.DiskBlock;
+import com.github.microwww.bitcoin.util.FilesUtil;
 import com.github.microwww.bitcoin.wallet.Wallet;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBFactory;
@@ -38,7 +39,7 @@ public class ChainBlockStore {
     public static DB leveldb(File root, String dir, boolean clear) throws IOException {
         File file = new File(root, dir);
         if (clear) {
-            file.deleteOnExit();
+            FilesUtil.deleteRecursively(file);
         }
         return leveldb(root, dir);
     }

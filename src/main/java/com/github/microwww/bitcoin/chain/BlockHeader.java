@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.math.BigInteger;
+import java.util.Date;
 
 /**
  * 头部 80 个字节,
@@ -115,6 +116,10 @@ public class BlockHeader implements Serializable {
 
     public Uint32 getTime() {
         return time;
+    }
+
+    public Date getDateTime() {
+        return new Date(this.time.longValue() * 1_000);
     }
 
     public BlockHeader setTime(Uint32 time) {

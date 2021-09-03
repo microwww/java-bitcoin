@@ -1,5 +1,7 @@
 package com.github.microwww.bitcoin.util;
 
+import org.springframework.util.FileSystemUtils;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -28,5 +30,9 @@ public class FilesUtil {
             throw new IOException("File do not allow a directory : " + file.getCanonicalPath());
         }
         return create;
+    }
+
+    public static void deleteRecursively(File file) {
+        FileSystemUtils.deleteRecursively(file);
     }
 }

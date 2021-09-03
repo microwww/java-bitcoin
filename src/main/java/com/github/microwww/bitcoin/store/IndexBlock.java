@@ -36,6 +36,8 @@ public class IndexBlock implements Closeable {
 
     public IndexBlock writeChainBlockToLevelDB(HeightBlock hc) {
         byte[] key = ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hc.getBlock().hash().fill256bit());
+        if (logger.isDebugEnabled())
+            logger.debug("Index Block key: {}, height: {}, block: {}", ByteUtil.hex(key), hc.getHeight(), hc.getBlock().hash());
         levelDB.put(key, this.serializationLevelDB(hc));
         return this;
     }

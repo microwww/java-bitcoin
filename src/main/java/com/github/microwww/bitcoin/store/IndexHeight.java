@@ -85,6 +85,8 @@ public class IndexHeight {
      */
     public void setHeight(Uint256 hash, int height) {
         byte[] key = ByteUtil.concat(new byte[]{LevelDBPrefix.DB_HEAD_BLOCKS.prefixByte}, new Uint32(height).toBytes());
+        if (logger.isDebugEnabled())
+            logger.debug("Index height: {}, {}, key: {}", height, hash, ByteUtil.hex(key));
         levelDB.put(key, hash.toByteArray());
     }
 
