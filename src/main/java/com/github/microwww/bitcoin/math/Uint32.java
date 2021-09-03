@@ -29,7 +29,7 @@ public class Uint32 extends Number implements Comparable<Uint32> {
      * @param value
      */
     public Uint32(long value) {
-        this.value = value << 32 >>> 32;
+        this.value = value & 0x00ffffffffL;
     }
 
     @Override
@@ -75,11 +75,11 @@ public class Uint32 extends Number implements Comparable<Uint32> {
     }
 
     public byte[] toBytes() {
-        return new byte[]{(byte) (value >> 24), (byte) (value & 0x00ff0000 >> 16), (byte) (value & 0X0000FF00 >> 8), (byte) (value & 0X000000FF)};
+        return new byte[]{(byte) (value >> 24), (byte) ((value & 0x00FF0000) >> 16), (byte) ((value & 0x00FF00) >> 8), (byte) (value & 0x00FF)};
     }
 
     public byte[] toBytesLE() {
-        return new byte[]{(byte) (value & 0X000000FF), (byte) (value & 0X0000FF00 >> 8), (byte) (value & 0x00ff0000 >> 16), (byte) (value >> 24)};
+        return new byte[]{(byte) (value & 0X000000FF), (byte) ((value & 0X0000FF00) >> 8), (byte) ((value & 0x00ff0000) >> 16), (byte) (value >> 24)};
     }
 
     @Override

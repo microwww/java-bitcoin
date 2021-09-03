@@ -6,6 +6,8 @@ import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -16,6 +18,7 @@ import java.math.BigInteger;
  * 所以read / write 方法放到CBlock中, 防止歧义的发生
  */
 public class BlockHeader implements Serializable {
+    private static final Logger logger = LoggerFactory.getLogger(BlockHeader.class);
     private static final int HEADER_LENGTH = 80;
     private Uint32 blockLength;
 
@@ -129,6 +132,19 @@ public class BlockHeader implements Serializable {
 
     public Uint256 difficulty() {
         return new Uint256(PowDifficulty.difficultyUncompress(this.bits));
+    }
+
+    public void assertDifficulty() {
+        BigInteger dif = threshold();
+        Uint256 hash = this.hash();
+        BigInteger act = new BigInteger(1, hash.reverse256bit());
+        if (logger.isDebugEnabled()) {
+            logger.debug("POW Difficulty {}, Target: {}, Active: {}", this.getBits(), dif.toString(16), act.toString(16));
+        }
+        if (dif.compareTo(act) < 0) {
+            logger.error("POW Difficulty error: {}, Target: {}", hash, dif.toString(16));
+            throw new IllegalArgumentException("POW Difficulty ERROR, hash: " + hash);
+        }
     }
 
     public BlockHeader setBits(Uint32 bits) {

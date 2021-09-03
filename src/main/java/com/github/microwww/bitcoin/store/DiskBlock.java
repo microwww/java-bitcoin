@@ -1,8 +1,11 @@
 package com.github.microwww.bitcoin.store;
 
 import com.github.microwww.bitcoin.chain.ChainBlock;
+import com.github.microwww.bitcoin.chain.ChainHeight;
+import com.github.microwww.bitcoin.chain.PowDifficulty;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.math.Uint256;
+import com.github.microwww.bitcoin.math.Uint32;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
@@ -284,6 +287,18 @@ public class DiskBlock implements Closeable {
             indexBlock.close();
         } finally {
             fileAccess.close();
+        }
+    }
+
+    public void verifyNBits(ChainBlock cb) {
+        HeightBlock hb = this.readBlock(cb.header.getPreHash()).get();
+        Uint32 uint32 = PowDifficulty.nextWorkRequired(new ChainHeight(hb.getHeight(), hb.getBlock()), n -> {
+            Optional<Uint256> hash = this.getHash(n);
+            return this.readBlock(hash.get()).get().getBlock();
+        });
+        if (!uint32.equals(cb.header.getBits())) {
+            logger.error("Block nBits error : {} != {}, BLOCK {}", uint32, cb.header.getBits(), cb.hash());
+            throw new IllegalArgumentException("POW nBits error");
         }
     }
 }

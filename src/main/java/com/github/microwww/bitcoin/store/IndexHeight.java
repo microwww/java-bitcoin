@@ -5,11 +5,14 @@ import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import org.iq80.leveldb.DB;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
 import java.util.Optional;
 
 public class IndexHeight {
+    private static final Logger logger = LoggerFactory.getLogger(IndexHeight.class);
     private final ChainBlock generate;
     private final IndexBlock indexBlock;
     private final DB levelDB;
@@ -30,15 +33,16 @@ public class IndexHeight {
         }
     }
 
-    private void setLastBlock(Uint256 hash, int height) {
+    private synchronized void setLastBlock(Uint256 hash, int height) {
         this.setLastBlock(new Height(hash, height));
     }
 
-    private void setLastBlock(Height height) {
+    private synchronized void setLastBlock(Height height) {
         levelDB.put(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes, height.serialization());
+        logger.debug("Add LAST_BLOCK: {}", height);
     }
 
-    public Height getLastHeight() {
+    public synchronized Height getLastHeight() {
         byte[] bytes = levelDB.get(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes);
         if (bytes != null) {
             return Height.deserialization(bytes);

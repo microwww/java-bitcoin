@@ -111,7 +111,7 @@ class PowDifficultyTest {
         ChainBlock target = new ChainBlock().readHeader(bf).readBody(bf);
         assertArrayEquals(target.hash().reverse256bit(), ByteUtil.hex("000000000000a8c2cc7f45568c20d3498eba889a182dd72db10d7e7a98fb9f97"));
 
-        Uint32 nextWorkRequired = PowDifficulty.nextWorkRequired(new ChainHeight(112911, target), () -> start);
+        Uint32 nextWorkRequired = PowDifficulty.nextWorkRequired(new ChainHeight(112911, target), n -> start);
         assertEquals(nextWorkRequired, target.header.getBits());
         assertEquals("0x1b00f339", nextWorkRequired.toString());
     }

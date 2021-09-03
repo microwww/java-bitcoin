@@ -7,6 +7,7 @@ import com.github.microwww.bitcoin.math.Uint64;
 import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.provider.LocalBlockChain;
 import com.github.microwww.bitcoin.provider.Peer;
+import com.github.microwww.bitcoin.store.DiskBlock;
 import com.github.microwww.bitcoin.store.FileChainBlock;
 import com.github.microwww.bitcoin.store.FileTransaction;
 import com.github.microwww.bitcoin.store.HeightBlock;
@@ -208,7 +209,12 @@ public class PeerChannelProtocol {
         if (verify.isDebugEnabled()) { // 校验数据是否正确
             Assert.isTrue(Arrays.equals(request.getPayload(), request.getChainBlock().serialization()), "BLOCK format serialization error !");
         }
-        Optional<HeightBlock> hc = chain.getDiskBlock().writeBlock(cb, true);
+
+        DiskBlock disk = chain.getDiskBlock();
+        disk.verifyNBits(cb);
+        cb.header.assertDifficulty();
+
+        Optional<HeightBlock> hc = disk.writeBlock(cb, true);
         if (logger.isInfoEnabled()) {
             long next = System.currentTimeMillis();
             if (logger.isDebugEnabled() || next - current > 5000) {
