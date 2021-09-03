@@ -19,13 +19,12 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.DelayQueue;
-import java.util.concurrent.Delayed;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 @Component
 public class PeerConnection implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(PeerConnection.class);
+    private static final int TIME_OUT_SECONDS = 5;
     private static EventLoopGroup executors = new NioEventLoopGroup();
 
     @Autowired
@@ -45,7 +44,7 @@ public class PeerConnection implements Closeable {
      */
     public synchronized void connection(URI uri) {
         int max = params.settings.getMaxPeers();
-        logger.info("Ready connection {}, max: {}, success: {}, waiting: {}", max, uri, peers.size(), connections.size());
+        logger.info("Ready connection {}, max: {}, success: {}, waiting: {}", uri, max, peers.size(), connections.size());
         if (peers.size() > max) {
             connections.add(new DelayedConnection(uri, 0));
             return;
@@ -76,13 +75,14 @@ public class PeerConnection implements Closeable {
                     peers.put(uri, peer);
                 }
             });
-            ChannelFuture closeFuture = channelFuture.sync().channel().closeFuture();
+            channelFuture.get(TIME_OUT_SECONDS, TimeUnit.SECONDS);
+            ChannelFuture closeFuture = channelFuture.channel().closeFuture();
             closeFuture.addListener(e -> {
                 logger.info("CLOSE connection, Peer {}:{}", peer.getHost(), peer.getPort());
                 this.restart(uri);
                 connections.add(new DelayedConnection(uri));
-            }).await(5_000);
-        } catch (InterruptedException e) {
+            }).await(TIME_OUT_SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
             logger.error("Peer error : {}", peer, e);
             peers.remove(uri);
         }
