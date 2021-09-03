@@ -33,7 +33,7 @@ public class PowDifficulty {
 
         // Limit adjustment step
         long nActualTimespan = pindexLast.getChainBlock().header.getTime().longValue() - pindexFirst.header.getTime().longValue();
-        return timespan(pindexLast.getChainBlock().header.getBits(), nActualTimespan / 1000);
+        return timespan(pindexLast.getChainBlock().header.getBits(), nActualTimespan);
     }
 
     /**

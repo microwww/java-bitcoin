@@ -4,15 +4,13 @@ import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 class PowDifficultyTest {
 
@@ -39,6 +37,7 @@ class PowDifficultyTest {
         //assertEquals("1b00cbbd", uint32.toHex());
         assertEquals("1b00cbbd", uint32.toHex());
     }
+
     @Test
     void testCalculation() throws ParseException {
         {
@@ -48,7 +47,7 @@ class PowDifficultyTest {
             long t1 = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss").parse("12-18-2009 17:56:01").getTime() / 1000;
             long t2 = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss").parse("12-30-2009 13:58:59").getTime() / 1000;
             Uint32 c = PowDifficulty.timespan(u, t2 - t1);
-            Assertions.assertEquals("0x1d00d86a", c.toString());
+            assertEquals("0x1d00d86a", c.toString());
         }
         {
             // 0x000000000a20ed505ca567ec4611616790a1e3c49bc9bdd82ff6bd773e32db2a, 0x1c0ae493
@@ -58,7 +57,7 @@ class PowDifficultyTest {
             long t1 = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss").parse("06-24-2010 20:27:26").getTime() / 1000;
             long t2 = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss").parse("07-06-2010 09:53:24").getTime() / 1000;
             Uint32 c = PowDifficulty.timespan(u, t2 - t1);
-            Assertions.assertEquals("0x1c0ae493", c.toString());
+            assertEquals("0x1c0ae493", c.toString());
         }
         {
             // 0x000000000000a8c2cc7f45568c20d3498eba889a182dd72db10d7e7a98fb9f97, 0x1b00f339
@@ -68,7 +67,7 @@ class PowDifficultyTest {
             long t1 = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss").parse("03-09-2011 23:25:55").getTime() / 1000;
             long t2 = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss").parse("03-25-2011 10:34:45").getTime() / 1000;
             Uint32 c = PowDifficulty.timespan(u, t2 - t1);
-            Assertions.assertEquals("0x1b00f339", c.toString());
+            assertEquals("0x1b00f339", c.toString());
         }
         {
             // 0x0000000000043c4b0ed186109c36ce09e9af29b8ed0fdebcb909fa338877743d, 0x1b04864c
@@ -78,7 +77,7 @@ class PowDifficultyTest {
             long t1 = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss").parse("12-10-2010 06:20:02").getTime() / 1000;
             long t2 = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss").parse("12-22-2010 02:33:13").getTime() / 1000;
             Uint32 c = PowDifficulty.timespan(u, t2 - t1);
-            Assertions.assertEquals("0x1b04864c", c.toString());
+            assertEquals("0x1b04864c", c.toString());
         }
         {
             // 00000000f037ad09d0b05ee66b8c1da83030abaf909d2b1bf519c3c7d2cd3fdf
@@ -88,32 +87,60 @@ class PowDifficultyTest {
             long t1 = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss").parse("01-27-2009 21:38:51").getTime() / 1000;
             long t2 = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss").parse("02-13-2009 02:58:42").getTime() / 1000;
             Uint32 c = PowDifficulty.timespan(u, t2 - t1);
-            Assertions.assertEquals("0x1d00ffff", c.toString());
+            assertEquals("0x1d00ffff", c.toString());
         }
     }
 
     @Test
     public void testNextWorkRequired() {
         // block 112912 , 000000000000a8c2cc7f45568c20d3498eba889a182dd72db10d7e7a98fb9f97
-        byte[] H112912 = ByteUtil.hex("010000002ff2886b50bfe876e5a17234218f64c09d1e187ffe5965f408800000000000004940812bd1dbe968fce79dd48a35142093256c8c66b8edfa58512df2efbc441c71008c4d39f3001b1acb68d200");
+        byte[] H114912 = ByteUtil.hex("010000002ff2886b50bfe876e5a17234218f64c09d1e187ffe5965f408800000000000004940812bd1dbe968fce79dd48a35142093256c8c66b8edfa58512df2efbc441c71008c4d39f3001b1acb68d200");
         // 0000000000008008f46559fe7f181e9dc0648f213472a1e576e8bf506b88f22f
-        byte[] H112911 = ByteUtil.hex("010000005997fb4a7fe78d680beddc76dce2e4dee223f5dd167b0119e80100000000000096d047aeff0c873e2e9a51bf688d439530afafa82fb7ccbb86d7f743e4daa79845ff8b4d31dc001bf06541a000");
+        byte[] H114911 = ByteUtil.hex("010000005997fb4a7fe78d680beddc76dce2e4dee223f5dd167b0119e80100000000000096d047aeff0c873e2e9a51bf688d439530afafa82fb7ccbb86d7f743e4daa79845ff8b4d31dc001bf06541a000");
         // 000000000000cb6aeb7e251ed31a814d9631b5fe3d6994e00229f7ebbfae5344
         byte[] H112896 = ByteUtil.hex("01000000961f982c7914224a9b5293f810cc8e02d457179a64cff43fbb37000000000000e58aa2dedb2ecf091eb0779407be6477abca61ff3d8963a3b73cbed0e66ddf2a039c774d31dc001bef5b6d5400");
 
         ByteBuf bf = Unpooled.buffer().writeBytes(H112896);
         ChainBlock start = new ChainBlock().readHeader(bf).readBody(bf);
         assertArrayEquals(start.hash().reverse256bit(), ByteUtil.hex("000000000000cb6aeb7e251ed31a814d9631b5fe3d6994e00229f7ebbfae5344"));
-        bf.clear().writeBytes(H112911);
+        bf.clear().writeBytes(H114911);
         ChainBlock end = new ChainBlock().readHeader(bf).readBody(bf);
         assertArrayEquals(end.hash().reverse256bit(), ByteUtil.hex("0000000000008008f46559fe7f181e9dc0648f213472a1e576e8bf506b88f22f"));
-        bf.clear().writeBytes(H112912);
+        bf.clear().writeBytes(H114912);
         ChainBlock target = new ChainBlock().readHeader(bf).readBody(bf);
         assertArrayEquals(target.hash().reverse256bit(), ByteUtil.hex("000000000000a8c2cc7f45568c20d3498eba889a182dd72db10d7e7a98fb9f97"));
 
-        Uint32 nextWorkRequired = PowDifficulty.nextWorkRequired(new ChainHeight(112911, target), n -> start);
+        Uint32 nextWorkRequired = PowDifficulty.nextWorkRequired(new ChainHeight(114911, end), n -> start);
+        assertEquals(start.header.getBits(), end.header.getBits());
+        assertNotEquals(end.header.getBits(), target.header.getBits());
         assertEquals(nextWorkRequired, target.header.getBits());
         assertEquals("0x1b00f339", nextWorkRequired.toString());
+    }
+
+    @Test
+    public void testNextWorkRequired2() {
+        // block 112912 , 000000000000a8c2cc7f45568c20d3498eba889a182dd72db10d7e7a98fb9f97
+        byte[] H0000 = ByteUtil.hex("0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c00");
+        // 0000000000008008f46559fe7f181e9dc0648f213472a1e576e8bf506b88f22f
+        byte[] H2015 = ByteUtil.hex("01000000e25509cde707c3d02a693e4fe9e7cdd57c38a0d2c8d6341f20dae84b000000000c113df1185e162ee92d031fe21d1400ff7d705a3e9b9c860eea855313cd8ca26c087f49ffff001d30b7323100");
+        // 000000000000cb6aeb7e251ed31a814d9631b5fe3d6994e00229f7ebbfae5344
+        byte[] H2016 = ByteUtil.hex("010000006397bb6abd4fc521c0d3f6071b5650389f0b4551bc40b4e6b067306900000000ace470aecda9c8818c8fe57688cd2a772b5a57954a00df0420a7dd546b6d2c576b0e7f49ffff001d33f0192f00");
+
+        ByteBuf bf = Unpooled.buffer().writeBytes(H0000);
+        ChainBlock start = new ChainBlock().readHeader(bf).readBody(bf);
+        start.setTxs(new RawTransaction[]{});
+        assertArrayEquals(start.hash().reverse256bit(), ByteUtil.hex("000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"));
+        bf.clear().writeBytes(H2015);
+        ChainBlock end = new ChainBlock().readHeader(bf).readBody(bf);
+        assertArrayEquals(end.hash().reverse256bit(), ByteUtil.hex("00000000693067b0e6b440bc51450b9f3850561b07f6d3c021c54fbd6abb9763"));
+        bf.clear().writeBytes(H2016);
+        ChainBlock target = new ChainBlock().readHeader(bf).readBody(bf);
+        assertArrayEquals(target.hash().reverse256bit(), ByteUtil.hex("00000000a141216a896c54f211301c436e557a8d55900637bbdce14c6c7bddef"));
+
+        Uint32 nextWorkRequired = PowDifficulty.nextWorkRequired(new ChainHeight(2015, end), n -> start);
+        assertEquals(start.header.getBits(), end.header.getBits());
+        assertEquals(nextWorkRequired, target.header.getBits());
+        assertEquals("0x1d00ffff", nextWorkRequired.toString());
     }
 }
 
