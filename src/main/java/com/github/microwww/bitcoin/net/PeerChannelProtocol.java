@@ -214,6 +214,8 @@ public class PeerChannelProtocol {
         disk.verifyNBits(cb);
         cb.header.assertDifficulty();
 
+        chain.getTransactionStore().verifyTransactions(cb);
+
         Optional<HeightBlock> hc = disk.writeBlock(cb, true);
         if (logger.isInfoEnabled()) {
             long next = System.currentTimeMillis();

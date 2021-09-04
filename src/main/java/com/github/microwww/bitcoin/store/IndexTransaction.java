@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.store;
 
-import com.github.microwww.bitcoin.chain.RawTransaction;
+import com.github.microwww.bitcoin.chain.*;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.ChainBlockStore;
 import com.github.microwww.bitcoin.math.Uint256;
@@ -18,9 +18,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Optional;
+import java.util.*;
 
 @Component
 public class IndexTransaction implements Closeable {
@@ -77,16 +75,16 @@ public class IndexTransaction implements Closeable {
             RawTransaction tr = ft.getTransaction();
             buffer.clear();
             this.serializationLevelDB(ft, buffer);
-            levelDB.ifPresent(e -> {
+            levelDB.ifPresent(db -> {
                 Uint256 hash = tr.hash();
                 if (logger.isDebugEnabled())
-                    logger.debug("Level-db save transaction : {}", hash.toHexReverse256());
-                e.put(hash.fill256bit(), ByteUtil.readAll(buffer));
+                    logger.debug("Level-db save transaction : {}", hash);
+                db.put(hash.fill256bit(), ByteUtil.readAll(buffer));
             });
         }
     }
 
-    public void serializationLevelDB(FileTransaction ft, ByteBuf buffer) {
+    private void serializationLevelDB(FileTransaction ft, ByteBuf buffer) {
         long ps = ft.getPosition();
         buffer.writeIntLE((int) ps);
         buffer.writeIntLE(ft.getLength());
@@ -96,7 +94,7 @@ public class IndexTransaction implements Closeable {
         buffer.writeBytes(bytes);
     }
 
-    public Optional<FileTransaction> deserializationTransaction(Uint256 hash) {
+    public synchronized Optional<FileTransaction> findTransaction(Uint256 hash) {
         return levelDB.flatMap(e -> {
             byte[] bytes = e.get(hash.fill256bit());
             if (bytes != null) {
@@ -106,7 +104,7 @@ public class IndexTransaction implements Closeable {
         });
     }
 
-    public FileTransaction deserializationLevelDB(byte[] bytes) {
+    private FileTransaction deserializationLevelDB(byte[] bytes) {
         ByteBuf buffer = Unpooled.copiedBuffer(bytes);
         int ps = buffer.readIntLE();
         int length = buffer.readIntLE();
@@ -136,6 +134,80 @@ public class IndexTransaction implements Closeable {
     public void close() throws IOException {
         if (levelDB.isPresent()) {
             levelDB.get().close();
+        }
+    }
+
+    public void verifyTransactions(ChainBlock chainBlock) {
+        HeightBlock hb = diskBlock.readBlock(chainBlock.header.getPreHash()).get();
+        verifyTransactions(chainBlock, hb.getHeight() + 1);
+    }
+
+    public void verifyTransactions(ChainBlock chainBlock, int height) {
+        Uint256 hash = chainBlock.hash();
+        RawTransaction[] txs = chainBlock.getTxs();
+        Assert.isTrue(txs.length > 0, "RawTransaction length > 0");
+        RawTransaction first = txs[0];
+        long amount = Generating.getBlockSubsidy(height, this.chainParams.env);
+
+        Map<Uint256, RawTransaction> map = new HashMap<>();
+        for (RawTransaction tx : txs) { // TODO:: 是否会递归 ?
+            // main height: 546,
+            // tx-1: 28204cad1d7fc1d199e8ef4fa22f182de6258a3eaafe1bbe56ebdcacd3069a5f
+            // tx-2: 6b0f8a73a56c04b519f1883e8aafda643ba61a30bd1439969df21bea5f4e27e2
+            map.put(tx.hash(), tx);
+        }
+
+        for (int i = 1; i < txs.length; i++) {
+            RawTransaction tx = txs[i];
+
+            TxIn[] txIns = tx.getTxIns();
+            long fee = 0;
+            for (TxIn in : txIns) {
+                int index = in.getPreTxOutIndex();
+                Optional<FileTransaction> ft = this.findTransaction(in.getPreTxHash());
+                RawTransaction preTx;
+                if (!ft.isPresent()) {
+                    preTx = map.get(in.getPreTxHash());
+                    if (preTx == null) {
+                        logger.info("Tx error: {}, not find pre-tx: {}, BLOCK: {}, {}", tx.hash(), in.getPreTxHash(), height, hash);
+                        throw new IllegalArgumentException("Not find pre-tx: " + in.getPreTxHash());
+                    }
+                } else {
+                    preTx = ft.get().getTransaction();
+                }
+                TxOut txOut = preTx.getTxOuts()[index];
+                long value = txOut.getValue();
+                Assert.isTrue(value >= 0, "Amount non-negative");
+                fee += value;
+            }
+
+            TxOut[] txOuts = tx.getTxOuts();
+            for (TxOut out : txOuts) {
+                long value = out.getValue();
+                Assert.isTrue(value >= 0, "Amount non-negative");
+                fee -= value;
+            }
+            Assert.isTrue(fee >= 0, "Fee > 0, BUT " + fee);
+
+            amount += fee;
+        }
+
+        Assert.isTrue(first.getTxIns().length == 1, "Base-coin need one TxIN");
+        TxIn in = first.getTxIns()[0];
+        Assert.isTrue(in.getPreTxHash().equals(Uint256.ZERO), "Base-coin tx pre-hash : 0000...000");
+        Assert.isTrue(in.getPreTxOutIndex() == -1, "Base-coin tx pre-index : -1");
+
+        TxOut[] txOuts = first.getTxOuts();
+        for (TxOut out : txOuts) {
+            long value = out.getValue();
+            Assert.isTrue(value >= 0, "Amount non-negative");
+            amount -= value;
+        }
+        if (amount < 0) {
+            Assert.isTrue(amount >= 0, "Base-coin fee >= 0, BUT " + amount);
+        }
+        if (amount > 0) {
+            logger.info("Lose amount {}, {}, Base-coin", amount, hash);
         }
     }
 }

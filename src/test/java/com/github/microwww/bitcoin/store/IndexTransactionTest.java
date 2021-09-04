@@ -31,7 +31,7 @@ class IndexTransactionTest {
         FileTransaction[] fs = heightBlock.get().getFileChainBlock().getFileTransactions();
         tx.serializationTransaction(fs);
         Uint256 hash = fs[0].getTransaction().hash();
-        RawTransaction rt = tx.deserializationTransaction(hash).get().readFileRawTransaction();
+        RawTransaction rt = tx.findTransaction(hash).get().readFileRawTransaction();
         assertEquals(hash, rt.hash());
     }
 
