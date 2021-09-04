@@ -23,10 +23,10 @@ class AddrV2Test {
         this.write0read0("01dde93261fd0904010455d6a6e4208d", 1);
         this.write0read0("01b3f132610d01045e82542c208d", 1);
         String line3 = ClassPath.readClassPathFile("/data/line-data.txt").get(110);
-        this.write0read0(line3, 1000);
+        AddrV2 addrV2 = this.write0read0(line3, 1000);
     }
 
-    void write0read0(String hexBytes, int count) {
+    AddrV2 write0read0(String hexBytes, int count) {
         AddrV2 test = new AddrV2(new Peer(null, "test", 8333));
         byte[] hex = ByteUtil.hex(hexBytes);
         test.read(hex);
@@ -35,6 +35,7 @@ class AddrV2Test {
         test.write(bf);
         byte[] bytes = ByteUtil.readAll(bf);
         assertArrayEquals(bytes, hex);
+        return test;
     }
 
     /**

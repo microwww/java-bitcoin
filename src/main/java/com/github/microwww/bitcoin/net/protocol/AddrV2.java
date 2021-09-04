@@ -1,12 +1,14 @@
 package com.github.microwww.bitcoin.net.protocol;
 
 import com.github.microwww.bitcoin.math.UintVar;
+import com.github.microwww.bitcoin.net.NetworkID;
 import com.github.microwww.bitcoin.provider.Peer;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -79,30 +81,6 @@ public class AddrV2 extends AbstractProtocolAdapter<AddrV2> {
                 "nodes=" + Arrays.toString(nodes);
     }
 
-    public enum NetworkID {
-        IPV4(4),
-        IPV6(16),
-        TORV2(10),
-        TORV3(32),
-        I2P(32),
-        CJDNS(16),
-        ;
-
-        private final int len;
-
-        NetworkID(int len) {
-            this.len = len;
-        }
-
-        public int getId() {
-            return this.ordinal() + 1;
-        }
-
-        public byte[] read(ByteBuf bf) {
-            return ByteUtil.readLength(bf, this.len);
-        }
-    }
-
     public static class Node {
         private int time;
         private UintVar services;
@@ -142,6 +120,14 @@ public class AddrV2 extends AbstractProtocolAdapter<AddrV2> {
             return addr;
         }
 
+        public String getNetwork() {
+            try {
+                return this.networkID.parse(addr);
+            } catch (UnknownHostException e) {
+                return "UnknownHostException : 0x" + ByteUtil.hex(addr);
+            }
+        }
+
         public void setAddr(byte[] addr) {
             this.addr = addr;
         }
@@ -160,7 +146,7 @@ public class AddrV2 extends AbstractProtocolAdapter<AddrV2> {
                     "time=" + getDateTime() +
                     ", services=" + services +
                     ", networkID=" + networkID +
-                    ", addr='" + addr + '\'' +
+                    ", addr='" + this.getNetwork() + '\'' +
                     ", port=" + port +
                     '}';
         }
