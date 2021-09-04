@@ -45,7 +45,12 @@ public enum NetProtocol {
      * like the addr message, but is extended to allow gossiping of longer node
      * addresses (see BIP155).
      */
-    ADDRV2,
+    ADDRV2 {
+        @Override
+        public AbstractProtocol parse(Peer peer, byte[] buf) throws IgnoreNetProtocolException {
+            return new AddrV2(peer).read(buf);
+        }
+    },
     /**
      * The sendaddrv2 message signals support for receiving ADDRV2 messages (BIP155).
      * It also implies that its sender can encode as ADDRV2 and would send ADDRV2

@@ -269,9 +269,12 @@ public class PeerChannelProtocol {
         ctx.writeAndFlush(request);
     }
 
-    //TODO::作用未知
     public void service(ChannelHandlerContext ctx, SendAddrV2 request) {
         ctx.writeAndFlush(request);
+    }
+
+    public void service(ChannelHandlerContext ctx, AddrV2 request) {
+        logger.warn("AddrV2 ignore: {}", request.getNodes());
     }
 
     //TODO::作用未知
