@@ -19,6 +19,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.*;
 
 @Component
@@ -34,7 +35,7 @@ public class PeerConnection implements Closeable {
     @Autowired
     CChainParams params;
 
-    private DelayQueue<DelayedConnection> connections = new DelayQueue<>();
+    private Queue<URI> connections = new ConcurrentLinkedDeque<>();
     private Map<URI, Peer> peers = new LinkedHashMap<>();
 
     /**
@@ -46,7 +47,7 @@ public class PeerConnection implements Closeable {
         int max = params.settings.getMaxPeers();
         logger.info("Ready connection {}, max: {}, success: {}, waiting: {}", uri, max, peers.size(), connections.size());
         if (peers.size() > max) {
-            connections.add(new DelayedConnection(uri, 0));
+            connections.add(uri);
             return;
         }
         Bootstrap bootstrap = new Bootstrap()
@@ -80,9 +81,13 @@ public class PeerConnection implements Closeable {
             closeFuture.addListener(e -> {
                 logger.info("CLOSE connection, Peer {}:{}", peer.getHost(), peer.getPort());
                 this.restart(uri);
-                connections.add(new DelayedConnection(uri));
-            }).await(TIME_OUT_SECONDS);
+                logger.debug("重新加入, 极端情况会导致 死循环, 所以这个里有个等待时间, 为了逻辑简单不使用 延迟队列 <DelayedConnection>");
+                connections.add(uri);
+            });
+            Thread.sleep(TIME_OUT_SECONDS * 1_000);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            if (e instanceof InterruptedException)
+                Thread.interrupted();
             logger.error("Peer error : {}", peer, e);
             peers.remove(uri);
         }
@@ -91,15 +96,9 @@ public class PeerConnection implements Closeable {
     private void restart(URI uri) {
         peers.remove(uri);
         if (peers.size() < params.settings.getMaxPeers()) {
-            while (true) {
-                try {
-                    DelayedConnection poll = connections.take();// block
-                    if (poll != null) {
-                        this.connection(poll.uri);
-                    }
-                } catch (InterruptedException e) {
-                }
-                return;
+            URI r = connections.poll();// block
+            if (r != null) {
+                this.connection(r);
             }
         }
     }
@@ -109,6 +108,7 @@ public class PeerConnection implements Closeable {
         executors.shutdownGracefully();
     }
 
+    @Deprecated
     public static class DelayedConnection implements Delayed {
         public static final int TimeMillis = 10 * 1000;
         private final long start = System.currentTimeMillis();
