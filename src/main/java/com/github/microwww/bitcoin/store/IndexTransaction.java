@@ -4,6 +4,8 @@ import com.github.microwww.bitcoin.chain.*;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.ChainBlockStore;
 import com.github.microwww.bitcoin.math.Uint256;
+import com.github.microwww.bitcoin.script.Interpreter;
+import com.github.microwww.bitcoin.script.ex.TransactionInvalidException;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -162,8 +164,9 @@ public class IndexTransaction implements Closeable {
 
             TxIn[] txIns = tx.getTxIns();
             long fee = 0;
-            for (TxIn in : txIns) {
-                int index = in.getPreTxOutIndex();
+            for (int inIndex = 0; inIndex < txIns.length; inIndex++) {
+                TxIn in = txIns[inIndex];
+                int outIndex = in.getPreTxOutIndex();
                 Optional<FileTransaction> ft = this.findTransaction(in.getPreTxHash());
                 RawTransaction preTx;
                 if (!ft.isPresent()) {
@@ -175,7 +178,20 @@ public class IndexTransaction implements Closeable {
                 } else {
                     preTx = ft.get().getTransaction();
                 }
-                TxOut txOut = preTx.getTxOuts()[index];
+
+                TxOut txOut = preTx.getTxOuts()[outIndex];
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Run tx script, {}, script in: {}, out: {}", hash, ByteUtil.hex(in.getScript()), ByteUtil.hex(txOut.getScriptPubKey()));
+                }
+                Interpreter interpreter = new Interpreter(tx).indexTxIn(inIndex, txOut).witnessPushStack()
+                        .executor(in.getScript())
+                        .executor(txOut.getScriptPubKey());
+
+                if (!interpreter.isSuccess()) {
+                    logger.error("Tx script run error, {} \n {} \n {}", hash, ByteUtil.hex(in.getScript()), ByteUtil.hex(txOut.getScriptPubKey()));
+                    throw new TransactionInvalidException("Tx in: " + inIndex + ", TX: " + hash);
+                }
+
                 long value = txOut.getValue();
                 Assert.isTrue(value >= 0, "Amount non-negative");
                 fee += value;
