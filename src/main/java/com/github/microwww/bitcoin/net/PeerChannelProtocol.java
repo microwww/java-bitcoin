@@ -201,6 +201,16 @@ public class PeerChannelProtocol {
     private long current = System.currentTimeMillis();
 
     public void service(ChannelHandlerContext ctx, Block request) {
+        try {
+            this.tryBlock(ctx, request);
+        } catch (RuntimeException ex) {
+            ChainBlock ch = request.getChainBlock();
+            logger.error("Error hash: {}, pre-hash: {}", ch.hash(), ch.header.getPreHash());
+            throw ex;
+        }
+    }
+
+    public void tryBlock(ChannelHandlerContext ctx, Block request) {
         ChainBlock cb = request.getChainBlock();
         loadingHeaderManager.loading.decrementAndGet();
         if (!cb.verifyMerkleTree()) {
@@ -328,6 +338,7 @@ public class PeerChannelProtocol {
         loadingHeaderManager.peerClose(peer);
     }
 
+    // TODO 该功能设计太麻烦 !!
     class LoadingHeaderManager {
         private Queue<ChannelHandlerContext> queue = new ConcurrentLinkedDeque();// 注意 channel 可以被回收
         private ChannelHandlerContext current;
