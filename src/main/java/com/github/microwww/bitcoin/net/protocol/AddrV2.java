@@ -43,7 +43,7 @@ public class AddrV2 extends AbstractProtocolAdapter<AddrV2> {
             }
             int chars = UintVar.parse(buf).intValueExact();
             node.addr = ByteUtil.readLength(buf, chars);
-            node.port = buf.readShortLE();
+            node.setPort(buf.readShortLE());
             // 放到最后, 否则后面的也无法解析
             if (chars > NODE_ADDRESS_MAX_LENGTH) {
                 logger.warn("Addrv2 payload over MAX-bytes, ignore : {}", peer.getURI());
@@ -86,7 +86,7 @@ public class AddrV2 extends AbstractProtocolAdapter<AddrV2> {
         private UintVar services;
         private NetworkID networkID;
         private byte[] addr;
-        private short port;
+        private int port;
 
         public int getTime() {
             return time;
@@ -132,12 +132,12 @@ public class AddrV2 extends AbstractProtocolAdapter<AddrV2> {
             this.addr = addr;
         }
 
-        public short getPort() {
+        public int getPort() {
             return port;
         }
 
         public void setPort(short port) {
-            this.port = port;
+            this.port = Short.toUnsignedInt(port);
         }
 
         @Override
