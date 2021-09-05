@@ -372,6 +372,10 @@ public class PeerChannelProtocol {
                 int h = chain.getDiskBlock().getLatestHeight();
                 while (true) {
                     ChannelHandlerContext c = queue.poll();
+                    if (c == null) {
+                        logger.debug("No peer to connection ... , try to restart !");
+                        break;
+                    }
                     Peer next = c.channel().attr(Peer.PEER).get();
                     if (next.isMeReady() && next.isRemoteReady()) {
                         if (next.getBlockHeight() > h && c.channel().isWritable()) {
