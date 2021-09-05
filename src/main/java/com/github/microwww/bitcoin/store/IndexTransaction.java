@@ -166,13 +166,14 @@ public class IndexTransaction implements Closeable {
             long fee = 0;
             for (int inIndex = 0; inIndex < txIns.length; inIndex++) {
                 TxIn in = txIns[inIndex];
+                Uint256 txh = tx.hash();
                 int outIndex = in.getPreTxOutIndex();
                 Optional<FileTransaction> ft = this.findTransaction(in.getPreTxHash());
                 RawTransaction preTx;
                 if (!ft.isPresent()) {
                     preTx = map.get(in.getPreTxHash());
                     if (preTx == null) {
-                        logger.info("Tx error: {}, not find pre-tx: {}, BLOCK: {}, {}", tx.hash(), in.getPreTxHash(), height, hash);
+                        logger.info("Tx error: {}, not find pre-tx: {}, BLOCK: {}, {}", txh, in.getPreTxHash(), height, hash);
                         throw new IllegalArgumentException("Not find pre-tx: " + in.getPreTxHash());
                     }
                 } else {
@@ -188,8 +189,8 @@ public class IndexTransaction implements Closeable {
                         .executor(txOut.getScriptPubKey());
 
                 if (!interpreter.isSuccess()) {
-                    logger.error("Tx script run error, {} \n {} \n {}", hash, ByteUtil.hex(in.getScript()), ByteUtil.hex(txOut.getScriptPubKey()));
-                    throw new TransactionInvalidException("Tx in: " + inIndex + ", TX: " + hash);
+                    logger.error("Tx script run error, {} \n {} \n {}", txh, ByteUtil.hex(in.getScript()), ByteUtil.hex(txOut.getScriptPubKey()));
+                    throw new TransactionInvalidException("Tx in: " + inIndex + ", TX: " + txh);
                 }
 
                 long value = txOut.getValue();
