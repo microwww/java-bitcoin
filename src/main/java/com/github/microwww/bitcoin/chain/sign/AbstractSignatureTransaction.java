@@ -1,6 +1,5 @@
 package com.github.microwww.bitcoin.chain.sign;
 
-import com.github.microwww.bitcoin.chain.HashType;
 import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.chain.SignatureTransaction;
 import com.github.microwww.bitcoin.chain.TxIn;
@@ -50,7 +49,7 @@ public abstract class AbstractSignatureTransaction implements SignatureTransacti
                 txIn.setScript(preScript);
             }
         }
-        ByteBuf sr = tx.serialize(0).writeBytes(new byte[]{HashType.ALL.toByte(), 0, 0, 0});
+        ByteBuf sr = tx.serialize(0).writeBytes(new byte[]{this.supportType().toByte(), 0, 0, 0});
         byte[] data = ByteUtil.readAll(sr);
         byte[] sha = ByteUtil.sha256sha256(data);
         if (logger.isDebugEnabled()) {

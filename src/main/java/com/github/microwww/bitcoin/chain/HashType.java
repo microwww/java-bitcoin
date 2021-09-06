@@ -1,24 +1,28 @@
 package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.chain.sign.*;
-import com.github.microwww.bitcoin.net.PeerChannelProtocol;
-import com.github.microwww.bitcoin.util.ByteUtil;
-import org.slf4j.Logger;
 
 public enum HashType {
     UNKNOWN(0) {
         // demo : in : c99c49da4c38af669dea436d3e73780dfdb6c1ecf9958baa52960e8baee30e73, from out: 406b2b06bcd34d3c8733e6b79f7a394c8a431fbf4ff5ac705c93f4076bb77602
-
         @Override
         public boolean verify(RawTransaction transaction, int indexTxIn, TxOut preout, byte[] pk, byte[] sign, byte[] scripts) {
-            Logger verify = PeerChannelProtocol.verify;
-            if (verify.isDebugEnabled()) {// TODO :: HashType = 0  签名未知
-                TxIn in = transaction.getTxIns()[indexTxIn];
-                verify.error("Ignore !!!! Tx script run error, {} \n {} \n {}", transaction.hash(), ByteUtil.hex(in.getScript()), ByteUtil.hex(scripts));
-                return true;
-            } else {
-                return super.verify(transaction, indexTxIn, preout, pk, sign, scripts);
-            }
+            return new HashAllSignatureTransaction(transaction, indexTxIn) {
+                @Override
+                public HashType supportType() {
+                    return UNKNOWN;
+                }
+            }.signatureVerify(pk, sign, scripts);
+        }
+
+        @Override
+        public boolean witnessVerify(RawTransaction transaction, int indexTxIn, TxOut preout, byte[] pk, byte[] sign, byte[] scripts) {
+            return new WitnessHashAllSignatureTransaction(transaction, indexTxIn, preout) {
+                @Override
+                public HashType supportType() {
+                    return UNKNOWN;
+                }
+            }.signatureVerify(pk, sign, scripts);
         }
     },
     ALL(1) {

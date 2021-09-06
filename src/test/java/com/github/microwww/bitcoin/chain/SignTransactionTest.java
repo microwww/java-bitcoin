@@ -18,7 +18,6 @@ class SignTransactionTest {
         assertArrayEquals(bytes, ByteUtil.hex("82dde6e4f1e94d02c2b7ad03d2115d691f48d064e9d52f58194a6637e4194391"));
     }
 
-    @Disabled
     @Test
     void sing() {
         ByteBuf bf = Unpooled.buffer();
