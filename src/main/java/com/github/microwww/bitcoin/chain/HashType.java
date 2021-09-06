@@ -104,14 +104,19 @@ public enum HashType {
     }
 
     public boolean verify(RawTransaction transaction, int indexTxIn, TxOut preout, byte[] pk, byte[] sign, byte[] scripts) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(this.toString());
     }
 
     public boolean witnessVerify(RawTransaction transaction, int indexTxIn, TxOut preout, byte[] pk, byte[] sign, byte[] scripts) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(this.toString());
     }
 
     public byte toByte() {
         return (byte) TYPE;
+    }
+
+    @Override
+    public String toString() {
+        return "HashType: " + this.name() + "|" + this.TYPE;
     }
 }

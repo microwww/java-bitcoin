@@ -151,11 +151,12 @@ public class IndexTransaction implements Closeable {
         RawTransaction first = txs[0];
         long amount = Generating.getBlockSubsidy(height, this.chainParams.env);
 
+        // 一个块 中有两个关联的交易
+        // main height: 546,
+        // tx-1: 28204cad1d7fc1d199e8ef4fa22f182de6258a3eaafe1bbe56ebdcacd3069a5f
+        // tx-2: 6b0f8a73a56c04b519f1883e8aafda643ba61a30bd1439969df21bea5f4e27e2
         Map<Uint256, RawTransaction> map = new HashMap<>();
-        for (RawTransaction tx : txs) { // TODO:: 是否会递归 ?
-            // main height: 546,
-            // tx-1: 28204cad1d7fc1d199e8ef4fa22f182de6258a3eaafe1bbe56ebdcacd3069a5f
-            // tx-2: 6b0f8a73a56c04b519f1883e8aafda643ba61a30bd1439969df21bea5f4e27e2
+        for (RawTransaction tx : txs) {
             map.put(tx.hash(), tx);
         }
 
@@ -171,7 +172,7 @@ public class IndexTransaction implements Closeable {
                 Optional<FileTransaction> ft = this.findTransaction(in.getPreTxHash());
                 RawTransaction preTx;
                 if (!ft.isPresent()) {
-                    preTx = map.get(in.getPreTxHash());
+                    preTx = map.get(in.getPreTxHash()); // TODO:: 是否会递归 ?
                     if (preTx == null) {
                         logger.info("Tx error: {}, not find pre-tx: {}, BLOCK: {}, {}", txh, in.getPreTxHash(), height, hash);
                         throw new IllegalArgumentException("Not find pre-tx: " + in.getPreTxHash());
@@ -184,14 +185,7 @@ public class IndexTransaction implements Closeable {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Run tx script, {}, script in: {}, out: {}", hash, ByteUtil.hex(in.getScript()), ByteUtil.hex(txOut.getScriptPubKey()));
                 }
-                Interpreter interpreter = new Interpreter(tx).indexTxIn(inIndex, txOut).witnessPushStack()
-                        .executor(in.getScript())
-                        .executor(txOut.getScriptPubKey());
-
-                if (!interpreter.isSuccess()) {
-                    logger.error("Tx script run error, {} \n {} \n {}", txh, ByteUtil.hex(in.getScript()), ByteUtil.hex(txOut.getScriptPubKey()));
-                    throw new TransactionInvalidException("Tx in: " + inIndex + ", TX: " + txh);
-                }
+                verifyScript(tx, inIndex, txOut);
 
                 long value = txOut.getValue();
                 Assert.isTrue(value >= 0, "Amount non-negative");
@@ -225,6 +219,28 @@ public class IndexTransaction implements Closeable {
         }
         if (amount > 0) {
             logger.info("Lose amount {}, {}, Base-coin", amount, hash);
+        }
+    }
+
+    public void verifyScript(RawTransaction tx, int inIndex, TxOut txOut) {
+        try {
+            this.tryVerifyScript(tx, inIndex, txOut);
+        } catch (RuntimeException e) {
+            Uint256 txh = tx.hash();
+            TxIn in = tx.getTxIns()[inIndex];
+            logger.error("Tx script run error, {} \n {} \n {}", txh, ByteUtil.hex(in.getScript()), ByteUtil.hex(txOut.getScriptPubKey()));
+            throw e;
+        }
+    }
+
+    public void tryVerifyScript(RawTransaction tx, int inIndex, TxOut txOut) {
+        Uint256 txh = tx.hash();
+        Interpreter interpreter = new Interpreter(tx).indexTxIn(inIndex, txOut).witnessPushStack()
+                .executor(tx.getTxIns()[inIndex].getScript())
+                .executor(txOut.getScriptPubKey());
+
+        if (!interpreter.isSuccess()) {
+            throw new TransactionInvalidException("Tx in: " + inIndex + ", TX: " + txh);
         }
     }
 }
