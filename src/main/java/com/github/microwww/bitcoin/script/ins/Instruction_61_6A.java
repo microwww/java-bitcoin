@@ -11,7 +11,16 @@ import org.slf4j.LoggerFactory;
 public enum Instruction_61_6A implements Instruction {
 
     // Flow control
-    OP_NOP,// 97
+    OP_NOP {
+        @Override
+        public ScriptOperation compile(ByteBuf bf) {
+            return new ScriptOperation(this, new byte[]{});
+        }
+
+        @Override
+        public void exec(Interpreter executor, Object data) {
+        }
+    },// 97
     OP_VER,
     OP_IF,// 99
     OP_NOTIF, // 100
@@ -41,7 +50,7 @@ public enum Instruction_61_6A implements Instruction {
 
     @Override
     public ScriptOperation compile(ByteBuf bf) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(this.toString());
     }
 
     @Override
@@ -55,5 +64,10 @@ public enum Instruction_61_6A implements Instruction {
 
     public byte opcode() {
         return (byte) (0x61 + this.ordinal());
+    }
+
+    @Override
+    public String toString() {
+        return this.name() + "|0x" + Integer.toString(this.opcode(), 16);
     }
 }

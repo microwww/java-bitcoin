@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.script.Interpreter;
 import com.github.microwww.bitcoin.util.ByteUtil;
+import com.github.microwww.bitcoin.util.ClassPath;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.jupiter.api.Test;
@@ -63,6 +64,34 @@ class SignTransactionTest {
             assertEquals(from.hash().toHexReverse256(), "aa85c2dd8bc29ef4015ed110ba543ea8adbccee2d1f3f51af33fc145c4aa1623");
         }
         int in = 0;
+        assertEquals(tx.getTxIns()[in].getPreTxHash(), from.hash());
+        TxOut txOut = from.getTxOuts()[tx.getTxIns()[in].getPreTxOutIndex()];
+        Interpreter interpreter = new Interpreter(tx).indexTxIn(in, txOut)//.witnessPushStack()
+                .executor(tx.getTxIns()[in].getScript())
+                .executor(txOut.getScriptPubKey());
+        assertTrue(interpreter.isSuccess());
+    }
+    //         strings = ClassPath.readClassPathFile("/data/online.data.txt");
+
+    @Test
+    public void test_OP_NOP_0x8ebe1df6ebf008f7ec42ccd022478c9afaec3ca0444322243b745aa2e317c272() {
+        ByteBuf bf = Unpooled.buffer();
+
+        RawTransaction tx = new RawTransaction();
+        {
+            String x = ClassPath.readClassPathFile("/data/online.data.txt").get(29);
+            byte[] hex = ByteUtil.hex(x);
+            tx.read(bf.clear().writeBytes(hex));
+            assertEquals(tx.hash().toHexReverse256(), "8ebe1df6ebf008f7ec42ccd022478c9afaec3ca0444322243b745aa2e317c272");
+        }
+        RawTransaction from = new RawTransaction();
+        {
+            String x = ClassPath.readClassPathFile("/data/online.data.txt").get(31);
+            byte[] hex = ByteUtil.hex(x);
+            from.read(bf.clear().writeBytes(hex));
+            assertEquals(from.hash().toHexReverse256(), "db3f14e43fecc80eb3e0827cecce85b3499654694d12272bf91b1b2b8c33b5cb");
+        }
+        int in = 89;
         assertEquals(tx.getTxIns()[in].getPreTxHash(), from.hash());
         TxOut txOut = from.getTxOuts()[tx.getTxIns()[in].getPreTxOutIndex()];
         Interpreter interpreter = new Interpreter(tx).indexTxIn(in, txOut)//.witnessPushStack()
