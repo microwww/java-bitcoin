@@ -3,8 +3,9 @@ package com.github.microwww.bitcoin.chain;
 import com.github.microwww.bitcoin.chain.sign.*;
 
 public enum HashType {
+    // demo : in : c99c49da4c38af669dea436d3e73780dfdb6c1ecf9958baa52960e8baee30e73, from out: 406b2b06bcd34d3c8733e6b79f7a394c8a431fbf4ff5ac705c93f4076bb77602
+    //!< Taproot only; implied when sighash byte is missing, and equivalent to SIGHASH_ALL
     UNKNOWN(0) {
-        // demo : in : c99c49da4c38af669dea436d3e73780dfdb6c1ecf9958baa52960e8baee30e73, from out: 406b2b06bcd34d3c8733e6b79f7a394c8a431fbf4ff5ac705c93f4076bb77602
         @Override
         public boolean verify(RawTransaction transaction, int indexTxIn, TxOut preout, byte[] pk, byte[] sign, byte[] scripts) {
             return new HashAllSignatureTransaction(transaction, indexTxIn) {

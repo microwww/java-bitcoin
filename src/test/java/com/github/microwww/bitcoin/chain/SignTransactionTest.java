@@ -19,7 +19,7 @@ class SignTransactionTest {
     }
 
     @Test
-    void sing() {
+    void testHashType0() {
         ByteBuf bf = Unpooled.buffer();
         RawTransaction from = new RawTransaction();
         {
@@ -39,8 +39,6 @@ class SignTransactionTest {
         int in = 0;
         assertEquals(tx.getTxIns()[in].getPreTxHash(), from.hash());
         TxOut txOut = from.getTxOuts()[tx.getTxIns()[in].getPreTxOutIndex()];
-        System.out.println(ByteUtil.hex(tx.getTxIns()[in].getScript()));
-        System.out.println(ByteUtil.hex(txOut.getScriptPubKey()));
         Interpreter interpreter = new Interpreter(tx).indexTxIn(in, txOut)//.witnessPushStack()
                 .executor(tx.getTxIns()[in].getScript())
                 .executor(txOut.getScriptPubKey());
