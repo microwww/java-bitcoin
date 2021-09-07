@@ -99,4 +99,31 @@ class SignTransactionTest {
                 .executor(txOut.getScriptPubKey());
         assertTrue(interpreter.isSuccess());
     }
+
+    @Test
+    public void test_OP_CHECKMULTISIG_0xEB3B82C0884E3EFA6D8B0BE55B() {
+        ByteBuf bf = Unpooled.buffer();
+
+        RawTransaction tx = new RawTransaction();
+        {
+            byte[] hex = ByteUtil.hex("01000000024de8b0c4c2582db95fa6b3567a989b664484c7ad6672c85a3da413773e63fdb8000000006b48304502205b282fbc9b064f3bc823a23edcc0048cbb174754e7aa742e3c9f483ebe02911c022100e4b0b3a117d36cab5a67404dddbf43db7bea3c1530e0fe128ebc15621bd69a3b0121035aa98d5f77cd9a2d88710e6fc66212aff820026f0dad8f32d1f7ce87457dde50ffffffff4de8b0c4c2582db95fa6b3567a989b664484c7ad6672c85a3da413773e63fdb8010000006f004730440220276d6dad3defa37b5f81add3992d510d2f44a317fd85e04f93a1e2daea64660202200f862a0da684249322ceb8ed842fb8c859c0cb94c81e1c5308b4868157a428ee01ab51210232abdc893e7f0631364d7fd01cb33d24da45329a00357b3a7886211ab414d55a51aeffffffff02e0fd1c00000000001976a914380cb3c594de4e7e9b8e18db182987bebb5a4f7088acc0c62d000000000017142a9bc5447d664c1d0141392a842d23dba45c4f13b17500000000");
+            tx.read(bf.clear().writeBytes(hex));
+            assertEquals(tx.hash().toHexReverse256(), "eb3b82c0884e3efa6d8b0be55b4915eb20be124c9766245bcc7f34fdac32bccb");
+        }
+        RawTransaction from = new RawTransaction();
+        {
+            byte[] hex = ByteUtil.hex("01000000017ea56cd68c74b4cd1a2f478f361b8a67c15a6629d73d95ef21d96ae213eb5b2d010000006a4730440220228e4deb3bc5b47fc526e2a7f5e9434a52616f8353b55dbc820ccb69d5fbded502206a2874f7f84b20015614694fe25c4d76f10e31571f03c240e3e4bbf1f9985be201210232abdc893e7f0631364d7fd01cb33d24da45329a00357b3a7886211ab414d55affffffff0230c11d00000000001976a914709dcb44da534c550dacf4296f75cba1ba3b317788acc0c62d000000000017142a9bc5447d664c1d0141392a842d23dba45c4f13b17500000000");
+            bf.writeBytes(hex);
+            from.read(bf);
+            assertEquals(from.hash().toHexReverse256(), "b8fd633e7713a43d5ac87266adc78444669b987a56b3a65fb92d58c2c4b0e84d");
+        }
+        int in = 1;
+        assertEquals(tx.getTxIns()[in].getPreTxHash(), from.hash());
+        TxOut txOut = from.getTxOuts()[tx.getTxIns()[in].getPreTxOutIndex()];
+        Interpreter interpreter = new Interpreter(tx).indexTxIn(in, txOut)//.witnessPushStack()
+                .executor(tx.getTxIns()[in].getScript())
+                .executor(txOut.getScriptPubKey());
+        assertTrue(interpreter.isSuccess());
+    }
+
 }

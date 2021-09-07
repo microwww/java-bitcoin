@@ -9,7 +9,23 @@ public enum Instruction_B0_B9 implements Instruction {
 
     // expansion
     OP_NOP1,
-    OP_CHECKLOCKTIMEVERIFY,
+    OP_CHECKLOCKTIMEVERIFY { // OP_NOP2
+
+        @Override
+        public ScriptOperation compile(ByteBuf bf) {
+            return new ScriptOperation(this, ZERO);
+        }
+
+        @Override
+        public void exec(Interpreter executor, Object data) {
+            byte[] peek = executor.stack.assertSizeGE(1).peek();
+            if (peek.length != 4) {
+                return;
+            }
+            // 软分叉 暂不支持
+            super.exec(executor, data);
+        }
+    },
     OP_CHECKSEQUENCEVERIFY,
     OP_NOP4,
     OP_NOP5, // 180
@@ -28,7 +44,7 @@ public enum Instruction_B0_B9 implements Instruction {
 
     @Override
     public void exec(Interpreter executor, Object data) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(this.name());
     }
 
     public byte opcode() {
