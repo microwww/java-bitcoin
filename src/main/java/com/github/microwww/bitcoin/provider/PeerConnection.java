@@ -35,19 +35,19 @@ public class PeerConnection implements Closeable {
     @Autowired
     CChainParams params;
 
-    private Queue<URI> connections = new ConcurrentLinkedDeque<>();
-    private Map<URI, Peer> peers = new LinkedHashMap<>();
+    private Queue<URI> waiting = new ConcurrentLinkedDeque<>();
+    private Map<URI, Peer> connections = new LinkedHashMap<>();
 
     /**
      * Not block
      *
      * @param uri
      */
-    public synchronized void connection(URI uri) {
+    public synchronized void connection(URI uri) throws ExecutionException, InterruptedException, TimeoutException {
         int max = params.settings.getMaxPeers();
-        logger.info("Ready connection {}, max: {}, success: {}, waiting: {}", uri, max, peers.size(), connections.size());
-        if (peers.size() > max) {
-            connections.add(uri);
+        logger.info("Ready connection {}, max: {}, success: {}, waiting: {}", uri, max, connections.size(), waiting.size());
+        if (connections.size() > max) {
+            waiting.add(uri);
             return;
         }
         Bootstrap bootstrap = new Bootstrap()
@@ -73,7 +73,7 @@ public class PeerConnection implements Closeable {
                     InetSocketAddress address = (InetSocketAddress) ch.localAddress();
                     peer.setLocalAddress(address);
                     logger.info("Connection FROM: " + ch.localAddress() + ", TO: " + ch.remoteAddress());
-                    peers.put(uri, peer);
+                    connections.put(uri, peer);
                 }
             });
             channelFuture.get(TIME_OUT_SECONDS, TimeUnit.SECONDS);
@@ -82,21 +82,19 @@ public class PeerConnection implements Closeable {
                 logger.info("CLOSE connection, Peer {}:{}", peer.getHost(), peer.getPort());
                 this.restart(uri);
                 logger.debug("重新加入, 极端情况会导致 死循环, 所以这个里有个等待时间, 为了逻辑简单不使用 延迟队列 <DelayedConnection>");
-                connections.add(uri);
+                waiting.add(uri);
             });
             Thread.sleep(TIME_OUT_SECONDS * 1_000);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            if (e instanceof InterruptedException)
-                Thread.interrupted();
-            logger.error("Peer error : {}", peer, e);
-            peers.remove(uri);
+            connections.remove(uri);
+            throw e;
         }
     }
 
-    private void restart(URI uri) {
-        peers.remove(uri);
-        if (peers.size() < params.settings.getMaxPeers()) {
-            URI r = connections.poll();// block
+    private void restart(URI uri) throws ExecutionException, InterruptedException, TimeoutException {
+        connections.remove(uri);
+        if (connections.size() < params.settings.getMaxPeers()) {
+            URI r = waiting.poll();// block
             if (r != null) {
                 this.connection(r);
             }
@@ -107,39 +105,4 @@ public class PeerConnection implements Closeable {
     public void close() throws IOException {
         executors.shutdownGracefully();
     }
-
-    @Deprecated
-    public static class DelayedConnection implements Delayed {
-        public static final int TimeMillis = 10 * 1000;
-        private final long start = System.currentTimeMillis();
-        public final URI uri;
-        public final int waitingMillis;
-
-        public DelayedConnection(URI uri, int waitingMillis) {
-            Assert.isTrue(uri != null, "Not null");
-            this.uri = uri;
-            this.waitingMillis = waitingMillis;
-        }
-
-        public DelayedConnection(URI uri) {
-            this(uri, TimeMillis);
-        }
-
-        @Override
-        public long getDelay(TimeUnit unit) {
-            return unit.convert(start + waitingMillis - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
-        }
-
-        @Override
-        public int compareTo(Delayed o) {
-            if (this == o) {
-                return 0;
-            }
-            if (o instanceof DelayedConnection) {
-                return uri.compareTo(((DelayedConnection) o).uri);
-            }
-            throw new UnsupportedOperationException();
-        }
-    }
-
 }
