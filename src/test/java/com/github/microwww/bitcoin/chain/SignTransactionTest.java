@@ -4,7 +4,6 @@ import com.github.microwww.bitcoin.script.Interpreter;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,6 +35,33 @@ class SignTransactionTest {
             assertEquals(tx.hash().toHexReverse256(), "c99c49da4c38af669dea436d3e73780dfdb6c1ecf9958baa52960e8baee30e73");
         }
 
+        int in = 0;
+        assertEquals(tx.getTxIns()[in].getPreTxHash(), from.hash());
+        TxOut txOut = from.getTxOuts()[tx.getTxIns()[in].getPreTxOutIndex()];
+        Interpreter interpreter = new Interpreter(tx).indexTxIn(in, txOut)//.witnessPushStack()
+                .executor(tx.getTxIns()[in].getScript())
+                .executor(txOut.getScriptPubKey());
+        assertTrue(interpreter.isSuccess());
+    }
+
+    // JDK bug : https://bugs.openjdk.java.net/browse/JDK-8175251
+    @Test
+    public void test0xFB0A1D8D34FA5537E() {
+        ByteBuf bf = Unpooled.buffer();
+
+        RawTransaction tx = new RawTransaction();
+        {
+            byte[] hex = ByteUtil.hex("01000000012316aac445c13ff31af5f3d1e2cebcada83e54ba10d15e01f49ec28bddc285aa000000008e4b3048022200002b83d59c1d23c08efd82ee0662fec23309c3adbcbd1f0b8695378db4b14e736602220000334a96676e58b1bb01784cb7c556dd8ce1c220171904da22e18fe1e7d1510db5014104d0fe07ff74c9ef5b00fed1104fad43ecf72dbab9e60733e4f56eacf24b20cf3b8cd945bcabcc73ba0158bf9ce769d43e94bd58c5c7e331a188922b3fe9ca1f5affffffff01c0c62d00000000001976a9147a2a3b481ca80c4ba7939c54d9278e50189d94f988ac00000000");
+            tx.read(bf.clear().writeBytes(hex));
+            assertEquals(tx.hash().toHexReverse256(), "fb0a1d8d34fa5537e461ac384bac761125e1bfa7fec286fa72511240fa66864d");
+        }
+        RawTransaction from = new RawTransaction();
+        {
+            byte[] hex = ByteUtil.hex("0100000001ba988c49d024d5ec33b49f74071b2157b1530e1301c3210d92c5dc08e04b63d0010000008b48304502200f18c2d1fe6513b90f44513e975e05cc498e7f5a565b46c65b1d448734392c6f022100917766d14f2e9933eb269c83b3ad440ed8432da8beb5733f34046509e48b1d850141049ba39856eec011b79f1acb997760ed9d3f90d477077d17df2571d94b2fa2137bf0976d786b6aabc903746e269628b2c28e4b5db753845e5713a48ee7d6b97aafffffffff01c0c62d00000000001976a9147a2a3b481ca80c4ba7939c54d9278e50189d94f988ac00000000");
+            bf.writeBytes(hex);
+            from.read(bf);
+            assertEquals(from.hash().toHexReverse256(), "aa85c2dd8bc29ef4015ed110ba543ea8adbccee2d1f3f51af33fc145c4aa1623");
+        }
         int in = 0;
         assertEquals(tx.getTxIns()[in].getPreTxHash(), from.hash());
         TxOut txOut = from.getTxOuts()[tx.getTxIns()[in].getPreTxOutIndex()];

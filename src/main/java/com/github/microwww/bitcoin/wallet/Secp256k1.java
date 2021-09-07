@@ -1,5 +1,7 @@
 package com.github.microwww.bitcoin.wallet;
 
+import org.bouncycastle.crypto.params.ECPublicKeyParameters;
+import org.bouncycastle.crypto.signers.ECDSASigner;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jce.spec.ECKeySpec;
@@ -93,11 +95,17 @@ public class Secp256k1 {
     }
 
     public static boolean signatureVerify(byte[] publicKey, byte[] signed, byte[] data) {
-        return signatureVerify(converterPublicKey(publicKey), signed, data);
+        ECDSASignature signature = ECDSASignature.decodeFromDER(signed);
+        ECDSASigner signer = new ECDSASigner();
+        ECPublicKeyParameters params = new ECPublicKeyParameters(ECDSASignature.CURVE.getCurve().decodePoint(publicKey), ECDSASignature.CURVE);
+        signer.init(false, params);
+        return signer.verifySignature(data, signature.r, signature.s);
     }
 
+    //  Invalid encoding: redundant leading 0s, JDK bug : https://bugs.openjdk.java.net/browse/JDK-8175251
     public static boolean signatureVerify(PublicKey publicKey, byte[] signed, byte[] data) {
         try {
+            logger.warn("JDK has a bug ! don't use it");
             Signature signature = Signature.getInstance(SIGN_ALGORITHMS);
             signature.initVerify(publicKey);
             signature.update(data);
