@@ -398,5 +398,5 @@ public enum TemplateTransaction {
         return ByteUtil.readAll(bf);
     }
 
-    public static final int M2N_MAX = 16;
+    public static final int M2N_MAX = 0x16;
 }

@@ -6,17 +6,7 @@ import com.github.microwww.bitcoin.script.ScriptOperation;
 import io.netty.buffer.ByteBuf;
 
 public enum Instruction_51_60 implements Instruction {
-    OP_1 {
-        @Override
-        public ScriptOperation compile(ByteBuf bf) {
-            return new ScriptOperation(this, ZERO);
-        }
-
-        @Override
-        public void exec(Interpreter interpreter, Object data, int pc) {
-            interpreter.stack.push(1);
-        }
-    },// OP_TRUE 81
+    OP_1,// OP_TRUE 81
     OP_2,
     OP_3,
     OP_4,

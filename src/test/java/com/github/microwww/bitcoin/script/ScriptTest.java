@@ -161,4 +161,30 @@ public class ScriptTest {
                 .executor(txOut.getScriptPubKey());
         assertTrue(interpreter.isSuccess());
     }
+
+    @Test
+    public void test_OP_CHECKMULTISIG_6a26d2ecb67f27d1f() {
+        ByteBuf bf = Unpooled.buffer();
+
+        RawTransaction tx = new RawTransaction();
+        {
+            byte[] hex = ByteUtil.hex("0100000001f6ea284ec7521f8a7d094a6cf4e6873098b90f90725ffd372b343189d7a4089c0100000026255121029b6d2c97b8b7c718c325d7be3ac30f7c9d67651bce0c929f55ee77ce58efcf8451aeffffffff0130570500000000001976a9145a3acbc7bbcc97c5ff16f5909c9d7d3fadb293a888ac00000000");
+            tx.read(bf.clear().writeBytes(hex));
+            assertEquals(tx.hash().toHexReverse256(), "6a26d2ecb67f27d1fa5524763b49029d7106e91e3cc05743073461a719776192");
+        }
+        RawTransaction from = new RawTransaction();
+        {
+            byte[] hex = ByteUtil.hex("010000000168781ca236d8e70e4af8285852defabeff61c73db259cbbbebdf7bdac918c234010000004847304402206d186984373e0b781b85f49334cc9a249ffd13a448a5d1732096b011a10063e102206d280df8f4b5e6805f48eb04601ca6d97edd78f2b2d1104dc577e08fd788c78001ffffffff02cce80900000000001976a914fe58bbf690824bdaffb0431a709c27d7bdb6105e88ac801a06000000000017a91419a7d869032368fd1f1e26e5e73a4ad0e474960e8700000000");
+            bf.writeBytes(hex);
+            from.read(bf);
+            assertEquals(from.hash().toHexReverse256(), "9c08a4d78931342b37fd5f72900fb9983087e6f46c4a097d8a1f52c74e28eaf6");
+        }
+        int in = 0;
+        assertEquals(tx.getTxIns()[in].getPreTxHash(), from.hash());
+        TxOut txOut = from.getTxOuts()[tx.getTxIns()[in].getPreTxOutIndex()];
+        Interpreter interpreter = new Interpreter(tx).indexTxIn(in, txOut)//.witnessPushStack()
+                .executor(tx.getTxIns()[in].getScript())
+                .executor(txOut.getScriptPubKey());
+        assertTrue(interpreter.isSuccess());
+    }
 }
