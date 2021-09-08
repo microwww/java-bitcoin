@@ -14,11 +14,13 @@ public class Interpreter {
     private static final Logger logger = LoggerFactory.getLogger(Interpreter.class);
 
     public final RawTransaction transaction;
+    private final int height;// 不同的高度会有分叉规则, 默认是 Integer.MAX_VALUE , 也就是最新的值
+    public final BytesStack stack;
+
     private int indexTxIn = 0;
     private TxOut preout;
     private List<Compiler.SourceCode> script = Collections.EMPTY_LIST;
     private byte[] scripts;
-    public final BytesStack stack;
     private int lastCodeSeparator = -1;
     private boolean internally = false; // These words are used internally for assisting with transaction matching. They are invalid if used in actual scripts.
     private Map<String, Function<List<Compiler.SourceCode>, List<Compiler.SourceCode>>> preProcess = new LinkedHashMap<>();
@@ -27,10 +29,19 @@ public class Interpreter {
         this(tx, new BytesStack());
     }
 
+    public Interpreter(RawTransaction tx, int height) {
+        this(tx, new BytesStack(), height);
+    }
+
     protected Interpreter(RawTransaction tx, BytesStack bytesStack) {
+        this(tx, bytesStack, Integer.MAX_VALUE);
+    }
+
+    protected Interpreter(RawTransaction tx, BytesStack bytesStack, int height) {
         Assert.isTrue(tx != null, "Not NULL");
         this.transaction = tx.clone();
         stack = bytesStack;
+        this.height = height;
     }
 
     public Interpreter subScript(boolean internally) {
@@ -184,5 +195,9 @@ public class Interpreter {
 
     public boolean isInternally() {
         return internally;
+    }
+
+    public int getHeight() {
+        return height;
     }
 }

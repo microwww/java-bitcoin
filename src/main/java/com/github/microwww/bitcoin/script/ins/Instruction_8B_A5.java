@@ -4,7 +4,10 @@ import com.github.microwww.bitcoin.script.Instruction;
 import com.github.microwww.bitcoin.script.Interpreter;
 import com.github.microwww.bitcoin.script.ScriptOperation;
 import com.github.microwww.bitcoin.script.ex.ScriptDisableException;
+import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
+
+import java.math.BigInteger;
 
 public enum Instruction_8B_A5 implements Instruction {
 
@@ -172,9 +175,40 @@ public enum Instruction_8B_A5 implements Instruction {
     OP_GREATERTHAN, // 160
     OP_LESSTHANOREQUAL,
     OP_GREATERTHANOREQUAL,
-    OP_MIN,
-    OP_MAX,
-    OP_WITHIN, // 165
+    OP_MIN {
+        @Override
+        public void exec(Interpreter executor, Object data) {
+            // 3ee060fb1856f111859fb108d079635a2d225ef68d5ae5250ce70d39ac2a2dc4
+            byte[] p1 = executor.stack.assertSizeGE(2).pop();
+            byte[] p2 = executor.stack.pop();
+            BigInteger min = new BigInteger(ByteUtil.reverse(p1)).min(new BigInteger(ByteUtil.reverse(p2)));
+            executor.stack.push(ByteUtil.reverse(min.toByteArray()));
+        }
+    },
+    OP_MAX {
+        @Override
+        public void exec(Interpreter executor, Object data) {
+            byte[] p1 = executor.stack.assertSizeGE(2).pop();
+            byte[] p2 = executor.stack.pop();
+            BigInteger min = new BigInteger(ByteUtil.reverse(p1)).max(new BigInteger(ByteUtil.reverse(p2)));
+            executor.stack.push(ByteUtil.reverse(min.toByteArray()));
+        }
+    },
+    OP_WITHIN {
+        @Override
+        public void exec(Interpreter executor, Object data) {
+            byte[] max = executor.stack.assertSizeGE(3).pop();
+            BigInteger min = new BigInteger(ByteUtil.reverse(executor.stack.pop()));
+            BigInteger x = new BigInteger(ByteUtil.reverse(executor.stack.pop()));
+            if (new BigInteger(ByteUtil.reverse(max)).compareTo(x) > 0) {
+                if (min.compareTo(x) <= 0) {
+                    executor.stack.push(1);
+                    return;
+                }
+            }
+            executor.stack.push(0);
+        }
+    }, // 165
     ;
 
     @Override
@@ -184,10 +218,16 @@ public enum Instruction_8B_A5 implements Instruction {
 
     @Override
     public void exec(Interpreter executor, Object data) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(this.toString());
     }
+
     public byte opcode() {
         return (byte) (0x8B + this.ordinal());
     }
 
+    @Override
+    public String toString() {
+        byte c = this.opcode();
+        return this.name() + "|" + c + "|0x" + ByteUtil.hex(new byte[]{c});
+    }
 }

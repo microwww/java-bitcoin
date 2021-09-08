@@ -174,9 +174,15 @@ public enum TemplateTransaction {
         public void executor(Interpreter interpreter) {
             byte[] pop = interpreter.stack.peek();
             interpreter.runNow();
-            Assert.isTrue(interpreter.isSuccess(true), "P2SH address is hash160 not equals");
+            if (interpreter.getHeight() < 17_3750) {// 软分叉交易, blocks with timestamps >= 1333238400, 2012.04.01
+                // https://www.blockchain.com/btc/tx/6a26d2ecb67f27d1fa5524763b49029d7106e91e3cc05743073461a719776192
+                log.info("OLD P2SH M2N transaction : {}", interpreter.transaction.hash());
+                return;
+            }
+            Assert.isTrue(interpreter.isSuccess(), "P2SH address is hash160 not equals");
             if (log.isDebugEnabled())
                 log.debug("P2SH script hash160 equals: {}", ByteUtil.hex(ByteUtil.sha256ripemd160(pop)));
+            // TODO: 如果在解锁脚本中存在任何的push data操作码以外的操作码，验证失败。
             interpreter.executor(pop);
         }
 

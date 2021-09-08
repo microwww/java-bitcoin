@@ -185,7 +185,7 @@ public class IndexTransaction implements Closeable {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Run tx script, {}, script in: {}, out: {}", hash, ByteUtil.hex(in.getScript()), ByteUtil.hex(txOut.getScriptPubKey()));
                 }
-                verifyScript(tx, inIndex, txOut);
+                verifyScript(height, tx, inIndex, txOut);
 
                 long value = txOut.getValue();
                 Assert.isTrue(value >= 0, "Amount non-negative");
@@ -222,9 +222,9 @@ public class IndexTransaction implements Closeable {
         }
     }
 
-    public void verifyScript(RawTransaction tx, int inIndex, TxOut txOut) {
+    public void verifyScript(int height, RawTransaction tx, int inIndex, TxOut txOut) {
         try {
-            this.tryVerifyScript(tx, inIndex, txOut);
+            this.tryVerifyScript(height, tx, inIndex, txOut);
         } catch (RuntimeException e) {
             Uint256 txh = tx.hash();
             TxIn in = tx.getTxIns()[inIndex];
@@ -233,9 +233,9 @@ public class IndexTransaction implements Closeable {
         }
     }
 
-    public void tryVerifyScript(RawTransaction tx, int inIndex, TxOut txOut) {
+    public void tryVerifyScript(int height, RawTransaction tx, int inIndex, TxOut txOut) {
         Uint256 txh = tx.hash();
-        Interpreter interpreter = new Interpreter(tx).indexTxIn(inIndex, txOut).witnessPushStack()
+        Interpreter interpreter = new Interpreter(tx, height).indexTxIn(inIndex, txOut).witnessPushStack()
                 .executor(tx.getTxIns()[inIndex].getScript())
                 .executor(txOut.getScriptPubKey());
 

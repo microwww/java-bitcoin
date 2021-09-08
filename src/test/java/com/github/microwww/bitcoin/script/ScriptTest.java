@@ -182,9 +182,17 @@ public class ScriptTest {
         int in = 0;
         assertEquals(tx.getTxIns()[in].getPreTxHash(), from.hash());
         TxOut txOut = from.getTxOuts()[tx.getTxIns()[in].getPreTxOutIndex()];
-        Interpreter interpreter = new Interpreter(tx).indexTxIn(in, txOut)//.witnessPushStack()
+        Interpreter interpreter = new Interpreter(tx, 0).indexTxIn(in, txOut)//.witnessPushStack()
                 .executor(tx.getTxIns()[in].getScript())
                 .executor(txOut.getScriptPubKey());
         assertTrue(interpreter.isSuccess());
+
+        try {
+            new Interpreter(tx, 200_000).indexTxIn(in, txOut)//.witnessPushStack()
+                    .executor(tx.getTxIns()[in].getScript())
+                    .executor(txOut.getScriptPubKey());
+            fail();
+        } catch (Exception e) {
+        }
     }
 }
