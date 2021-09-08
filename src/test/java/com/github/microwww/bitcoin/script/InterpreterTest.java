@@ -289,7 +289,8 @@ class InterpreterTest {
         assertTrue(executor.isSuccess(true));
 
         i = 1;
-        byte[] hex = ByteUtil.hex("00205d1b56b63d714eebe542309525f484b7e9d6f686b3781b6f61ef925d66d6f6a0");
+        // getScriptsFromLastCodeSeparator
+        byte[] hex = ByteUtil.hex("2200205d1b56b63d714eebe542309525f484b7e9d6f686b3781b6f61ef925d66d6f6a0");
         executor.nextTxIn(new TxOut(49_0000_0000L)).executor(tx.getTxIns()[i].getScript()).witnessPushStack().executor(hex);
         assertTrue(executor.isSuccess());
     }
