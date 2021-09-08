@@ -59,12 +59,18 @@ public class BytesStack {
         return cache.writeBytes(stack.pop()).readIntLE();
     }
 
+    private static boolean castToBool(byte[] data) {
+        for (int i = 0; i < data.length; i++) {
+            // "Can be negative zero" - Dash Core (see OpenSSL's BN_bn2mpi)
+            if (data[i] != 0)
+                return !(i == data.length - 1 && (data[i] & 0xFF) == 0x80);
+        }
+        return false;
+    }
+
     public boolean peekSuccess() {
         byte[] pop = stack.peek();
-        if (pop.length != 4) {
-            throw new ScriptException("length != 4");
-        }
-        return cache.writeBytes(pop).readIntLE() == 1;
+        return castToBool(pop);
     }
 
     public long popLong() {

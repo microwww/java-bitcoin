@@ -1,7 +1,9 @@
 package com.github.microwww.bitcoin.script;
 
-import cn.hutool.crypto.digest.DigestUtil;
+import com.github.microwww.bitcoin.chain.RawTransaction;
+import com.github.microwww.bitcoin.chain.TxOut;
 import com.github.microwww.bitcoin.util.ByteUtil;
+import com.github.microwww.bitcoin.util.ClassPath;
 import com.github.microwww.bitcoin.wallet.Secp256k1;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -132,5 +134,31 @@ public class ScriptTest {
             vv[i] = (byte) raw_tx[i];
         }
         return vv;
+    }
+
+    @Test
+    public void test_OP_1() {
+        ByteBuf bf = Unpooled.buffer();
+
+        RawTransaction tx = new RawTransaction();
+        {
+            byte[] hex = ByteUtil.hex("01000000018ac66537aa8ee407a4dd9cf7e233256d6238693672e42b12ae4ba50bd6709936000000000151ffffffff0100000000000000001976a91401c26a20bf282a099cbc113d3b66669b8e28899088ac00000000");
+            tx.read(bf.clear().writeBytes(hex));
+            assertEquals(tx.hash().toHexReverse256(), "3a5e0977cc64e601490a761d83a4ea5be3cd03b0ffb73f5fe8be6507539be76c");
+        }
+        RawTransaction from = new RawTransaction();
+        {
+            byte[] hex = ByteUtil.hex(ClassPath.readClassPathFile("/data/online.data.txt").get(34));
+            bf.writeBytes(hex);
+            from.read(bf);
+            assertEquals(from.hash().toHexReverse256(), "369970d60ba54bae122be472366938626d2533e2f79cdda407e48eaa3765c68a");
+        }
+        int in = 0;
+        assertEquals(tx.getTxIns()[in].getPreTxHash(), from.hash());
+        TxOut txOut = from.getTxOuts()[tx.getTxIns()[in].getPreTxOutIndex()];
+        Interpreter interpreter = new Interpreter(tx).indexTxIn(in, txOut)//.witnessPushStack()
+                .executor(tx.getTxIns()[in].getScript())
+                .executor(txOut.getScriptPubKey());
+        assertTrue(interpreter.isSuccess());
     }
 }
