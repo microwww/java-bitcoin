@@ -11,7 +11,7 @@ public abstract class BitcoinEvent<T> extends ApplicationEvent {
      * @param source the object on which the Event initially occurred
      * @throws IllegalArgumentException if source is null
      */
-    public BitcoinEvent(URI source) {
+    public BitcoinEvent(T source) {
         super(source);
     }
 

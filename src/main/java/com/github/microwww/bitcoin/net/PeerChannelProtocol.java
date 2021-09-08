@@ -395,7 +395,7 @@ public class PeerChannelProtocol {
                 }
             } else {
                 Peer peer = ctx.channel().attr(Peer.PEER).get();
-                logger.info("U [{}:{}] can not stop it", peer.getHost(), peer.getPort());
+                logger.debug("U [{}:{}] can not stop it", peer.getHost(), peer.getPort());
             }
         }
 
