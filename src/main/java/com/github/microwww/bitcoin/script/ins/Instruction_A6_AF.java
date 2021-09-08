@@ -76,7 +76,7 @@ public enum Instruction_A6_AF implements Instruction {
         public void exec(Interpreter executor, Object data) {
             byte[] pk = executor.stack.assertSizeGE(2).pop();
             byte[] sn = executor.stack.pop();
-            Assert.isTrue(sn.length >= 50, "signature.length > 1, general == 71 / 72");
+            Assert.isTrue(sn.length >= 50, "signature.length > 1, Usually 70-72 bytes.");
             byte[] sign = Arrays.copyOf(sn, sn.length - 1);
             byte type = sn[sn.length - 1];
             HashType select = HashType.select(type);

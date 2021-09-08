@@ -94,7 +94,12 @@ public class PeerConnection implements Closeable {
             Thread.interrupted();
             this.errorLogger(uri, e);
         } catch (RuntimeException | ExecutionException ex) {
-            logger.error("Connection {} ERROR !", uri, ex.getCause());
+            Throwable cause = ex.getCause();
+            if (cause instanceof IOException) {// simple log
+                logger.error("Connection to peer error : {}", cause.getMessage());
+            } else {
+                logger.error("Connection {} ERROR !", uri, cause);
+            }
         }
     }
 

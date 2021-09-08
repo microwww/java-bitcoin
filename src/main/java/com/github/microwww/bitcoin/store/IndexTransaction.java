@@ -228,7 +228,7 @@ public class IndexTransaction implements Closeable {
         } catch (RuntimeException e) {
             Uint256 txh = tx.hash();
             TxIn in = tx.getTxIns()[inIndex];
-            logger.error("Tx script run error, {}, in: {} \n {} \n {}", txh, inIndex, ByteUtil.hex(in.getScript()), ByteUtil.hex(txOut.getScriptPubKey()));
+            logger.error("Tx script run error, {}, in: {} \n {} \n {}", txh, inIndex, ByteUtil.hex(in.getScript()), ByteUtil.hex(txOut.getScriptPubKey()), e);
             throw e;
         }
     }
