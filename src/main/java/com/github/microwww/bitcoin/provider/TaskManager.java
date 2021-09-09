@@ -9,9 +9,9 @@ public class TaskManager<T> {
 
     private final Semaphore semaphore;
     private final Consumer<T> consumer;
-    private final ExecutorService executor;
-    private final Map<T, Object> doing = new ConcurrentHashMap<>();
-    private final BlockingQueue<T> queue = new LinkedBlockingQueue<>();
+    final ExecutorService executor;
+    final Map<T, Object> doing = new ConcurrentHashMap<>();
+    final BlockingQueue<T> queue = new LinkedBlockingQueue<>();
 
     public TaskManager(int max, Consumer<T> consumer) {
         this(max, consumer, POOL);
