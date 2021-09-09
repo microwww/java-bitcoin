@@ -59,7 +59,7 @@ public class TaskManager<T> {
         return doing.size();
     }
 
-    public void release(Runnable run) {
+    public synchronized void release(T run) {
         Object remove = doing.remove(run);
         if (remove != null) {
             semaphore.release();
@@ -68,6 +68,6 @@ public class TaskManager<T> {
 
     public void remove(T e) {
         queue.remove(e);
-        doing.remove(e);
+        release(e);
     }
 }
