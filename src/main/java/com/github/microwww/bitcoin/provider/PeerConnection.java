@@ -27,55 +27,25 @@ public class PeerConnection implements Closeable {
     private static final int TIME_OUT_SECONDS = 5;
     private static EventLoopGroup executors = new NioEventLoopGroup();
     private final CChainParams params;
+    private final TaskManager<URI> taskManager;
 
     @Autowired
     LocalBlockChain localBlockChain;
     @Autowired
     PeerChannelInboundHandler peerChannelInboundHandlerEventPublisher;
-    @Autowired
-    ApplicationEventPublisher publisher;
-
-    private BlockingQueue<URI> waiting = new LinkedBlockingQueue<>();
-    private Map<URI, Peer> connections = new ConcurrentHashMap<>();
 
     public PeerConnection(CChainParams params) {
-        this.params = params;
-        init();
-    }
-
-    private void init() {
-        int max = params.settings.getMaxPeers();
-        executors.next().execute(() -> {
-            while (true) try {// 循环获取
-                if (connections.size() > max) {
-                    Thread.sleep(TIME_OUT_SECONDS * 1000);
-                    continue;
-                }
-                URI uri = waiting.poll(TIME_OUT_SECONDS, TimeUnit.SECONDS);
-                if (uri != null) {
-                    connection(uri);
-                } else {
-                    if (connections.isEmpty()) {
-                        logger.warn("No peer to connect ,RESTART by system seed [{}], waiting....",
-                                params.getEnvParams().seedsURI().size());
-                        for (URI u : params.getEnvParams().seedsURI()) {
-                            publisher.publishEvent(new BitcoinAddPeerEvent(u));
-                        }
-                    }
-                }
-            } catch (InterruptedException e) {
-                Thread.interrupted();
-            } catch (RuntimeException ex) {
-                logger.error("IGNORE ! Peer listener thread error.", ex);
-            }
+        taskManager = new TaskManager<>(params.settings.getMaxPeers(), e -> {
+            this.connection(e);
         });
+        this.params = params;
     }
 
     public void addPeer(URI... uris) {
         int max = params.settings.getMaxPeers();
         for (URI u : uris) {
-            logger.debug("Add new peer {}, max: {}, success: {}, waiting: {}", u, max, connections.size(), waiting.size());
-            waiting.add(u);
+            logger.debug("Add new peer {}, max: {}, success: {}, waiting: {}", u, max, taskManager.doing(), taskManager.waiting());
+            taskManager.add(u);
         }
     }
 
@@ -85,7 +55,7 @@ public class PeerConnection implements Closeable {
      * @param uri
      */
     public void connection(URI uri) {
-        logger.info("Connection to {}, success: {}, waiting: {}", uri, connections.size(), waiting.size());
+        logger.info("Connection to {}, success: {}, waiting: {}", uri, taskManager.doing(), taskManager.waiting());
         try {
             start(uri);
         } catch (TimeoutException e) {
@@ -135,7 +105,6 @@ public class PeerConnection implements Closeable {
                     InetSocketAddress address = (InetSocketAddress) ch.localAddress();
                     peer.setLocalAddress(address);
                     logger.info("Connection FROM: " + ch.localAddress() + ", TO: " + ch.remoteAddress());
-                    connections.put(uri, peer);
                 }
             });
             channelFuture.get(TIME_OUT_SECONDS, TimeUnit.SECONDS);
@@ -147,13 +116,15 @@ public class PeerConnection implements Closeable {
             logger.debug("重新加入, 极端情况会导致 死循环, 所以这个里有个等待时间, 为了逻辑简单不使用 延迟队列 <DelayedConnection>");
             Thread.sleep(TIME_OUT_SECONDS * 1_000);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            connections.remove(uri);
+            taskManager.remove(uri);
+            logger.info("Remove {}, success: {}, waiting: {}", uri, taskManager.doing(), taskManager.waiting());
             throw e;
         }
     }
 
     private void restart(URI uri) throws ExecutionException, InterruptedException, TimeoutException {
-        connections.remove(uri);
+        taskManager.remove(uri);
+        logger.info("Restart {}, success: {}, waiting: {}", uri, taskManager.doing(), taskManager.waiting());
         addPeer(uri);
     }
 
