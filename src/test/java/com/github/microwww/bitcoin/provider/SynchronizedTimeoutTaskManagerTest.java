@@ -12,7 +12,7 @@ class SynchronizedTimeoutTaskManagerTest {
     @Test
     void touch() throws InterruptedException {
         AtomicInteger count = new AtomicInteger();
-        SynchronizedTimeoutTaskManager<String> manager = new SynchronizedTimeoutTaskManager<String>(v -> {
+        SynchronizedTimeoutTaskManager<String, ?> manager = new SynchronizedTimeoutTaskManager<>(v -> {
             count.incrementAndGet();
         }, 500, TimeUnit.MILLISECONDS);
 

@@ -13,23 +13,24 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class SynchronizedTimeoutTaskManager<T> {
+public class SynchronizedTimeoutTaskManager<T, U> {
     private static final Logger logger = LoggerFactory.getLogger(SynchronizedTimeoutTaskManager.class);
 
     private final AtomicLong stopTime = new AtomicLong();
 
     protected final BlockingQueue<T> queue = new LinkedBlockingQueue<>();
-    protected final BiConsumer<T, SynchronizedTimeoutTaskManager<T>> consumer;
+    protected final BiConsumer<T, SynchronizedTimeoutTaskManager<T, U>> consumer;
 
     private final long waitMilliseconds;
     private T current;
+    private U cache;
     private Thread thread;
 
     public SynchronizedTimeoutTaskManager(Consumer<T> consumer, int time, TimeUnit unit) {
         this((t, x) -> consumer.accept(t), time, unit);
     }
 
-    public SynchronizedTimeoutTaskManager(BiConsumer<T, SynchronizedTimeoutTaskManager<T>> consumer, int time, TimeUnit unit) {
+    public SynchronizedTimeoutTaskManager(BiConsumer<T, SynchronizedTimeoutTaskManager<T, U>> consumer, int time, TimeUnit unit) {
         waitMilliseconds = unit.convert(time, TimeUnit.MILLISECONDS);
         this.consumer = consumer;
         listener();
@@ -49,7 +50,7 @@ public class SynchronizedTimeoutTaskManager<T> {
                         logger.debug("Waiting .....");
                     }
                 } catch (RuntimeException ex) {
-                    logger.error("", ex);
+                    logger.error("Task run error", ex);
                 } catch (InterruptedException e) {
                     Thread.interrupted();
                     return;
@@ -120,5 +121,14 @@ public class SynchronizedTimeoutTaskManager<T> {
 
     public Optional<T> getCurrent() {
         return Optional.ofNullable(current);
+    }
+
+    public U getCache() {
+        return cache;
+    }
+
+    public SynchronizedTimeoutTaskManager<T, U> setCache(U cache) {
+        this.cache = cache;
+        return this;
     }
 }
