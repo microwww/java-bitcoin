@@ -179,7 +179,7 @@ public enum TemplateTransaction {
                 log.info("OLD P2SH M2N transaction : {}", interpreter.transaction.hash());
                 return;
             }
-            Assert.isTrue(interpreter.isSuccess(), "P2SH address is hash160 not equals");
+            Assert.isTrue(interpreter.isSuccess(true), "P2SH address is hash160 not equals");
             if (log.isDebugEnabled())
                 log.debug("P2SH script hash160 equals: {}", ByteUtil.hex(ByteUtil.sha256ripemd160(pop)));
             // TODO: 如果在解锁脚本中存在任何的push data操作码以外的操作码，验证失败。
