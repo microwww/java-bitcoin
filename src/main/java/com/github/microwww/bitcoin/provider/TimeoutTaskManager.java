@@ -2,10 +2,11 @@ package com.github.microwww.bitcoin.provider;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.Assert;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.LockSupport;
@@ -13,8 +14,13 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class SynchronizedTimeoutTaskManager<T> {
-    private static final Logger logger = LoggerFactory.getLogger(SynchronizedTimeoutTaskManager.class);
+/**
+ * Task 比较是 `=` 而不是 `equals` 方法
+ *
+ * @param <T>
+ */
+public class TimeoutTaskManager<T> {
+    private static final Logger logger = LoggerFactory.getLogger(TimeoutTaskManager.class);
 
     // 下面的4个属性用来实现 队列的取值 和 将该值赋给 current 同步完成
     protected final Queue<T> queue = new LinkedList<>();
@@ -22,18 +28,18 @@ public class SynchronizedTimeoutTaskManager<T> {
     Condition taskCondition = lock.newCondition();
 
     private final AtomicLong stopTime = new AtomicLong();
-    protected final BiConsumer<T, SynchronizedTimeoutTaskManager<T>> consumer;
+    protected final BiConsumer<T, TimeoutTaskManager<T>> consumer;
     private final long waitMilliseconds;
     private T current;
     private Map<String, Object> cache = new ConcurrentHashMap<>();
     private Thread thread;
     protected final Map<Integer, BiConsumer<T, T>> changeListeners = new ConcurrentSkipListMap<>();
 
-    public SynchronizedTimeoutTaskManager(Consumer<T> consumer, int time, TimeUnit unit) {
+    public TimeoutTaskManager(Consumer<T> consumer, int time, TimeUnit unit) {
         this((t, x) -> consumer.accept(t), time, unit);
     }
 
-    public SynchronizedTimeoutTaskManager(BiConsumer<T, SynchronizedTimeoutTaskManager<T>> consumer, int time, TimeUnit unit) {
+    public TimeoutTaskManager(BiConsumer<T, TimeoutTaskManager<T>> consumer, int time, TimeUnit unit) {
         waitMilliseconds = unit.convert(time, TimeUnit.MILLISECONDS);
         this.consumer = consumer;
         listener();
@@ -47,20 +53,7 @@ public class SynchronizedTimeoutTaskManager<T> {
                     T ct = current;
                     lock.lock();
                     try {
-                        while (true) {
-                            T newTask;
-                            synchronized (this) {
-                                newTask = queue.poll();
-                                if (newTask != null) {
-                                    this.current = newTask;
-                                    break;
-                                }
-                            }
-                            if (newTask == null) {
-                                logger.debug("Release lock and await, Waiting .....");
-                                taskCondition.await();
-                            }
-                        }
+                        this.changeTaskOrAwait();
                     } finally {
                         lock.unlock();
                     }
@@ -69,6 +62,7 @@ public class SynchronizedTimeoutTaskManager<T> {
                         v.accept(ct, newTask);
                     });
                     TaskManager.POOL.submit(() -> {
+                        logger.debug("Run new submit task");
                         consumer.accept(newTask, this);
                     });
                     Thread.yield();
@@ -83,17 +77,39 @@ public class SynchronizedTimeoutTaskManager<T> {
         });
     }
 
+    private void changeTaskOrAwait() throws InterruptedException {
+        while (true) {
+            T newTask;
+            synchronized (this) {
+                newTask = queue.poll();
+                if (newTask != null) {
+                    logger.debug("POLL a new task : {}", newTask);
+                    this.current = newTask;
+                    break;
+                }
+            }
+            if (newTask == null) {
+                logger.debug("Release lock and Waiting .....");
+                taskCondition.await();
+            }
+        }
+    }
+
     private void awaitTimeout(T task) throws InterruptedException {
         boolean touch = this.touch(task);
         if (!touch) {
+            logger.warn("This is not usually the case ! WHY ? {} --> {}", this.current, task);
             return;
         }
         while (true) {
+            logger.debug("Task {} waiting timeout !", task);
             LockSupport.parkUntil(stopTime.get());
             synchronized (this) {
                 if (System.currentTimeMillis() > stopTime.get()) {
+                    logger.debug("Task timeout, {}, {}, start new task !", stopTime.get(), task);
                     break;
                 }
+                logger.debug("Task {} not timeout !", task);
             }
         }
     }
@@ -102,12 +118,14 @@ public class SynchronizedTimeoutTaskManager<T> {
         return me == current;
     }
 
-    public SynchronizedTimeoutTaskManager<T> assertIsMe(T me) {
-        return this.assertIsMe(me, "I am timeout");
+    public TimeoutTaskManager<T> assertIsMe(T me) throws IllegalStateException {
+        return this.assertIsMe(me, "I am timeout: %s", me);
     }
 
-    public SynchronizedTimeoutTaskManager<T> assertIsMe(T me, String format, Object... args) {
-        Assert.isTrue(this.can(me), String.format(format, args));
+    public TimeoutTaskManager<T> assertIsMe(T me, String format, Object... args) throws IllegalStateException {
+        if (!this.can(me)) {
+            throw new IllegalStateException(String.format(format, args));
+        }
         return this;
     }
 
@@ -136,7 +154,7 @@ public class SynchronizedTimeoutTaskManager<T> {
     }
 
     private synchronized boolean resetCurrent(T val) {
-        boolean res = this.current == val;
+        boolean res = (this.current == val);
         if (res) {
             this.stopTime.set(0);
             LockSupport.unpark(this.thread);
@@ -176,7 +194,7 @@ public class SynchronizedTimeoutTaskManager<T> {
         return Optional.ofNullable(current);
     }
 
-    public SynchronizedTimeoutTaskManager<T> addChangeListeners(BiConsumer<T, T> cn) {
+    public TimeoutTaskManager<T> addChangeListeners(BiConsumer<T, T> cn) {
         return this.addChangeListeners((int) (Math.random() * 100), cn);
     }
 
@@ -185,7 +203,7 @@ public class SynchronizedTimeoutTaskManager<T> {
      * @param cn    BiConsumer.accept(T1,T2), T1 source, T2 target,  source maybe null, target never.
      * @return
      */
-    public SynchronizedTimeoutTaskManager<T> addChangeListeners(int order, BiConsumer<T, T> cn) {
+    public TimeoutTaskManager<T> addChangeListeners(int order, BiConsumer<T, T> cn) {
         changeListeners.put(order, cn);
         return this;
     }
@@ -194,7 +212,7 @@ public class SynchronizedTimeoutTaskManager<T> {
         return (U) cache.get(key);
     }
 
-    public SynchronizedTimeoutTaskManager<T> putCache(String key, Object cache) {
+    public TimeoutTaskManager<T> putCache(String key, Object cache) {
         this.cache.put(key, cache);
         return this;
     }

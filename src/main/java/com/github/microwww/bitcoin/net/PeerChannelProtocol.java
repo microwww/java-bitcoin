@@ -7,7 +7,7 @@ import com.github.microwww.bitcoin.math.Uint64;
 import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.provider.LocalBlockChain;
 import com.github.microwww.bitcoin.provider.Peer;
-import com.github.microwww.bitcoin.provider.SynchronizedTimeoutTaskManager;
+import com.github.microwww.bitcoin.provider.TimeoutTaskManager;
 import com.github.microwww.bitcoin.store.DiskBlock;
 import com.github.microwww.bitcoin.store.FileChainBlock;
 import com.github.microwww.bitcoin.store.FileTransaction;
@@ -43,11 +43,11 @@ public class PeerChannelProtocol {
     LocalBlockChain chain;
     @Autowired
     ApplicationEventPublisher publisher;
-    private final SynchronizedTimeoutTaskManager<ChannelHandlerContext> taskManager;
+    private final TimeoutTaskManager<ChannelHandlerContext> taskManager;
     // private LoadingHeaderManager loadingHeaderManager = new LoadingHeaderManager();
 
     public PeerChannelProtocol() {
-        this.taskManager = new SynchronizedTimeoutTaskManager<>(e -> {
+        this.taskManager = new TimeoutTaskManager<>(e -> {
             this.sendGetHeader(e);
         }, 10, TimeUnit.SECONDS);
         init();
