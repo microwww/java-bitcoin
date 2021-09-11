@@ -4,24 +4,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class SynchronizedTimeoutTaskManager<T> {
     private static final Logger logger = LoggerFactory.getLogger(SynchronizedTimeoutTaskManager.class);
 
+    // 下面的4个属性用来实现 队列的取值 和 将该值赋给 current 同步完成
+    protected final Queue<T> queue = new LinkedList<>();
+    ReentrantLock lock = new ReentrantLock();
+    Condition taskCondition = lock.newCondition();
+
     private final AtomicLong stopTime = new AtomicLong();
-
-    protected final BlockingQueue<T> queue = new LinkedBlockingQueue<>();
     protected final BiConsumer<T, SynchronizedTimeoutTaskManager<T>> consumer;
-
     private final long waitMilliseconds;
     private T current;
     private Map<String, Object> cache = new ConcurrentHashMap<>();
@@ -43,22 +44,35 @@ public class SynchronizedTimeoutTaskManager<T> {
             thread = Thread.currentThread();
             while (true) { // 死循环, 除非是中断请求
                 try { // 如果没有新的任务, 原先任务仍然可以正常提交 ! 有新的任务, 无法修改 touch !
-                    T task;
-                    { // 跟 current/poll 无法同步
-                        task = queue.poll(1, TimeUnit.MINUTES);
-                        if (task != null) {
-                            changeListeners.forEach((k, v) -> {
-                                v.accept(this.current, task);
-                            });
-                            this.current = task;
+                    T ct = current;
+                    lock.lock();
+                    try {
+                        while (true) {
+                            T newTask;
+                            synchronized (this) {
+                                newTask = queue.poll();
+                                if (newTask != null) {
+                                    this.current = newTask;
+                                    break;
+                                }
+                            }
+                            if (newTask == null) {
+                                logger.debug("Release lock and await, Waiting .....");
+                                taskCondition.await();
+                            }
                         }
+                    } finally {
+                        lock.unlock();
                     }
-                    if (task != null) {
-                        TaskManager.POOL.submit(() -> consumer.accept(task, this));
-                        this.awaitTimeout(task);
-                    } else {
-                        logger.debug("Waiting .....");
-                    }
+                    T newTask = this.current;
+                    changeListeners.forEach((k, v) -> {
+                        v.accept(ct, newTask);
+                    });
+                    TaskManager.POOL.submit(() -> {
+                        consumer.accept(newTask, this);
+                    });
+                    Thread.yield();
+                    this.awaitTimeout(newTask);
                 } catch (RuntimeException ex) {
                     logger.error("Task run error", ex);
                 } catch (InterruptedException e) {
@@ -92,7 +106,7 @@ public class SynchronizedTimeoutTaskManager<T> {
         return this.assertIsMe(me, "I am timeout");
     }
 
-    public synchronized SynchronizedTimeoutTaskManager<T> assertIsMe(T me, String format, Object... args) {
+    public SynchronizedTimeoutTaskManager<T> assertIsMe(T me, String format, Object... args) {
         Assert.isTrue(this.can(me), String.format(format, args));
         return this;
     }
@@ -140,7 +154,15 @@ public class SynchronizedTimeoutTaskManager<T> {
     }
 
     public void addTask(T task) {
-        queue.add(task);
+        lock.lock();
+        try {// first lock , second this, same as poll
+            synchronized (this) {
+                queue.add(task);
+                taskCondition.signal();
+            }
+        } finally {
+            lock.unlock();
+        }
     }
 
     public synchronized void remove(T e) {
@@ -150,7 +172,7 @@ public class SynchronizedTimeoutTaskManager<T> {
         }
     }
 
-    public Optional<T> getCurrent() {
+    public synchronized Optional<T> getCurrent() {
         return Optional.ofNullable(current);
     }
 
@@ -177,7 +199,7 @@ public class SynchronizedTimeoutTaskManager<T> {
         return this;
     }
 
-    public List<T> getTasks() {
+    public synchronized List<T> getTasks() {
         return new ArrayList<>(queue);
     }
 }
