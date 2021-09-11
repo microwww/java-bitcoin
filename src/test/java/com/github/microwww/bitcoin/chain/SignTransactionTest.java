@@ -126,4 +126,33 @@ class SignTransactionTest {
         assertTrue(interpreter.isSuccess());
     }
 
+    @Test
+    public void test_OP_CHECKMULTISIG_0x1CC1ECDF5C05765DF() {
+        ByteBuf bf = Unpooled.buffer();
+
+        RawTransaction tx = new RawTransaction();
+        {
+            String x = ClassPath.readClassPathFile("/data/online.data.txt").get(37);
+            byte[] hex = ByteUtil.hex(x);
+            tx.read(bf.clear().writeBytes(hex));
+            assertEquals(tx.hash().toHexReverse256(), "1cc1ecdf5c05765df3d1f59fba24cd01c45464c329b0f0a25aa9883adfcf7f29");
+        }
+        RawTransaction from = new RawTransaction();
+        {
+            String x = ClassPath.readClassPathFile("/data/online.data.txt").get(40);
+            byte[] hex = ByteUtil.hex(x);
+            bf.clear().writeBytes(hex);
+            from.read(bf);
+            assertEquals(from.hash().toHexReverse256(), "0322877bf93a707e7efb7fb86098db108e4d0065f1af30e43af24ac71462cc4a");
+        }
+        int in = 0;
+        assertEquals(tx.getTxIns()[in].getPreTxHash(), from.hash());
+        TxOut txOut = from.getTxOuts()[tx.getTxIns()[in].getPreTxOutIndex()];
+        Interpreter interpreter = new Interpreter(tx).indexTxIn(in, txOut)//.witnessPushStack()
+                .executor(tx.getTxIns()[in].getScript())
+                .printStack()
+                .executor(txOut.getScriptPubKey());
+        assertTrue(interpreter.isSuccess());
+    }
+
 }
