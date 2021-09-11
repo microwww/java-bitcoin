@@ -33,7 +33,7 @@ public class IndexHeight {
         }
     }
 
-    private synchronized void setLastBlock(Uint256 hash, int height) {
+    public void setLastBlock(Uint256 hash, int height) {
         this.setLastBlock(new Height(hash, height));
     }
 
@@ -110,7 +110,7 @@ public class IndexHeight {
         return generate;
     }
 
-    public void removeTail(int count) {
+    public synchronized void removeTail(int count) {
         int height = this.getLastHeight().getHeight() - count;
         this.setLastBlock(new Height(this.get(height).get(), height));
     }

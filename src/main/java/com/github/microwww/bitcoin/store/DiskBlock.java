@@ -233,36 +233,39 @@ public class DiskBlock implements Closeable {
         return indexHeight.getHeight(hash);
     }
 
-    public synchronized boolean resetLatest(HeightBlock hb) {
-        int height = hb.getHeight();
-        ChainBlock block = hb.getBlock();
+    public synchronized boolean resetLatest(HeightBlock newBlock) {
+        int height = newBlock.getHeight();
+        ChainBlock block = newBlock.getBlock();
         Height ht = indexHeight.getLastHeight();
         int latest = ht.getHeight();
         if (latest >= height) {
             return false;
         }
         Assert.isTrue(latest + 1 == height, "Only one by one !");
-        int h = indexHeight.tryPush(hb.getBlock());
+        int h = indexHeight.tryPush(newBlock.getBlock());
         if (h >= 0) {// 大部分情况走这里
             return true;
         }
-        // TODO:: 需要截断, 然后新增, 例如: 出现分叉的时候的回滚, 也许数据量会很大, 不在内存中计算, 可能是个长时间的任务
+        logger.debug("需要截断, 然后新增, 例如: 出现分叉的时候的回滚, 也许数据量会很大, 不在内存中计算, 可能是个长时间的任务");
+        logger.info("Rollback latest height: {}, {}, new height: {}, {}", latest, ht.getHash(), height, block.hash());
+        indexHeight.setHeight(block.hash(), height);
         ChainBlock next = block;
         for (int i = latest; i > 0; i--) {
             Uint256 pre = next.header.getPreHash();
             Uint256 r = indexHeight.get(i).get();
-            HeightBlock ph = this.findChainBlockInLevelDB(pre).get();
-            Assert.isTrue(ph.getHeight() == i, "PreHash Must height - 1 : " + i);
+            HeightBlock preHeight = this.findChainBlockInLevelDB(pre).get();
+            Assert.isTrue(preHeight.getHeight() == i, "PreHash Must height - 1 : " + i);
             if (r.equals(pre)) {
+                logger.debug("Rollback TO: {}, {}", i, r);
                 break;
             }
-            if (logger.isDebugEnabled()) { // TODO :: 出错了, 仍然可以运行在新的高度
-                indexHeight.push(hb.getBlock().hash(), hb.getHeight());
-            }
+            // 回退高度, 这样即使中途出错, 仍然可以运行在新的高度
+            indexHeight.removeTail(1);// 第一个可以不回退, 为了简单忽略
             indexHeight.setHeight(pre, i);
-            next = ph.getBlock();
+            next = preHeight.getBlock();
         }
-        indexHeight.push(hb.getBlock().hash(), hb.getHeight());
+        indexHeight.setLastBlock(newBlock.getBlock().hash(), newBlock.getHeight());
+        logger.debug("To new height :{}, {}", height, block.hash());
         return true;
     }
 
