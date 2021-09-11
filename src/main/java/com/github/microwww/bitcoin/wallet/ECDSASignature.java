@@ -18,12 +18,15 @@
 package com.github.microwww.bitcoin.wallet;
 
 import com.github.microwww.bitcoin.script.ex.IllegalSignatureExceptionException;
+import com.github.microwww.bitcoin.util.ByteUtil;
 import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.ec.CustomNamedCurves;
 import org.bouncycastle.crypto.params.ECDomainParameters;
 import org.bouncycastle.math.ec.FixedPointUtil;
 import org.bouncycastle.util.Properties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -33,6 +36,7 @@ import java.util.Arrays;
 // JDK bug: https://bugs.openjdk.java.net/browse/JDK-8175251
 // FROM: https://github.com/dashevo/dashj
 public class ECDSASignature {
+    private static final Logger log = LoggerFactory.getLogger(ECDSASignature.class);
     public static final X9ECParameters CURVE_PARAMS = CustomNamedCurves.getByName("secp256k1");
     public static final ECDomainParameters CURVE;
     public static final BigInteger HALF_CURVE_ORDER;
@@ -114,18 +118,14 @@ public class ECDSASignature {
             if (!(seqObj instanceof DLSequence))
                 throw new IllegalSignatureExceptionException("Read unexpected class: " + seqObj.getClass().getName());
             final DLSequence seq = (DLSequence) seqObj;
-            ASN1Integer r, s;
-            try {
-                r = (ASN1Integer) seq.getObjectAt(0);
-                s = (ASN1Integer) seq.getObjectAt(1);
-            } catch (ClassCastException e) {
-                throw new IllegalSignatureExceptionException("e");
-            }
+            ASN1Integer r = (ASN1Integer) seq.getObjectAt(0);
+            ASN1Integer s = (ASN1Integer) seq.getObjectAt(1);
             // OpenSSL deviates from the DER spec by interpreting these values as unsigned, though they should not be
             // Thus, we always use the positive versions. See: http://r6.ca/blog/20111119T211504Z.html
             return new ECDSASignature(r.getPositiveValue(), s.getPositiveValue());
-        } catch (IOException e) {
-            throw new IllegalSignatureExceptionException("");
+        } catch (ClassCastException | IOException e) {
+            log.error("Sign decodeFromDER error, {}, : {}", e.getClass().getSimpleName(), ByteUtil.hex(bytes));
+            throw new RuntimeException("DecodeFromDER error", e);
         } finally {
             if (decoder != null)
                 try {
