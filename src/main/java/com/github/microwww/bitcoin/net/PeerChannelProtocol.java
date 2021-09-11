@@ -7,6 +7,7 @@ import com.github.microwww.bitcoin.math.Uint64;
 import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.provider.LocalBlockChain;
 import com.github.microwww.bitcoin.provider.Peer;
+import com.github.microwww.bitcoin.provider.SynchronizedTimeoutTaskManager;
 import com.github.microwww.bitcoin.store.DiskBlock;
 import com.github.microwww.bitcoin.store.FileChainBlock;
 import com.github.microwww.bitcoin.store.FileTransaction;
@@ -25,6 +26,7 @@ import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -34,12 +36,31 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class PeerChannelProtocol {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelProtocol.class);
     public static final Logger verify = LoggerFactory.getLogger("mode.test");
+    public static final String CACHE_HEADERS = "cache_headers";
+    public static final String CACHE_LOADING_COUNT = "cache_loading_count";
 
     @Autowired
     LocalBlockChain chain;
     @Autowired
     ApplicationEventPublisher publisher;
-    private LoadingHeaderManager loadingHeaderManager = new LoadingHeaderManager();
+    private final SynchronizedTimeoutTaskManager<ChannelHandlerContext> taskManager;
+    // private LoadingHeaderManager loadingHeaderManager = new LoadingHeaderManager();
+
+    public PeerChannelProtocol() {
+        this.taskManager = new SynchronizedTimeoutTaskManager<>(e -> {
+            this.sendGetHeader(e);
+        }, 10, TimeUnit.SECONDS);
+        init();
+    }
+
+    private void init() {
+        taskManager.putCache(CACHE_HEADERS, new ConcurrentLinkedDeque<>());
+        taskManager.putCache(CACHE_LOADING_COUNT, new AtomicInteger());
+        taskManager.addChangeListeners((t, u) -> {
+            taskManager.getCache(CACHE_HEADERS, Queue.class).clear();
+            taskManager.getCache(CACHE_LOADING_COUNT, AtomicInteger.class).set(0);
+        });
+    }
 
     public void doAction(ChannelHandlerContext ctx, AbstractProtocol request) throws UnsupportedOperationException {
         try {
@@ -84,7 +105,7 @@ public class PeerChannelProtocol {
             ctx.write(new Ping(peer));
         });
 
-        loadingHeaderManager.sendGetHeader(ctx);
+        taskManager.addTask(ctx);
 
         ctx.executor().execute(() -> {
             ctx.write(new FeeFilter(peer));
@@ -94,9 +115,10 @@ public class PeerChannelProtocol {
     public void sendGetHeader(ChannelHandlerContext ctx) {
         Peer peer = ctx.channel().attr(Peer.PEER).get();
         ctx.executor().execute(() -> {
+            // TASKMANAGER: .1. send header
+            taskManager.assertIsMe(ctx).touchTenFold(ctx);
             int height = chain.getDiskBlock().getLatestHeight();
             int step = 1;
-            // TODO:: 这个规则需要确认
             List<Uint256> list = new ArrayList<>();
             for (int i = height; i >= 0; i -= step) {
                 if (list.size() >= GetHeaders.MAX_LOCATOR_SZ) {
@@ -160,10 +182,14 @@ public class PeerChannelProtocol {
 
     // PeerManager::ProcessHeadersMessage
     public void service(ChannelHandlerContext ctx, Headers request) {
-        if (!loadingHeaderManager.isEmpty()) {
+        Peer peer = ctx.channel().attr(Peer.PEER).get();
+        if (!taskManager.can(ctx)) {
+            logger.info("Ignore timeout Headers request : {}, Peer: {}", request.getChainBlocks().length, peer.getURI());
             return;
         }
-        Map<Uint256, ChainBlock> readyBlocks = new LinkedHashMap<>();
+        // TASKMANAGER: .2. Headers , from send-header-request
+        taskManager.assertIsMe(ctx).touchTenFold(ctx);
+        Map<Uint256, ChainBlock> readyBlocks = new LinkedHashMap<>(); // key 按照 set 顺序排序
         ChainBlock[] cb = request.getChainBlocks();
         for (ChainBlock k : cb) {
             Uint256 hash = k.hash();
@@ -186,16 +212,15 @@ public class PeerChannelProtocol {
                 }
             }
         }
-        Peer peer = ctx.channel().attr(Peer.PEER).get();
         if (readyBlocks.isEmpty()) {// no more HEADER
-            loadingHeaderManager.removePeer(peer);
+            taskManager.remove(ctx);
             logger.info("No have new Block by Get-Header delete it : {}", peer.getURI());
             return;
         }
         logger.info("Get head : {}, from {}:{}, will loading it !", readyBlocks.size(), peer.getHost(), peer.getPort());
         // 1. headers
-        loadingHeaderManager.addAllHeaders(readyBlocks.keySet());
-        loadingHeaderManager.loadChainBlock(ctx);
+        taskManager.getCache(CACHE_HEADERS, Queue.class).addAll(readyBlocks.keySet());
+        loadChainBlock(ctx);
     }
 
     private long current = System.currentTimeMillis();
@@ -212,7 +237,11 @@ public class PeerChannelProtocol {
 
     public void tryBlock(ChannelHandlerContext ctx, Block request) {
         ChainBlock cb = request.getChainBlock();
-        loadingHeaderManager.loading.decrementAndGet();
+        Peer peer = ctx.channel().attr(Peer.PEER).get();
+        taskManager.getCache(CACHE_LOADING_COUNT, AtomicInteger.class).decrementAndGet();
+        // TASKMANAGER: .3. Block, get block-info from GetData request
+        taskManager.assertIsMe(ctx, "Peer [%s] timeout, had change other!", peer.getURI())
+                .touch(ctx);
         if (!cb.verifyMerkleTree()) {
             logger.error("RawTransaction MerkleRoot do not match : {}, Now is test so skip", cb.hash());
         }
@@ -242,11 +271,11 @@ public class PeerChannelProtocol {
             } else {
                 logger.warn("WHY ! load one exist : {}", fc.loadBlock().getBlock().hash());
             }
+            this.sendLoadOneChainBlock(ctx);
         } else {
-            logger.warn("STOP ! Not find pre-block: {}, loss: {}", cb.header.getPreHash(), loadingHeaderManager.loading.intValue());
-            loadingHeaderManager.headers.clear();
+            logger.warn("STOP ! Peer {}, Not find pre-block: {}", peer.getURI(), cb.header.getPreHash());
+            taskManager.remove(ctx);
         }
-        loadingHeaderManager.sendLoadOneChainBlock(ctx);
     }
 
     public void service(ChannelHandlerContext ctx, Tx request) {
@@ -334,140 +363,64 @@ public class PeerChannelProtocol {
         logger.warn("Peer-Reject {}:{}, request : {}, reason: {}", peer.getHost(), peer.getPort(), request.getMessage(), request.getReason());
     }
 
-    public void channelClose(Peer peer) {
-        loadingHeaderManager.peerClose(peer);
-    }
-
-    // TODO 该功能设计太麻烦 !!
-    class LoadingHeaderManager {
-        private Queue<ChannelHandlerContext> queue = new ConcurrentLinkedDeque();// 注意 channel 可以被回收
-        private ChannelHandlerContext current;
-        private Queue<Uint256> headers = new LinkedList();
-        private AtomicInteger loading = new AtomicInteger();
-
-        public void sendGetHeader(ChannelHandlerContext ctx) {
-            queue.add(ctx);
-            stopAndNext(ctx);
-        }
-
-        public synchronized void clear() {
-            this.headers.clear();
-            this.loading.set(0);
-        }
-
-        public synchronized boolean isEmpty() {
-            return this.headers.isEmpty() && this.loading.get() == 0;
-        }
-
-        private synchronized void stopAndNext(ChannelHandlerContext ctx) {
-            if (current != null) {
-                if (current == ctx) {
-                    Peer peer = current.channel().attr(Peer.PEER).get();
-                    logger.info("CHANGE peer to GET header: {} , in: {}", peer.getURI(), queue.size());
-                    current = null;
-                    this.queue.add(ctx);
-                }
-            }
-            if (current == null) {
-                int h = chain.getDiskBlock().getLatestHeight();
-                while (true) {
-                    ChannelHandlerContext c = queue.poll();
-                    if (c == null) {
-                        logger.debug("No peer to connection ... , try to restart !");
-                        break;
-                    }
-                    Peer next = c.channel().attr(Peer.PEER).get();
-                    if (next.isMeReady() && next.isRemoteReady()) {
-                        if (next.getBlockHeight() > h && c.channel().isWritable()) {
-                            current = c;
-                            PeerChannelProtocol.this.sendGetHeader(current);
-                            logger.info("Change, get header by peer {}, length: {}", next.getURI(), queue.size());
-                            break;
-                        }
-                    } else {
-                        queue.add(c);
-                        continue;
-                    }
-                }
-
-                if (current == null) {
-                    logger.warn("Not have peers to GET header, Maybe is Max-Height");
-                }
-            } else {
-                Peer peer = ctx.channel().attr(Peer.PEER).get();
-                logger.debug("U [{}:{}] can not stop it", peer.getHost(), peer.getPort());
-            }
-        }
-
-        public void peerClose(Peer peer) {
-            this.removePeer(peer);
-        }
-
-        public synchronized void removePeer(Peer peer) {
-            Peer c = current.channel().attr(Peer.PEER).get();
-            if (peer == c) {
-                logger.info("Remove peer : {}, Peers {}", peer.getURI(), queue.size());
-                stopAndNext(current);
-            } else {
-                Optional<ChannelHandlerContext> any = queue.stream().filter(e -> {
-                    return e.channel().attr(Peer.PEER).get() == peer;
-                }).findAny();
-
-                if (any.isPresent()) {
-                    queue.remove(any.get());
-                }
-            }
-        }
-
-        public void loadChainBlock(ChannelHandlerContext ctx) {
-            Peer peer = ctx.channel().attr(Peer.PEER).get();
-            ctx.executor().execute(() -> {
-                if (headers.isEmpty()) {
-                    return;
-                }
-                int max = GetHeaders.MAX_GET_BLOCK_SZ;
-                List<GetData.Message> ms = new ArrayList<>(max);
-                for (int i = 0; i < max; i++) {
-                    Uint256 hash = headers.poll();
-                    if (hash == null) {
-                        break;
-                    }
-                    GetData.Message msg = new GetData.Message()
-                            .setHashIn(hash)
-                            .setTypeIn(GetDataType.WITNESS_BLOCK);
-                    ms.add(msg);
-                    logger.debug("Add Batch GET-BLOCK request: {}", hash);
-                }
-                loading.addAndGet(ms.size());
-                GetData data = new GetData(peer).setMessages(ms.toArray(new GetData.Message[]{}));
-                ctx.writeAndFlush(data);
-            });
-        }
-
-        public void sendLoadOneChainBlock(ChannelHandlerContext ctx) {
-            Peer peer = ctx.channel().attr(Peer.PEER).get();
+    public void loadChainBlock(ChannelHandlerContext ctx) {
+        Peer peer = ctx.channel().attr(Peer.PEER).get();
+        ctx.executor().execute(() -> {
+            Queue<Uint256> headers = taskManager.getCache(CACHE_HEADERS, Queue.class);
             if (headers.isEmpty()) {
-                int i = loading.get();
-                if (i <= 0) {
-                    Assert.isTrue(i == 0, "Error loading < 0");
-                    this.stopAndNext(ctx);
-                }
                 return;
             }
-            Uint256 one = headers.poll();
+            int max = GetHeaders.MAX_GET_BLOCK_SZ;
+            List<GetData.Message> ms = new ArrayList<>(max);
+            for (int i = 0; i < max; i++) {
+                Uint256 hash = headers.poll();
+                if (hash == null) {
+                    break;
+                }
+                GetData.Message msg = new GetData.Message()
+                        .setHashIn(hash)
+                        .setTypeIn(GetDataType.WITNESS_BLOCK);
+                ms.add(msg);
+                logger.debug("Add Batch GET-BLOCK request: {}", hash);
+            }
+            // TASKMANAGER: .3. GetData , send get-data for getting block-info , after get headers-response
+            taskManager.getCache(CACHE_LOADING_COUNT, AtomicInteger.class).addAndGet(ms.size());
+            GetData data = new GetData(peer).setMessages(ms.toArray(new GetData.Message[]{}));
+            ctx.writeAndFlush(data);
+        });
+    }
+
+    public void sendLoadOneChainBlock(ChannelHandlerContext ctx) {
+        Peer peer = ctx.channel().attr(Peer.PEER).get();
+        taskManager.assertIsMe(ctx).touch(ctx); // if not me , will loss data
+        Queue<Uint256> headers = taskManager.getCache(CACHE_HEADERS, Queue.class);
+        Uint256 one = headers.poll();
+        if (one != null) {
             GetData data = new GetData(peer).setMessages(new GetData.Message[]{
                     new GetData.Message()
                             .setHashIn(one)
                             .setTypeIn(GetDataType.WITNESS_BLOCK)
             });
             logger.debug("Add one request: {}", one);
-            loading.incrementAndGet();
+            taskManager.getCache(CACHE_LOADING_COUNT, AtomicInteger.class).incrementAndGet();
             ctx.writeAndFlush(data);
         }
+    }
 
-        public boolean addAllHeaders(Collection<? extends Uint256> c) {
-            logger.info("Add all {} + {}", headers.size(), c.size());
-            return headers.addAll(c);
+    public void channelClose(Peer peer) {
+        List<ChannelHandlerContext> tasks = taskManager.getTasks();
+        Optional<ChannelHandlerContext> any = tasks.stream().filter(e -> {//
+            return e.channel().attr(Peer.PEER).get() == peer;
+        }).findAny();
+
+        if (any.isPresent()) {
+            taskManager.remove(any.get());
+        } else {
+            taskManager.getCurrent().ifPresent(e -> {
+                if (e.channel().attr(Peer.PEER).get() == peer) {
+                    taskManager.remove(e);
+                }
+            });
         }
     }
 }
