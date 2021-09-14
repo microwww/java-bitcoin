@@ -214,10 +214,12 @@ public class PeerChannelProtocol {
         }
         if (readyBlocks.isEmpty()) {// no more HEADER
             taskManager.remove(ctx);
-            logger.info("No have new Block by Get-Header delete it : {}", peer.getURI());
+            HeightBlock last = chain.getDiskBlock().getLastBlock();
+            Date time = last.getBlock().header.getDateTime();
+            logger.info("NO new Block BY GetHeader, LAST {}, [{}], IGNORE peer: {}", last.getHeight(), time, peer.getURI());
             return;
         }
-        logger.info("Get head : {}, from {}:{}, will loading it !", readyBlocks.size(), peer.getHost(), peer.getPort());
+        logger.info("Get head : {}, from {}, will loading it !", readyBlocks.size(), peer.getURI());
         // 1. headers
         taskManager.getCache(CACHE_HEADERS, Queue.class).addAll(readyBlocks.keySet());
         loadChainBlock(ctx);
@@ -238,12 +240,20 @@ public class PeerChannelProtocol {
     public void tryBlock(ChannelHandlerContext ctx, Block request) {
         ChainBlock cb = request.getChainBlock();
         Peer peer = ctx.channel().attr(Peer.PEER).get();
-        taskManager.getCache(CACHE_LOADING_COUNT, AtomicInteger.class).decrementAndGet();
-        // TASKMANAGER: .3. Block, get block-info from GetData request
-        taskManager.assertIsMe(ctx).touch(ctx, "Waiting parse BLOCK");
-        if (!cb.verifyMerkleTree()) {
-            logger.error("RawTransaction MerkleRoot do not match : {}, Now is test so skip", cb.hash());
+        taskManager.ifMe(ctx, () -> {
+            taskManager.getCache(CACHE_LOADING_COUNT, AtomicInteger.class).decrementAndGet();
+            // TASKMANAGER: .3. Block, get block-info from GetData request
+            taskManager.assertIsMe(ctx).touch(ctx, "Waiting parse BLOCK");
+        });
+        Optional<HeightBlock> prehash = chain.getDiskBlock().readBlock(cb.header.getPreHash());
+        if (!prehash.isPresent()) {
+            logger.warn("LOCATION not find preHash: {}", cb.header.getPreHash());
+            if (taskManager.isNoTask()) {
+                taskManager.addTask(ctx);
+            }
+            return;
         }
+        Assert.isTrue(cb.verifyMerkleTree(), "RawTransaction MerkleRoot do not match : " + cb.hash() + ", Now is test so skip");
         if (verify.isDebugEnabled()) { // 校验数据是否正确
             Assert.isTrue(Arrays.equals(request.getPayload(), request.getChainBlock().serialization()), "BLOCK format serialization error !");
         }
@@ -283,7 +293,7 @@ public class PeerChannelProtocol {
     }
 
     public void service(ChannelHandlerContext ctx, Inv request) {
-        if (true) {// TODO: 根据高度计算
+        if (!taskManager.isNoTask()) {
             logger.info("Skip [Inv] request : {}", request.getPeer().getURI());
             return;
         }

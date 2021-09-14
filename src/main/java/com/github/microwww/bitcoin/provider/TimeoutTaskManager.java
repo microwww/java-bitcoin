@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
@@ -34,6 +35,7 @@ public class TimeoutTaskManager<T> {
     private Map<String, Object> cache = new ConcurrentHashMap<>();
     private Thread thread;
     protected final Map<Integer, BiConsumer<T, T>> changeListeners = new ConcurrentSkipListMap<>();
+    private boolean noTask = false;
 
     public TimeoutTaskManager(Consumer<T> consumer, int time, TimeUnit unit) {
         this((t, x) -> consumer.accept(t), time, unit);
@@ -46,7 +48,9 @@ public class TimeoutTaskManager<T> {
     }
 
     private void listener() {
+        CountDownLatch latch = new CountDownLatch(1);
         TaskManager.POOL.submit(() -> {
+            latch.countDown();
             thread = Thread.currentThread();
             while (true) { // 死循环, 除非是中断请求
                 try { // 如果没有新的任务, 原先任务仍然可以正常提交 ! 有新的任务, 无法修改 touch !
@@ -75,6 +79,11 @@ public class TimeoutTaskManager<T> {
                 }
             }
         });
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.interrupted();
+        }
     }
 
     private void changeTaskOrAwait() throws InterruptedException {
@@ -85,8 +94,10 @@ public class TimeoutTaskManager<T> {
                 if (newTask != null) {
                     logger.debug("POLL a new task : {}", newTask);
                     this.current = newTask;
+                    noTask = false;
                     break;
                 }
+                noTask = true;
             }
             if (newTask == null) {
                 logger.debug("Release lock and Waiting .....");
@@ -120,6 +131,15 @@ public class TimeoutTaskManager<T> {
 
     public TimeoutTaskManager<T> assertIsMe(T me) throws IllegalStateException {
         return this.assertIsMe(me, "I am timeout: %s", me);
+    }
+
+    public TimeoutTaskManager<T> ifMe(T me, Runnable doing) throws IllegalStateException {
+        synchronized (this) {
+            if (this.can(me)) {
+                doing.run();
+            }
+        }
+        return this;
     }
 
     public TimeoutTaskManager<T> assertIsMe(T me, String format, Object... args) throws IllegalStateException {
@@ -237,5 +257,9 @@ public class TimeoutTaskManager<T> {
 
     public synchronized List<T> getTasks() {
         return new ArrayList<>(queue);
+    }
+
+    public synchronized boolean isNoTask() {
+        return noTask;
     }
 }

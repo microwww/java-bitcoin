@@ -22,7 +22,11 @@ public class GetData extends AbstractProtocolAdapter<GetData> {
     @Override
     protected GetData read0(ByteBuf buf) {
         this.count = UintVar.parse(buf);
+        if (this.count.intValue() > 50_000) {
+            throw new IllegalStateException("Payload (maximum 50,000 entries, which is just over 1.8 megabytes)");
+        }
         this.messages = new Message[count.intValue()];
+
         for (int i = 0; i < count.intValue(); i++) {
             Message data = new Message();
             data.setTypeIn(new Uint32(buf.readIntLE()));
@@ -97,6 +101,30 @@ public class GetData extends AbstractProtocolAdapter<GetData> {
             message.select().ifPresent(e -> {
                 e.validity(support);
             });
+        }
+    }
+
+    private static final int MSG_WITNESS_FLAG = 1 << 30;
+    private static final int MSG_TYPE_MASK = 0xffffffff >>> 2;
+
+    public enum Type {
+        UNDEFINED(0),
+        MSG_TX(1),
+        MSG_BLOCK(2),
+        MSG_WTX(5),                                      //!< Defined in BIP 339
+        // The following can only occur in getdata. Invs always use TX/WTX or BLOCK.
+        MSG_FILTERED_BLOCK(3),                           //!< Defined in BIP37
+        MSG_CMPCT_BLOCK(4),                              //!< Defined in BIP152
+        MSG_WITNESS_BLOCK(MSG_BLOCK.inventory | MSG_WITNESS_FLAG), //!< Defined in BIP144
+        MSG_WITNESS_TX(MSG_TX.inventory | MSG_WITNESS_FLAG),       //!< Defined in BIP144
+        // MSG_FILTERED_WITNESS_BLOCK is defined in BIP144 as reserved for future
+        // use and remains unused.
+        // MSG_FILTERED_WITNESS_BLOCK = MSG_FILTERED_BLOCK | MSG_WITNESS_FLAG,
+        ;
+        public final int inventory;
+
+        Type(int inventory) {
+            this.inventory = inventory;
         }
     }
 }

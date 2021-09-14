@@ -130,6 +130,13 @@ public class DiskBlock implements Closeable {
         return indexHeight.get(height);
     }
 
+    public HeightBlock getLastBlock() {
+        int height = indexHeight.getLastHeight().getHeight();
+        return this.getHash(height).flatMap(hash -> {
+            return this.getChinBlock(hash);
+        }).orElseThrow(() -> new IllegalStateException("Not find height Block : " + height));
+    }
+
     public HeightBlock getBestBlock() {
         int height = indexHeight.getLastHeight().getHeight();
         if (height > bestConfirmHeight) {
