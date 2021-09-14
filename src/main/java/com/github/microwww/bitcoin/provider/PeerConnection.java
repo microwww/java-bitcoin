@@ -1,7 +1,6 @@
 package com.github.microwww.bitcoin.provider;
 
 import com.github.microwww.bitcoin.conf.CChainParams;
-import com.github.microwww.bitcoin.event.BitcoinAddPeerEvent;
 import com.github.microwww.bitcoin.net.BitcoinNetDecode;
 import com.github.microwww.bitcoin.net.BitcoinNetEncode;
 import io.netty.bootstrap.Bootstrap;
@@ -11,14 +10,14 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.*;
 
 @Component
@@ -28,6 +27,7 @@ public class PeerConnection implements Closeable {
     private static EventLoopGroup executors = new NioEventLoopGroup();
     private final CChainParams params;
     private final TaskManager<URI> taskManager;
+    private final Timer timer = new Timer();
 
     @Autowired
     LocalBlockChain localBlockChain;
@@ -50,7 +50,8 @@ public class PeerConnection implements Closeable {
     }
 
     /**
-     * Not block
+     * Block to connection ... one by one !
+     * InterruptedException, will all connection exit
      *
      * @param uri
      */
@@ -61,14 +62,22 @@ public class PeerConnection implements Closeable {
         } catch (TimeoutException e) {
             this.errorLogger(uri, e);
         } catch (InterruptedException e) {
-            Thread.interrupted();
-            this.errorLogger(uri, e);
+            return;
         } catch (RuntimeException | ExecutionException ex) {
             Throwable cause = ex.getCause();
             if (cause instanceof IOException) {// simple log
                 logger.error("Connection to peer error : {}", cause.getMessage());
             } else {
                 logger.error("Connection {} ERROR !", uri, cause);
+            }
+        } finally {
+            if (Thread.currentThread().isInterrupted()) {
+                Thread.interrupted();
+                logger.error("Exit, Thread interrupted !");
+                return;
+            }
+            if (taskManager.isEmpty()) {
+                retryConnections();
             }
         }
     }
@@ -126,6 +135,25 @@ public class PeerConnection implements Closeable {
         taskManager.remove(uri);
         logger.info("Restart {}, success: {}, waiting: {}", uri, taskManager.doing(), taskManager.waiting());
         addPeer(uri);
+    }
+
+    private void retryConnections() {
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                synchronized (timer) {
+                    if (taskManager.isEmpty()) {
+                        logger.info("Retry all seed address");
+                        for (URI peer : params.settings.toPeers()) {
+                            taskManager.add(peer);
+                        }
+                        for (URI u : params.getEnvParams().seedsURI()) {
+                            taskManager.add(u);
+                        }
+                    }
+                }
+            }
+        }, 60_000);
     }
 
     @Override

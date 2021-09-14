@@ -1,6 +1,9 @@
 package com.github.microwww.bitcoin.provider;
 
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -11,8 +14,8 @@ public class TaskManager<T> {
     private final Semaphore semaphore;
     private final BiConsumer<T, TaskManager<T>> consumer;
     final ExecutorService executor;
-    final Map<T, Object> doing = new ConcurrentHashMap<>();
-    final BlockingQueue<T> queue = new LinkedBlockingQueue<>();
+    final Map<T, Object> doing = new HashMap<>();
+    final Queue<T> queue = new LinkedList<>();
 
     public TaskManager(int max, Consumer<T> consumer) {
         this(max, consumer, POOL);
@@ -32,7 +35,7 @@ public class TaskManager<T> {
         this.consumer = consumer;
     }
 
-    public void add(T task) {
+    public synchronized void add(T task) {
         queue.add(task);
         next();
     }
@@ -43,14 +46,17 @@ public class TaskManager<T> {
     public void next() {
         boolean ok = semaphore.tryAcquire();
         if (ok) {
-            T take = queue.poll();
-            if (take == null) {
-                semaphore.release();
-                return;
+            T take;
+            synchronized (this) {
+                take = queue.poll();
+                if (take == null) {
+                    semaphore.release();
+                    return;
+                }
+                doing.put(take, take);
             }
             executor.submit(() -> {
                 try {
-                    doing.put(take, take);
                     consumer.accept(take, this);
                     return take;
                 } catch (Exception ex) {
@@ -61,11 +67,15 @@ public class TaskManager<T> {
         }
     }
 
-    public int waiting() {
+    public synchronized int waiting() {
         return queue.size();
     }
 
-    public int doing() {
+    public synchronized boolean isEmpty() {
+        return doing.isEmpty() && queue.isEmpty();
+    }
+
+    public synchronized int doing() {
         return doing.size();
     }
 
@@ -77,7 +87,7 @@ public class TaskManager<T> {
         next();
     }
 
-    public void remove(T e) {
+    public synchronized void remove(T e) {
         queue.remove(e);
         release(e);
     }

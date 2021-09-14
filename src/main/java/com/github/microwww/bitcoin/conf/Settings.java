@@ -85,8 +85,8 @@ public class Settings {
         return peers;
     }
 
-    public List<URI> toPeers(int defPort) {
-        return toPeers(peers, defPort);
+    public List<URI> toPeers() {
+        return toPeers(peers, env.params.getDefaultPort());
     }
 
     public static List<URI> toPeers(String[] peers, int defPort) {
