@@ -40,7 +40,7 @@ public class TimeoutTaskManager<T> {
     }
 
     public TimeoutTaskManager(BiConsumer<T, TimeoutTaskManager<T>> consumer, int time, TimeUnit unit) {
-        waitMilliseconds = unit.convert(time, TimeUnit.MILLISECONDS);
+        waitMilliseconds = TimeUnit.MILLISECONDS.convert(time, unit);
         this.consumer = consumer;
         listener();
     }
@@ -130,7 +130,11 @@ public class TimeoutTaskManager<T> {
     }
 
     public boolean touch(T me) {
-        return this.touch(me, waitMilliseconds, TimeUnit.MILLISECONDS);
+        return this.touch(me, "-");
+    }
+
+    public boolean touch(T me, String message) {
+        return this.touch(me, waitMilliseconds, TimeUnit.MILLISECONDS, message);
     }
 
     /**
@@ -140,7 +144,11 @@ public class TimeoutTaskManager<T> {
      * @return
      */
     public boolean touchTwentyFold(T me) {
-        return this.touch(me, 20 * waitMilliseconds, TimeUnit.MINUTES);
+        return this.touchTwentyFold(me, "-");
+    }
+
+    public boolean touchTwentyFold(T me, String message) {
+        return this.touch(me, 20 * waitMilliseconds, TimeUnit.MINUTES, message);
     }
 
     /**
@@ -150,7 +158,11 @@ public class TimeoutTaskManager<T> {
      * @return
      */
     public boolean touchTenFold(T me) {
-        return this.touch(me, 10 * waitMilliseconds, TimeUnit.SECONDS);
+        return touchTenFold(me, "-");
+    }
+
+    public boolean touchTenFold(T me, String message) {
+        return this.touch(me, 10 * waitMilliseconds, TimeUnit.SECONDS, message);
     }
 
     private synchronized boolean resetCurrent(T val) {
@@ -163,10 +175,16 @@ public class TimeoutTaskManager<T> {
     }
 
     public synchronized boolean touch(T me, long time, TimeUnit unit) {
+        return touch(me, time, unit, "-");
+    }
+
+    public synchronized boolean touch(T me, long time, TimeUnit unit, String message) {
         boolean can = this.can(me);
         if (can) {
             long convert = TimeUnit.MILLISECONDS.convert(time, unit);
             stopTime.set(System.currentTimeMillis() + convert);
+            if (logger.isDebugEnabled())
+                logger.debug("Reset stop time: {}, {}", new Date(stopTime.get()), message);
         }
         return can;
     }

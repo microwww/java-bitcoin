@@ -116,7 +116,7 @@ public class PeerChannelProtocol {
         Peer peer = ctx.channel().attr(Peer.PEER).get();
         ctx.executor().execute(() -> {
             // TASKMANAGER: .1. send header
-            taskManager.assertIsMe(ctx).touchTenFold(ctx);
+            taskManager.assertIsMe(ctx).touchTenFold(ctx, "Waiting send GetHeaders");
             int height = chain.getDiskBlock().getLatestHeight();
             int step = 1;
             List<Uint256> list = new ArrayList<>();
@@ -188,7 +188,7 @@ public class PeerChannelProtocol {
             return;
         }
         // TASKMANAGER: .2. Headers , from send-header-request
-        taskManager.assertIsMe(ctx).touchTenFold(ctx);
+        taskManager.assertIsMe(ctx).touchTenFold(ctx, "Waiting parse HEADERS");
         Map<Uint256, ChainBlock> readyBlocks = new LinkedHashMap<>(); // key 按照 set 顺序排序
         ChainBlock[] cb = request.getChainBlocks();
         for (ChainBlock k : cb) {
@@ -240,8 +240,7 @@ public class PeerChannelProtocol {
         Peer peer = ctx.channel().attr(Peer.PEER).get();
         taskManager.getCache(CACHE_LOADING_COUNT, AtomicInteger.class).decrementAndGet();
         // TASKMANAGER: .3. Block, get block-info from GetData request
-        taskManager.assertIsMe(ctx, "Peer [%s] timeout, had change other!", peer.getURI())
-                .touch(ctx);
+        taskManager.assertIsMe(ctx).touch(ctx, "Waiting parse BLOCK");
         if (!cb.verifyMerkleTree()) {
             logger.error("RawTransaction MerkleRoot do not match : {}, Now is test so skip", cb.hash());
         }
@@ -392,7 +391,7 @@ public class PeerChannelProtocol {
 
     public void sendLoadOneChainBlock(ChannelHandlerContext ctx) {
         Peer peer = ctx.channel().attr(Peer.PEER).get();
-        taskManager.assertIsMe(ctx).touch(ctx); // if not me , will loss data
+        taskManager.assertIsMe(ctx).touch(ctx, "Send get-data BLOCK");
         Queue<Uint256> headers = taskManager.getCache(CACHE_HEADERS, Queue.class);
         Uint256 one = headers.poll();
         if (one != null) {
