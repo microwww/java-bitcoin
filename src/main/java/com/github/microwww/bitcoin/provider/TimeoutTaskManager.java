@@ -16,17 +16,17 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * Task 比较是 `=` 而不是 `equals` 方法
+ * Provider 比较是 `=` 而不是 `equals` 方法
  *
  * @param <T>
  */
 public class TimeoutTaskManager<T> {
     private static final Logger logger = LoggerFactory.getLogger(TimeoutTaskManager.class);
 
-    // 下面的4个属性用来实现 队列的取值 和 将该值赋给 current 同步完成
+    // 下面的 3 个属性用来实现 队列的取值 和 将该值赋给 current 同步完成
     protected final Queue<T> queue = new LinkedList<>();
     ReentrantLock lock = new ReentrantLock();
-    Condition taskCondition = lock.newCondition();
+    Condition waiting = lock.newCondition();
 
     private final AtomicLong stopTime = new AtomicLong();
     protected final BiConsumer<T, TimeoutTaskManager<T>> consumer;
@@ -35,7 +35,7 @@ public class TimeoutTaskManager<T> {
     private Map<String, Object> cache = new ConcurrentHashMap<>();
     private Thread thread;
     protected final Map<Integer, BiConsumer<T, T>> changeListeners = new ConcurrentSkipListMap<>();
-    private boolean noTask = false;
+    private boolean noProvider = false;
 
     public TimeoutTaskManager(Consumer<T> consumer, int time, TimeUnit unit) {
         this((t, x) -> consumer.accept(t), time, unit);
@@ -57,20 +57,20 @@ public class TimeoutTaskManager<T> {
                     T ct = current;
                     lock.lock();
                     try {
-                        this.changeTaskOrAwait();
+                        this.changeProviderOrAwait();
                     } finally {
                         lock.unlock();
                     }
-                    T newTask = this.current;
+                    T newProvider = this.current;
                     changeListeners.forEach((k, v) -> {
-                        v.accept(ct, newTask);
+                        v.accept(ct, newProvider);
                     });
                     TaskManager.POOL.submit(() -> {
                         logger.debug("Run new submit task");
-                        consumer.accept(newTask, this);
+                        consumer.accept(newProvider, this);
                     });
                     Thread.yield();
-                    this.awaitTimeout(newTask);
+                    this.awaitTimeout(newProvider);
                 } catch (RuntimeException ex) {
                     logger.error("Task run error", ex);
                 } catch (InterruptedException e) {
@@ -86,41 +86,41 @@ public class TimeoutTaskManager<T> {
         }
     }
 
-    private void changeTaskOrAwait() throws InterruptedException {
+    private void changeProviderOrAwait() throws InterruptedException {
         while (true) {
-            T newTask;
+            T newSupporter;
             synchronized (this) {
-                newTask = queue.poll();
-                if (newTask != null) {
-                    logger.debug("POLL a new task : {}", newTask);
-                    this.current = newTask;
-                    noTask = false;
+                newSupporter = queue.poll();
+                if (newSupporter != null) {
+                    logger.debug("POLL a new supporter : {}", newSupporter);
+                    this.current = newSupporter;
+                    noProvider = false;
                     break;
                 }
-                noTask = true;
+                noProvider = true;
             }
-            if (newTask == null) {
+            if (newSupporter == null) {
                 logger.debug("Release lock and Waiting .....");
-                taskCondition.await();
+                waiting.await();
             }
         }
     }
 
-    private void awaitTimeout(T task) throws InterruptedException {
-        boolean touch = this.touch(task);
+    private void awaitTimeout(T provider) throws InterruptedException {
+        boolean touch = this.touch(provider);
         if (!touch) {
-            logger.warn("This is not usually the case ! WHY ? {} --> {}", this.current, task);
+            logger.warn("This is not usually the case ! WHY ? {} --> {}", this.current, provider);
             return;
         }
         while (true) {
-            logger.debug("Task {} waiting timeout !", task);
+            logger.debug("Provider {} waiting timeout !", provider);
             LockSupport.parkUntil(stopTime.get());
             synchronized (this) {
                 if (System.currentTimeMillis() > stopTime.get()) {
-                    logger.debug("Task timeout, {}, {}, start new task !", stopTime.get(), task);
+                    logger.debug("Provider timeout, {}, {}, start new task !", stopTime.get(), provider);
                     break;
                 }
-                logger.debug("Task {} not timeout !", task);
+                logger.debug("Provider {} not timeout !", provider);
             }
         }
     }
@@ -133,11 +133,9 @@ public class TimeoutTaskManager<T> {
         return this.assertIsMe(me, "I am timeout: %s", me);
     }
 
-    public TimeoutTaskManager<T> ifMe(T me, Runnable doing) throws IllegalStateException {
-        synchronized (this) {
-            if (this.can(me)) {
-                doing.run();
-            }
+    public synchronized TimeoutTaskManager<T> ifMe(T me, Runnable doing) throws IllegalStateException {
+        if (this.can(me)) {
+            doing.run();
         }
         return this;
     }
@@ -209,12 +207,12 @@ public class TimeoutTaskManager<T> {
         return can;
     }
 
-    public void addTask(T task) {
+    public void addProvider(T provider) {
         lock.lock();
         try {// first lock , second this, same as poll
             synchronized (this) {
-                queue.add(task);
-                taskCondition.signal();
+                queue.add(provider);
+                waiting.signal();
             }
         } finally {
             lock.unlock();
@@ -255,11 +253,11 @@ public class TimeoutTaskManager<T> {
         return this;
     }
 
-    public synchronized List<T> getTasks() {
+    public synchronized List<T> getProviders() {
         return new ArrayList<>(queue);
     }
 
-    public synchronized boolean isNoTask() {
-        return noTask;
+    public synchronized boolean isNoProvider() {
+        return noProvider;
     }
 }

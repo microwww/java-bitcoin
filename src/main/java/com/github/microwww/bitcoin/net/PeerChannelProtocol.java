@@ -105,7 +105,7 @@ public class PeerChannelProtocol {
             ctx.write(new Ping(peer));
         });
 
-        taskManager.addTask(ctx);
+        taskManager.addProvider(ctx);
 
         ctx.executor().execute(() -> {
             ctx.write(new FeeFilter(peer));
@@ -248,8 +248,8 @@ public class PeerChannelProtocol {
         Optional<HeightBlock> prehash = chain.getDiskBlock().readBlock(cb.header.getPreHash());
         if (!prehash.isPresent()) {
             logger.warn("LOCATION not find preHash: {}", cb.header.getPreHash());
-            if (taskManager.isNoTask()) {
-                taskManager.addTask(ctx);
+            if (taskManager.isNoProvider()) {
+                taskManager.addProvider(ctx);
             }
             return;
         }
@@ -293,7 +293,7 @@ public class PeerChannelProtocol {
     }
 
     public void service(ChannelHandlerContext ctx, Inv request) {
-        if (!taskManager.isNoTask()) {
+        if (!taskManager.isNoProvider()) {
             logger.info("Skip [Inv] request : {}", request.getPeer().getURI());
             return;
         }
@@ -417,7 +417,7 @@ public class PeerChannelProtocol {
     }
 
     public void channelClose(Peer peer) {
-        List<ChannelHandlerContext> tasks = taskManager.getTasks();
+        List<ChannelHandlerContext> tasks = taskManager.getProviders();
         Optional<ChannelHandlerContext> any = tasks.stream().filter(e -> {//
             return e.channel().attr(Peer.PEER).get() == peer;
         }).findAny();
