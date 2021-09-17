@@ -6,10 +6,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class GlobalController {
-    @RequestMapping("/ping")
-    public String ping() {
-        return "pong";
-    }
 
     @RequestMapping(value = {"/", "/index"}, produces = MediaType.TEXT_HTML_VALUE)
     public String index() {
