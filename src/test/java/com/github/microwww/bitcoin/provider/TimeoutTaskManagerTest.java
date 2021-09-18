@@ -19,7 +19,7 @@ class TimeoutTaskManagerTest {
         }, 500, TimeUnit.MILLISECONDS);
 
         String val = "0000";
-        manager.addTask(val);
+        manager.addProvider(val);
         for (int i = 0; i < 10; i++) {
             Thread.sleep(100);
             assertTrue(manager.touch(val));
@@ -30,7 +30,7 @@ class TimeoutTaskManagerTest {
         assertTrue(manager.touch(val)); // 虽然超时, 但仍然没有被重置, 可以继续使用
         manager.assertIsMe(val);
 
-        manager.addTask(val + "0");
+        manager.addProvider(val + "0");
         Thread.sleep(100);
         Thread.yield();
         assertFalse(manager.touch(val));
