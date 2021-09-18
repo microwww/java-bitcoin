@@ -21,6 +21,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.UnknownHostException;
@@ -34,7 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * `net_processing.cpp`
  */
 @Component
-public class PeerChannelProtocol {
+public class PeerChannelProtocol implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelProtocol.class);
     public static final Logger verify = LoggerFactory.getLogger("mode.test");
     public static final String CACHE_HEADERS = "cache_headers";
@@ -292,10 +294,10 @@ public class PeerChannelProtocol {
         chain.getTransactionStore().add(request.getTransaction());
     }
 
-    public void service(ChannelHandlerContext ctx, Inv request) {
+    public boolean service(ChannelHandlerContext ctx, Inv request) {
         if (!taskManager.isNoProvider()) {
             logger.info("Skip [Inv] request : {}", request.getPeer().getURI());
-            return;
+            return false;
         }
         ctx.executor().execute(() -> {
             request.validity();
@@ -312,6 +314,7 @@ public class PeerChannelProtocol {
             GetData dt = new GetData(request.getPeer()).setMessages(list.toArray(new GetData.Message[]{}));
             ctx.writeAndFlush(dt);
         });
+        return true;
     }
 
     //TODO::作用未知
@@ -329,7 +332,7 @@ public class PeerChannelProtocol {
 
     //TODO::作用未知
     public void service(ChannelHandlerContext ctx, SendCmpct request) {
-        logger.warn("SendCmpct ignore : " + request);
+        logger.warn("TODO:: SendCmpct request ! server to do");
     }
 
     public void service(ChannelHandlerContext ctx, Ping request) {
@@ -429,5 +432,10 @@ public class PeerChannelProtocol {
                 }
             });
         }
+    }
+
+    @Override
+    public void close() throws IOException {
+        taskManager.close();
     }
 }

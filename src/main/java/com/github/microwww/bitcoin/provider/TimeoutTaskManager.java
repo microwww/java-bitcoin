@@ -3,6 +3,8 @@ package com.github.microwww.bitcoin.provider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -20,7 +22,7 @@ import java.util.function.Consumer;
  *
  * @param <T>
  */
-public class TimeoutTaskManager<T> {
+public class TimeoutTaskManager<T> implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(TimeoutTaskManager.class);
 
     // 下面的 3 个属性用来实现 队列的取值 和 将该值赋给 current 同步完成
@@ -50,8 +52,8 @@ public class TimeoutTaskManager<T> {
     private void listener() {
         CountDownLatch latch = new CountDownLatch(1);
         TaskManager.POOL.submit(() -> {
-            latch.countDown();
             thread = Thread.currentThread();
+            latch.countDown();
             while (true) { // 死循环, 除非是中断请求
                 try { // 如果没有新的任务, 原先任务仍然可以正常提交 ! 有新的任务, 无法修改 touch !
                     T ct = current;
@@ -126,6 +128,7 @@ public class TimeoutTaskManager<T> {
     }
 
     public synchronized boolean can(T me) {
+        runningAssert();
         return me == current;
     }
 
@@ -192,7 +195,7 @@ public class TimeoutTaskManager<T> {
         return res;
     }
 
-    public synchronized boolean touch(T me, long time, TimeUnit unit) {
+    public boolean touch(T me, long time, TimeUnit unit) {
         return touch(me, time, unit, "-");
     }
 
@@ -211,6 +214,7 @@ public class TimeoutTaskManager<T> {
         lock.lock();
         try {// first lock , second this, same as poll
             synchronized (this) {
+                runningAssert();
                 queue.add(provider);
                 waiting.signal();
             }
@@ -220,6 +224,7 @@ public class TimeoutTaskManager<T> {
     }
 
     public synchronized void remove(T e) {
+        runningAssert();
         boolean rm = queue.remove(e);
         if (!rm && can(e)) {
             resetCurrent(e);
@@ -249,6 +254,7 @@ public class TimeoutTaskManager<T> {
     }
 
     public TimeoutTaskManager<T> putCache(String key, Object cache) {
+        runningAssert();
         this.cache.put(key, cache);
         return this;
     }
@@ -259,5 +265,19 @@ public class TimeoutTaskManager<T> {
 
     public synchronized boolean isNoProvider() {
         return noProvider;
+    }
+
+    private void runningAssert() {
+        if (thread.isInterrupted()) {
+            throw new RuntimeException(new InterruptedException("TimeoutTaskManager is STOP"));
+        }
+    }
+
+    @Override
+    public void close() throws IOException {
+        thread.interrupt();
+        synchronized (this) {
+            queue.clear();
+        }
     }
 }

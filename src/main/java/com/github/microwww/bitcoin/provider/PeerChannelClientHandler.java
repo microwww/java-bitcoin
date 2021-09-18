@@ -13,9 +13,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.Assert;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.io.Closeable;
+import java.io.IOException;
 
-public class PeerChannelClientHandler extends SimpleChannelInboundHandler<MessageHeader> {
+public class PeerChannelClientHandler extends SimpleChannelInboundHandler<MessageHeader> implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelClientHandler.class);
 
     @Autowired
@@ -91,4 +92,8 @@ public class PeerChannelClientHandler extends SimpleChannelInboundHandler<Messag
         logger.warn("Parse Request OR execute ERROR, peer {}", peer.getURI(), cause);
     }
 
+    @Override
+    public void close() throws IOException {
+        peerChannelProtocol.close();
+    }
 }

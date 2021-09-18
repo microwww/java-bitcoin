@@ -8,6 +8,7 @@ import io.netty.util.AttributeKey;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Objects;
 
 public class Peer {
     public static final AttributeKey<Peer> PEER = AttributeKey.newInstance("connection-peer");
@@ -106,6 +107,19 @@ public class Peer {
 
     public LocalBlockChain getLocalBlockChain() {
         return localBlockChain;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Peer peer = (Peer) o;
+        return port == peer.port && host.equals(peer.host);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(host, port);
     }
 
     @Override
