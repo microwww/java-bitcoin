@@ -1,4 +1,4 @@
-package com.github.microwww.bitcoin.net.server;
+package com.github.microwww.bitcoin.provider;
 
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
@@ -7,8 +7,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class ServerStarterTest {
 

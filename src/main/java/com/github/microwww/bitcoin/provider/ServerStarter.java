@@ -1,12 +1,9 @@
-package com.github.microwww.bitcoin.net.server;
+package com.github.microwww.bitcoin.provider;
 
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.net.BitcoinNetDecode;
 import com.github.microwww.bitcoin.net.BitcoinNetEncode;
 import com.github.microwww.bitcoin.net.PeerChannelServerProtocol;
-import com.github.microwww.bitcoin.provider.LocalBlockChain;
-import com.github.microwww.bitcoin.provider.Peer;
-import com.github.microwww.bitcoin.provider.PeerChannelServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;

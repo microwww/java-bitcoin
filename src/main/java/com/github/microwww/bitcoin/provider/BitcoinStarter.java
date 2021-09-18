@@ -3,7 +3,6 @@ package com.github.microwww.bitcoin.provider;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.event.BitcoinAddPeerEvent;
-import com.github.microwww.bitcoin.net.server.ServerStarter;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultProgressivePromise;
