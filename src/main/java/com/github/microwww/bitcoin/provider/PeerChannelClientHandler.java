@@ -5,29 +5,25 @@ import com.github.microwww.bitcoin.net.NetProtocol;
 import com.github.microwww.bitcoin.net.PeerChannelProtocol;
 import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.util.ByteUtil;
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.Attribute;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<MessageHeader> {
-    private static final Logger logger = LoggerFactory.getLogger(PeerChannelInboundHandler.class);
+public class PeerChannelClientHandler extends SimpleChannelInboundHandler<MessageHeader> {
+    private static final Logger logger = LoggerFactory.getLogger(PeerChannelClientHandler.class);
 
     @Autowired
     PeerChannelProtocol peerChannelProtocol;
 
-    public PeerChannelInboundHandler(PeerChannelProtocol peerChannelProtocol) {
+    public PeerChannelClientHandler(PeerChannelProtocol peerChannelProtocol) {
         this.peerChannelProtocol = peerChannelProtocol;
     }
-
-    AtomicInteger count = new AtomicInteger();
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {

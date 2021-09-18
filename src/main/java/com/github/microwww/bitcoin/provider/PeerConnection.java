@@ -92,7 +92,7 @@ public class PeerConnection implements Closeable {
      * @throws TimeoutException
      */
     private synchronized void start(URI uri) throws ExecutionException, InterruptedException, TimeoutException {
-        ChannelHandler handler = new PeerChannelInboundHandler(peerChannelProtocol);
+        ChannelHandler handler = new PeerChannelClientHandler(peerChannelProtocol);
         Bootstrap bootstrap = new Bootstrap()
                 .group(executors)
                 .channel(NioSocketChannel.class)

@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
-public class PeerChannelServerHandler extends PeerChannelInboundHandler {
+public class PeerChannelServerHandler extends PeerChannelClientHandler {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelServerHandler.class);
 
     public PeerChannelServerHandler(PeerChannelProtocol peerChannelProtocol) {
