@@ -24,7 +24,7 @@ public class BitcoinNetEncode extends MessageToByteEncoder<AbstractProtocol> {
         ByteBuf buffer = Unpooled.buffer();
         data.write(buffer);
         NetProtocol protocol = data.support();
-        logger.debug("Encode a command : {}", protocol);
+        logger.debug("Encode command : {}", protocol);
 
         new MessageHeader(magic, protocol).setPayload(ByteUtil.readAll(buffer)).writer(buffer);
         channelHandlerContext.writeAndFlush(buffer);

@@ -3,6 +3,7 @@ package com.github.microwww.bitcoin.net;
 import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.event.BitcoinAddPeerEvent;
 import com.github.microwww.bitcoin.math.Uint256;
+import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.math.Uint64;
 import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.provider.LocalBlockChain;
@@ -64,7 +65,7 @@ public class PeerChannelProtocol {
 
     public void doAction(ChannelHandlerContext ctx, AbstractProtocol request) throws UnsupportedOperationException {
         try {
-            Method service = PeerChannelProtocol.class.getDeclaredMethod("service", ChannelHandlerContext.class, request.getClass());
+            Method service = this.getClass().getMethod("service", ChannelHandlerContext.class, request.getClass());
             service.invoke(this, ctx, request);
         } catch (IllegalAccessException | InvocationTargetException e) {
             logger.warn("Server executor error !", e);
@@ -83,61 +84,60 @@ public class PeerChannelProtocol {
         Peer peer = ctx.channel().attr(Peer.PEER).get();
         peer.setVersion(version);
         peer.setMeReady(true);
+
+        ctx.executor().execute(() -> {
+            ctx.write(new WtxidRelay(peer));
+            ctx.write(new SendAddrV2(peer));
+            // VerACK
+            ctx.write(new VerACK(peer));
+            ctx.write(new GetAddr(peer));
+        });
     }
 
     public void service(ChannelHandlerContext ctx, VerACK ack) {
         Peer peer = ctx.channel().attr(Peer.PEER).get();
         peer.setRemoteReady(true);
         ctx.executor().execute(() -> {
-            ctx.write(new VerACK(peer));
-        });
-
-        ctx.executor().execute(() -> {
-            ctx.write(new GetAddr(peer));
-        });
-        ctx.executor().execute(() -> {
             ctx.write(new SendHeaders(peer));
-        });
-        ctx.executor().execute(() -> {
+            ctx.write(new SendCmpct(peer).setVal(new Uint32(2)));
             ctx.write(new SendCmpct(peer));
-        });
-        ctx.executor().execute(() -> {
             ctx.write(new Ping(peer));
-        });
-
-        taskManager.addProvider(ctx);
-
-        ctx.executor().execute(() -> {
-            ctx.write(new FeeFilter(peer));
+            taskManager.addProvider(ctx);// getheaders
+            ctx.writeAndFlush(new FeeFilter(peer));
         });
     }
 
     public void sendGetHeader(ChannelHandlerContext ctx) {
-        Peer peer = ctx.channel().attr(Peer.PEER).get();
         ctx.executor().execute(() -> {
             // TASKMANAGER: .1. send header
             taskManager.assertIsMe(ctx).touchTenFold(ctx, "Waiting send GetHeaders");
-            int height = chain.getDiskBlock().getLatestHeight();
-            int step = 1;
-            List<Uint256> list = new ArrayList<>();
-            for (int i = height; i >= 0; i -= step) {
-                if (list.size() >= GetHeaders.MAX_LOCATOR_SZ) {
-                    break;
-                }
-                if (list.size() > GetHeaders.MAX_UN_CONNECTING_HEADERS) {
-                    step *= 2;
-                }
-                Optional<Uint256> hash = chain.getDiskBlock().getHash(i);
-                if (hash.isPresent()) {
-                    list.add(hash.get());
-                } else {
-                    logger.error("Not hear !!!");
-                    return;
-                }
-            }
-            GetHeaders hd = new GetHeaders(peer).setStarting(list);
-            ctx.write(hd);
+            sendGetHeaderNow(ctx);
+            ctx.flush();
         });
+    }
+
+    public void sendGetHeaderNow(ChannelHandlerContext ctx) {
+        Peer peer = ctx.channel().attr(Peer.PEER).get();
+        int height = chain.getDiskBlock().getLatestHeight();
+        int step = 1;
+        List<Uint256> list = new ArrayList<>();
+        for (int i = height; i >= 0; i -= step) {
+            if (list.size() >= GetHeaders.MAX_LOCATOR_SZ) {
+                break;
+            }
+            if (list.size() > GetHeaders.MAX_UN_CONNECTING_HEADERS) {
+                step *= 2;
+            }
+            Optional<Uint256> hash = chain.getDiskBlock().getHash(i);
+            if (hash.isPresent()) {
+                list.add(hash.get());
+            } else {
+                logger.error("Not hear !!!");
+                return;
+            }
+        }
+        GetHeaders hd = new GetHeaders(peer).setStarting(list);
+        ctx.write(hd);
     }
 
     // if (msg_type == NetMsgType::GETHEADERS) {
@@ -316,11 +316,11 @@ public class PeerChannelProtocol {
 
     //TODO::作用未知
     public void service(ChannelHandlerContext ctx, WtxidRelay request) {
-        ctx.writeAndFlush(request);
+        logger.warn("TODO:: WtxidRelay request ! server to do");
     }
 
     public void service(ChannelHandlerContext ctx, SendAddrV2 request) {
-        ctx.writeAndFlush(request);
+        logger.warn("TODO:: SendAddrV2 request ! server to do");
     }
 
     public void service(ChannelHandlerContext ctx, AddrV2 request) {
@@ -329,21 +329,19 @@ public class PeerChannelProtocol {
 
     //TODO::作用未知
     public void service(ChannelHandlerContext ctx, SendCmpct request) {
-        SendCmpct cmpct = new SendCmpct(request.getPeer()).setVal(request.getVal());
-        ctx.writeAndFlush(cmpct);
+        logger.warn("SendCmpct ignore : " + request);
     }
 
-    // TODO :: 需要坚持是否连通
     public void service(ChannelHandlerContext ctx, Ping request) {
-        logger.info("Peer send ping, {}", request.getPeer().getURI());
+        logger.debug("Get ping from : {}", request.getPeer().getURI());
         long l = ThreadLocalRandom.current().nextLong(Long.MIN_VALUE, Long.MAX_VALUE);
         Pong pong = new Pong(request.getPeer()).setNonce(new Uint64(l));
         ctx.writeAndFlush(pong);
+        logger.debug("Send PONG, {}", request.getPeer().getURI());
     }
 
-    // TODO :: 需要坚持是否连通
     public void service(ChannelHandlerContext ctx, Pong request) {
-        logger.info("Get pong !");
+        logger.info("Pong request ! server to do");
     }
 
     public void service(ChannelHandlerContext ctx, FeeFilter request) {
@@ -352,7 +350,7 @@ public class PeerChannelProtocol {
     }
 
     public void service(ChannelHandlerContext ctx, SendHeaders request) {
-        logger.info("Get SendHeaders !");
+        logger.warn("TODO:: SendHeaders request ! server to do");
     }
 
     public void service(ChannelHandlerContext ctx, Addr request) {

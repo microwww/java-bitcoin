@@ -134,7 +134,12 @@ public enum NetProtocol {
      * The getaddr message requests an addr message from the receiving node,
      * preferably one with lots of IP addresses of other receiving nodes.
      */
-    GETADDR,
+    GETADDR {
+        @Override
+        public GetAddr parse(Peer peer, byte[] buf) throws IgnoreNetProtocolException {
+            return new GetAddr(peer).read(buf);
+        }
+    },
     /**
      * The mempool message requests the TXIDs of transactions that the receiving
      * node has verified as valid but which have not yet appeared in a block.

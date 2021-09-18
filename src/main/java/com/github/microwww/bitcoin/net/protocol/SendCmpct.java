@@ -41,4 +41,9 @@ public class SendCmpct extends AbstractProtocolAdapter<SendCmpct> {
         this.val = val;
         return this;
     }
+
+    @Override
+    public String toString() {
+        return "status=" + status + ", val=" + val;
+    }
 }

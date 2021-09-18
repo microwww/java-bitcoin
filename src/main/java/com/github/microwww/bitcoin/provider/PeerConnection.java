@@ -3,6 +3,7 @@ package com.github.microwww.bitcoin.provider;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.net.BitcoinNetDecode;
 import com.github.microwww.bitcoin.net.BitcoinNetEncode;
+import com.github.microwww.bitcoin.net.PeerChannelProtocol;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -32,7 +33,7 @@ public class PeerConnection implements Closeable {
     @Autowired
     LocalBlockChain localBlockChain;
     @Autowired
-    PeerChannelInboundHandler peerChannelInboundHandlerEventPublisher;
+    PeerChannelProtocol peerChannelProtocol;
 
     public PeerConnection(CChainParams params) {
         taskManager = new TaskManager<>(params.settings.getMaxPeers(), e -> {
@@ -91,17 +92,19 @@ public class PeerConnection implements Closeable {
      * @throws TimeoutException
      */
     private synchronized void start(URI uri) throws ExecutionException, InterruptedException, TimeoutException {
+        ChannelHandler handler = new PeerChannelInboundHandler(peerChannelProtocol);
         Bootstrap bootstrap = new Bootstrap()
                 .group(executors)
                 .channel(NioSocketChannel.class)
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10_000)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2 * TIME_OUT_SECONDS)
+                .option(ChannelOption.SO_REUSEADDR, true)
                 .handler(new ChannelInitializer<NioSocketChannel>() {
                     @Override
                     protected void initChannel(NioSocketChannel ch) {
                         ch.pipeline()
                                 .addLast(new BitcoinNetEncode(localBlockChain.getChainParams()))
                                 .addLast(new BitcoinNetDecode(localBlockChain.getChainParams()))
-                                .addLast(peerChannelInboundHandlerEventPublisher);
+                                .addLast(handler);
                     }
                 });
         // connection

@@ -15,13 +15,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
-@Component
-@ChannelHandler.Sharable
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<MessageHeader> {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelInboundHandler.class);
 
     @Autowired
     PeerChannelProtocol peerChannelProtocol;
+
+    public PeerChannelInboundHandler(PeerChannelProtocol peerChannelProtocol) {
+        this.peerChannelProtocol = peerChannelProtocol;
+    }
+
+    AtomicInteger count = new AtomicInteger();
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -36,13 +42,13 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
         try {
             NetProtocol netProtocol = header.getNetProtocol();
             if (logger.isDebugEnabled()) {
-                logger.debug("Get a command : {} \n{}", netProtocol.cmd(), ByteUtil.hex(header.getPayload()));
+                logger.debug("Get a command : {} \n 0x{}", netProtocol.cmd(), ByteUtil.hex(header.getPayload()));
             }
             AbstractProtocol parse = netProtocol.parse(peer, header.getPayload());
             if (parse instanceof AbstractProtocolAdapter) {
                 ((AbstractProtocolAdapter<?>) parse).setPayload(header.getPayload());
             }
-            logger.debug("Parse command: {},  data : {}", netProtocol.cmd(), parse.getClass().getSimpleName());
+            logger.debug("Command: {}, parse to : {}", netProtocol.cmd(), parse.getClass().getSimpleName());
 
             peerChannelProtocol.doAction(ctx, parse);
 
@@ -86,7 +92,7 @@ public class PeerChannelInboundHandler extends SimpleChannelInboundHandler<Messa
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         Attribute<Peer> attr = ctx.channel().attr(Peer.PEER);
         Peer peer = attr.get();
-        logger.warn("Parse Request OR execute ERROR , peer {}:{}", peer.getHost(), peer.getPort(), cause);
+        logger.warn("Parse Request OR execute ERROR, peer {}", peer.getURI(), cause);
     }
 
 }

@@ -1,18 +1,16 @@
 package com.github.microwww.bitcoin.net;
 
 import com.github.microwww.bitcoin.conf.CChainParams;
-import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ReplayingDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.Assert;
 
 import java.util.List;
 
-public class BitcoinNetDecode extends ReplayingDecoder<AbstractProtocol> {
+public class BitcoinNetDecode extends ReplayingDecoder<Void> {
     private static final Logger logger = LoggerFactory.getLogger(BitcoinNetDecode.class);
 
     private final CChainParams settings;
@@ -21,27 +19,20 @@ public class BitcoinNetDecode extends ReplayingDecoder<AbstractProtocol> {
         this.settings = settings;
     }
 
-    @Override
     protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf, List<Object> list) throws Exception {
         int magic = settings.getEnvParams().getMagic();
-        int start = byteBuf.readerIndex();
-        byteBuf.markReaderIndex();
-        if (byteBuf.readableBytes() >= MessageHeader.HEADER_SIZE) {
-            MessageHeader read = MessageHeader.readHeader(byteBuf);
-            int end = byteBuf.readerIndex();
-            Assert.isTrue(end - start == MessageHeader.HEADER_SIZE, "protocol is modify, to fix it");
-            if (byteBuf.readableBytes() >= read.getLength()) {
-                MessageHeader.readBody(read, byteBuf);
-                logger.debug("Decode a command : {}", read.getCommand());
-                Assert.isTrue(read.getMagic() == magic, "Magic not match: NEED " + magic + " BUT " + read.getMagic());
-                if (logger.isDebugEnabled()) {
-                    logger.debug("get data {}, {}", read.getCommand(), ByteUtil.hex(read.getPayload()));
-                }
-                list.add(read);
-            } else { // 半包
-                logger.debug("Decode a half package command : {}", read.getCommand());
-                byteBuf.resetReaderIndex();
-            }
+        ByteBuf bf = byteBuf.readBytes(MessageHeader.HEADER_SIZE);
+        MessageHeader read = MessageHeader.readHeader(bf);
+        bf = byteBuf.readBytes(read.getLength());
+        MessageHeader.readBody(read, bf);
+        if (logger.isDebugEnabled())
+            logger.debug("Decode command {}, 0x{}, next bytes {} ", read.getCommand(), ByteUtil.hex(read.getPayload()), byteBuf.readableBytes());
+
+        if (read.getMagic() != magic) {
+            logger.error("Magic not match: NEED 0x{} BUT 0x{}", Integer.toString(magic, 16), Integer.toString(read.getMagic(), 16));
+            channelHandlerContext.channel().close();
+        } else {
+            list.add(read);
         }
     }
 }
