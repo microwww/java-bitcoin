@@ -28,6 +28,7 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
 
     public void publishInv(Queue<GetData.Message> queue) {
         if (lock.tryLock()) {
+            logger.debug("Send Inv Message: {}", queue.size());
             try {
                 List<GetData.Message> list = new ArrayList<>();
                 for (int i = 0; i < 100 && !queue.isEmpty(); i++) {
