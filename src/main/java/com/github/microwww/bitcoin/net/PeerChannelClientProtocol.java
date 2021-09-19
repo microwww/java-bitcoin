@@ -36,8 +36,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * `net_processing.cpp`
  */
 @Component
-public class PeerChannelProtocol implements Closeable {
-    private static final Logger logger = LoggerFactory.getLogger(PeerChannelProtocol.class);
+public class PeerChannelClientProtocol implements Closeable {
+    private static final Logger logger = LoggerFactory.getLogger(PeerChannelClientProtocol.class);
     public static final Logger verify = LoggerFactory.getLogger("mode.test");
     public static final String CACHE_HEADERS = "cache_headers";
     public static final String CACHE_LOADING_COUNT = "cache_loading_count";
@@ -49,7 +49,7 @@ public class PeerChannelProtocol implements Closeable {
     private final TimeoutTaskManager<ChannelHandlerContext> taskManager;
     // private LoadingHeaderManager loadingHeaderManager = new LoadingHeaderManager();
 
-    public PeerChannelProtocol() {
+    public PeerChannelClientProtocol() {
         this.taskManager = new TimeoutTaskManager<>(e -> {
             this.sendGetHeader(e);
         }, 10, TimeUnit.SECONDS);

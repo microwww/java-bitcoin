@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.provider;
 
-import com.github.microwww.bitcoin.net.PeerChannelProtocol;
+import com.github.microwww.bitcoin.net.PeerChannelClientProtocol;
 import com.github.microwww.bitcoin.net.protocol.Ping;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -13,8 +13,8 @@ import org.springframework.util.Assert;
 public class PeerChannelServerHandler extends PeerChannelClientHandler {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelServerHandler.class);
 
-    public PeerChannelServerHandler(PeerChannelProtocol peerChannelProtocol) {
-        super(peerChannelProtocol);
+    public PeerChannelServerHandler(PeerChannelClientProtocol peerChannelClientProtocol) {
+        super(peerChannelClientProtocol);
     }
 
     @Override

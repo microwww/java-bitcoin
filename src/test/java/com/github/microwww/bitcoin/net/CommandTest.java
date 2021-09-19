@@ -89,7 +89,7 @@ public class CommandTest {
                 AbstractProtocol parse = netProtocol.parse(peer, header.getPayload());
                 logger.info("Parse data to : {}", parse.getClass().getSimpleName());
                 ctx.executor().execute(() -> {
-                    new PeerChannelProtocol().doAction(ctx, parse);
+                    new PeerChannelClientProtocol().doAction(ctx, parse);
                 });
             } catch (UnsupportedOperationException ex) {
                 logger.warn("UnsupportedOperationException : {}", header.getCommand());

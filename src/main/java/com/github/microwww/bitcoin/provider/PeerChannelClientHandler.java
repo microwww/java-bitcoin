@@ -2,7 +2,7 @@ package com.github.microwww.bitcoin.provider;
 
 import com.github.microwww.bitcoin.net.MessageHeader;
 import com.github.microwww.bitcoin.net.NetProtocol;
-import com.github.microwww.bitcoin.net.PeerChannelProtocol;
+import com.github.microwww.bitcoin.net.PeerChannelClientProtocol;
 import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.channel.ChannelHandlerContext;
@@ -20,10 +20,10 @@ public class PeerChannelClientHandler extends SimpleChannelInboundHandler<Messag
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelClientHandler.class);
 
     @Autowired
-    PeerChannelProtocol peerChannelProtocol;
+    PeerChannelClientProtocol peerChannelClientProtocol;
 
-    public PeerChannelClientHandler(PeerChannelProtocol peerChannelProtocol) {
-        this.peerChannelProtocol = peerChannelProtocol;
+    public PeerChannelClientHandler(PeerChannelClientProtocol peerChannelClientProtocol) {
+        this.peerChannelClientProtocol = peerChannelClientProtocol;
     }
 
     @Override
@@ -47,10 +47,10 @@ public class PeerChannelClientHandler extends SimpleChannelInboundHandler<Messag
             }
             logger.debug("Command: {}, parse to : {}", netProtocol.cmd(), parse.getClass().getSimpleName());
 
-            peerChannelProtocol.doAction(ctx, parse);
+            peerChannelClientProtocol.doAction(ctx, parse);
 
         } catch (UnsupportedOperationException ex) {
-            logger.warn("UnsupportedOperation class [{}].service: {} \n {}", peerChannelProtocol.getClass().getName(),
+            logger.warn("UnsupportedOperation class [{}].service: {} \n {}", peerChannelClientProtocol.getClass().getName(),
                     header.getCommand(), ByteUtil.hex(header.getPayload()));
             ctx.writeAndFlush(reject(peer, header, ex));
         } catch (UnsupportedNetProtocolException ex) {
@@ -67,7 +67,7 @@ public class PeerChannelClientHandler extends SimpleChannelInboundHandler<Messag
     public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
         Peer peer = ctx.channel().attr(Peer.PEER).get();
         if (peer != null) {
-            peerChannelProtocol.channelClose(peer);
+            peerChannelClientProtocol.channelClose(peer);
         }
         super.channelUnregistered(ctx);
     }
@@ -94,6 +94,6 @@ public class PeerChannelClientHandler extends SimpleChannelInboundHandler<Messag
 
     @Override
     public void close() throws IOException {
-        peerChannelProtocol.close();
+        peerChannelClientProtocol.close();
     }
 }

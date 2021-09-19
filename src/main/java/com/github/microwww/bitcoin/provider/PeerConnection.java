@@ -3,7 +3,7 @@ package com.github.microwww.bitcoin.provider;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.net.BitcoinNetDecode;
 import com.github.microwww.bitcoin.net.BitcoinNetEncode;
-import com.github.microwww.bitcoin.net.PeerChannelProtocol;
+import com.github.microwww.bitcoin.net.PeerChannelClientProtocol;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -33,7 +33,7 @@ public class PeerConnection implements Closeable {
     @Autowired
     LocalBlockChain localBlockChain;
     @Autowired
-    PeerChannelProtocol peerChannelProtocol;
+    PeerChannelClientProtocol peerChannelClientProtocol;
 
     public PeerConnection(CChainParams params) {
         taskManager = new TaskManager<>(params.settings.getMaxPeers(), e -> {
@@ -92,7 +92,7 @@ public class PeerConnection implements Closeable {
      * @throws TimeoutException
      */
     private synchronized void start(URI uri) throws ExecutionException, InterruptedException, TimeoutException {
-        ChannelHandler handler = new PeerChannelClientHandler(peerChannelProtocol);
+        ChannelHandler handler = new PeerChannelClientHandler(peerChannelClientProtocol);
         Bootstrap bootstrap = new Bootstrap()
                 .group(executors)
                 .channel(NioSocketChannel.class)

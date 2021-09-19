@@ -24,8 +24,8 @@ import java.util.concurrent.locks.ReentrantLock;
  * `net_processing.cpp`
  */
 @Component
-public class PeerChannelServerProtocol extends PeerChannelProtocol {
-    private static final Logger logger = LoggerFactory.getLogger(PeerChannelProtocol.class);
+public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
+    private static final Logger logger = LoggerFactory.getLogger(PeerChannelClientProtocol.class);
 
     @Autowired
     CChainParams chainParams;
