@@ -17,6 +17,11 @@ public class Inv extends AbstractProtocolAdapter<Inv> {
         return this;
     }
 
+    @Override
+    protected void write0(ByteBuf buf) {
+        this.data.write0(buf);
+    }
+
     public GetData.Message[] getData() {
         return data.getMessages();
     }
