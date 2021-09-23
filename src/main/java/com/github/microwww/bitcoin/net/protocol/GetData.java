@@ -2,7 +2,6 @@ package com.github.microwww.bitcoin.net.protocol;
 
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
-import com.github.microwww.bitcoin.math.Uint8;
 import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.provider.Peer;
 import com.github.microwww.bitcoin.util.ByteUtil;
@@ -39,8 +38,9 @@ public class GetData extends AbstractProtocolAdapter<GetData> {
     @Override
     protected void write0(ByteBuf buf) {
         int len = messages.length;
-        Uint8.assertion(len);
-        buf.writeByte(len);
+        // Uint8.assertion(len);
+        // buf.writeByte(len);
+        UintVar.valueOf(len).write(buf);
         for (Message msg : messages) {
             buf.writeIntLE(msg.typeIn.intValue());
             buf.writeBytes(msg.hashIn.fill256bit());
@@ -50,6 +50,14 @@ public class GetData extends AbstractProtocolAdapter<GetData> {
     public static class Message {
         private Uint32 typeIn;
         private Uint256 hashIn;
+
+        public Message() {
+        }
+
+        public Message(Type type, Uint256 hash) {
+            this.typeIn = new Uint32(type.inventory);
+            this.hashIn = hash;
+        }
 
         public Uint32 getTypeIn() {
             return typeIn;
