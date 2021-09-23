@@ -1,25 +1,27 @@
 package com.github.microwww.bitcoin.net;
 
+import com.github.microwww.bitcoin.chain.BlockHeader;
+import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.conf.CChainParams;
+import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.provider.Peer;
+import com.github.microwww.bitcoin.store.HeightBlock;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Component
 public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
-    private static final Logger logger = LoggerFactory.getLogger(PeerChannelClientProtocol.class);
+    private static final Logger logger = LoggerFactory.getLogger(PeerChannelServerProtocol.class);
 
     @Autowired
     CChainParams chainParams;
@@ -27,6 +29,9 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
     private final Map<Peer, ChannelHandlerContext> channels = new ConcurrentHashMap<>();
 
     public void publishInv(Queue<GetData.Message> queue) {
+        if (queue.isEmpty()) {
+            return;
+        }
         if (lock.tryLock()) {
             logger.debug("Send Inv Message: {}", queue.size());
             try {
@@ -38,6 +43,7 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
                 channels.values().forEach(e -> {
                     Peer peer = e.channel().attr(Peer.PEER).get();
                     Inv data = new Inv(peer).setData(list.toArray(new GetData.Message[]{}));
+                    logger.debug("Inv send to peer {}, Length: {}", peer.getURI(), data.getData().length);
                     e.channel().writeAndFlush(data);
                 });
             } finally {
@@ -75,6 +81,45 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
     }
 
     public void service(ChannelHandlerContext ctx, GetAddr request) {
+    }
+
+    @Override
+    public void service(ChannelHandlerContext ctx, GetHeaders request) {
+        List<Uint256> list = request.getStarting();
+        if (list.size() > GetHeaders.MAX_UN_CONNECTING_HEADERS) {
+            return;
+        }
+        int from = -1;
+        for (Uint256 uint256 : list) {
+            from = chain.getDiskBlock().getHeight(uint256);
+            if (from > 0) {
+                break;
+            }
+        }
+        from++;
+        Uint256 stopping = request.getStopping();
+        if (from >= 0) {
+            List<BlockHeader> blocks = new ArrayList<>();
+            for (int i = 0; i < GetHeaders.MAX_HEADERS_RESULTS; i++) {
+                Optional<Uint256> hash = chain.getDiskBlock().getHash(from + i);
+                if (hash.isPresent()) {
+                    Optional<HeightBlock> cb = chain.getDiskBlock().readBlock(hash.get());
+                    Assert.isTrue(cb.isPresent(), "This hash in height , but not in local file");
+                    ChainBlock fd = cb.get().getBlock();
+                    blocks.add(fd.header);
+                    if (fd.hash().equals(stopping)) {
+                        break;
+                    }
+                } else break;
+            }
+            if (!blocks.isEmpty()) {
+                Headers headers = new Headers(request.getPeer());
+                headers.setChainBlocks(blocks.toArray(new BlockHeader[]{}));
+                ctx.writeAndFlush(headers);
+            } else {
+                logger.debug("Not block find, GetHeaders empty");
+            }
+        }
     }
 
     @Override

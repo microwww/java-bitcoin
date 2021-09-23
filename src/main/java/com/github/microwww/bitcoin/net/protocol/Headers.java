@@ -1,15 +1,13 @@
 package com.github.microwww.bitcoin.net.protocol;
 
+import com.github.microwww.bitcoin.chain.BlockHeader;
 import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.provider.Peer;
 import io.netty.buffer.ByteBuf;
-import org.springframework.util.Assert;
-
-import java.util.List;
 
 public class Headers extends AbstractProtocolAdapter<Headers> {
-    private ChainBlock[] chainBlocks;
+    private BlockHeader[] chainBlocks;
 
     public Headers(Peer peer) {
         super(peer);
@@ -18,9 +16,9 @@ public class Headers extends AbstractProtocolAdapter<Headers> {
     @Override
     protected Headers read0(ByteBuf buf) {
         int count = UintVar.parse(buf).intValueExact();
-        ChainBlock[] blocks = new ChainBlock[count];
+        BlockHeader[] blocks = new BlockHeader[count];
         for (int i = 0; i < count; i++) {
-            blocks[i] = new ChainBlock().readHeader(buf);
+            blocks[i] = new ChainBlock().readHeader(buf).header;
         }
         this.chainBlocks = blocks;
         return this;
@@ -28,29 +26,22 @@ public class Headers extends AbstractProtocolAdapter<Headers> {
 
     @Override
     protected void write0(ByteBuf buf) {
-        Assert.isTrue(chainBlocks.length <= 0xFF, "TO long");
+        // Assert.isTrue(chainBlocks.size() <= 0xFF, "TO long");
+        if (chainBlocks.length == 0) {
+            return;
+        }
         UintVar.valueOf(chainBlocks.length).write(buf);
-        buf.writeByte(chainBlocks.length);
-        for (ChainBlock header : chainBlocks) {
-            header.writeHeader(buf);
+        for (BlockHeader header : chainBlocks) {
+            new ChainBlock(header).writeHeader(buf).writeTxCount(buf);
         }
     }
 
-    public ChainBlock[] getChainBlocks() {
+    public BlockHeader[] getChainBlocks() {
         return chainBlocks;
     }
 
-    public Headers setChainBlocks(ChainBlock[] chainBlocks) {
+    public Headers setChainBlocks(BlockHeader[] chainBlocks) {
         this.chainBlocks = chainBlocks;
-        return this;
-    }
-
-    public Headers setChainBlocks(List<ChainBlock> chainBlocks) {
-        ChainBlock[] cbs = new ChainBlock[chainBlocks.size()];
-        for (int i = 0; i < cbs.length; i++) {
-            cbs[i] = chainBlocks.get(i);
-        }
-        this.chainBlocks = cbs;
         return this;
     }
 }

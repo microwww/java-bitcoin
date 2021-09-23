@@ -1,7 +1,8 @@
 package com.github.microwww.bitcoin.net;
 
+import com.github.microwww.bitcoin.chain.BlockHeader;
 import com.github.microwww.bitcoin.chain.ChainBlock;
-import com.github.microwww.bitcoin.event.BitcoinAddPeerEvent;
+import com.github.microwww.bitcoin.event.*;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.math.Uint64;
@@ -123,7 +124,7 @@ public class PeerChannelClientProtocol implements Closeable {
         int height = chain.getDiskBlock().getLatestHeight();
         int step = 1;
         List<Uint256> list = new ArrayList<>();
-        for (int i = height; i >= 0; i -= step) {
+        for (int i = height - 1; i >= 0; i -= step) {
             if (list.size() >= GetHeaders.MAX_LOCATOR_SZ) {
                 break;
             }
@@ -138,48 +139,15 @@ public class PeerChannelClientProtocol implements Closeable {
                 return;
             }
         }
+        list.add(chain.getDiskBlock().getIndexHeight().getGenerate().hash());
         GetHeaders hd = new GetHeaders(peer).setStarting(list);
         ctx.write(hd);
     }
 
     // if (msg_type == NetMsgType::GETHEADERS) {
     public void service(ChannelHandlerContext ctx, GetHeaders request) {
-        List<Uint256> list = request.getStarting();
-        if (list.size() > GetHeaders.MAX_UN_CONNECTING_HEADERS) {
-            return;
-        }
-        int from = -1;
-        for (Uint256 uint256 : list) {
-            from = chain.getDiskBlock().getHeight(uint256);
-            if (from > 0) {
-                break;
-            }
-        }
-        Uint256 stopping = request.getStopping();
-        if (from >= 0) {
-            for (int i = 0, j = 0; i < GetHeaders.MAX_HEADERS_RESULTS; i++) {
-                Headers headers = new Headers(request.getPeer());
-                List<ChainBlock> bs = new ArrayList<>();
-                if (j < 0xFF) { // 最大一个字节
-                    j++;
-                    Optional<Uint256> hash = chain.getDiskBlock().getHash(from + i);
-                    if (hash.isPresent()) {
-                        Optional<HeightBlock> cb = chain.getDiskBlock().readBlock(hash.get());
-                        Assert.isTrue(cb.isPresent(), "This hash in height , but not in local file");
-                        ChainBlock fd = cb.get().getBlock();
-                        bs.add(fd);
-                        if (fd.hash().equals(stopping)) {
-                            ctx.writeAndFlush(headers);
-                            break;
-                        }
-                    } else break;
-                } else {
-                    j = 0;
-                    ctx.writeAndFlush(headers);
-                }
-                headers.setChainBlocks(bs);
-            }
-        }
+        Peer peer = ctx.channel().attr(Peer.PEER).get();
+        logger.info("Server support, Peer: {}", peer.getURI());
     }
 
     // PeerManager::ProcessHeadersMessage
@@ -191,26 +159,26 @@ public class PeerChannelClientProtocol implements Closeable {
         }
         // TASKMANAGER: .2. Headers , from send-header-request
         taskManager.assertIsMe(ctx).touchTenFold(ctx, "Waiting parse HEADERS");
-        Map<Uint256, ChainBlock> readyBlocks = new LinkedHashMap<>(); // key 按照 set 顺序排序
-        ChainBlock[] cb = request.getChainBlocks();
-        for (ChainBlock k : cb) {
-            Uint256 hash = k.hash();
-            Assert.isTrue(k.header.getTxCount().intValueExact() == 0, "Headers tx.length == 0");
+        Map<Uint256, BlockHeader> readyBlocks = new LinkedHashMap<>(); // key 按照 set 顺序排序
+        BlockHeader[] cb = request.getChainBlocks();
+        for (BlockHeader header : cb) {
+            Uint256 hash = header.hash();
+            Assert.isTrue(header.getTxCount().intValueExact() == 0, "Headers tx.length == 0");
             if (logger.isDebugEnabled())
-                logger.debug("Headers new block : {}, tx: {}", hash, k.header.getTxCount());
-            Uint256 preHash = k.header.getPreHash();
+                logger.debug("Headers new block : {}, tx: {}", hash, header.getTxCount());
+            Uint256 preHash = header.getPreHash();
             int height = chain.getDiskBlock().getHeight(preHash);
             if (height >= 0) {
                 Optional<HeightBlock> hc = chain.getDiskBlock().readBlock(hash);
                 if (!hc.isPresent()) {
-                    readyBlocks.putIfAbsent(hash, k);
+                    readyBlocks.putIfAbsent(hash, header);
                 }
             } else {
-                ChainBlock ready = readyBlocks.get(preHash);
+                BlockHeader ready = readyBlocks.get(preHash);
                 if (ready == null) {
                     logger.warn("Not find pre-block Hash : {} -> {}", preHash, hash);
                 } else {
-                    readyBlocks.putIfAbsent(hash, k);
+                    readyBlocks.putIfAbsent(hash, header);
                 }
             }
         }
@@ -225,6 +193,7 @@ public class PeerChannelClientProtocol implements Closeable {
         // 1. headers
         taskManager.getCache(CACHE_HEADERS, Queue.class).addAll(readyBlocks.keySet());
         loadChainBlock(ctx);
+        publisher.publishEvent(new HeadersEvent(request));
     }
 
     private long current = System.currentTimeMillis();
@@ -287,11 +256,13 @@ public class PeerChannelClientProtocol implements Closeable {
             logger.warn("STOP ! Peer {}, Not find pre-block: {}", peer.getURI(), cb.header.getPreHash());
             taskManager.remove(ctx);
         }
+        publisher.publishEvent(new AddBlockEvent(request));
     }
 
     public void service(ChannelHandlerContext ctx, Tx request) {
         logger.debug("Get new tx: {}, add to pool", request.getTransaction().hash());
         chain.getTransactionStore().add(request.getTransaction());
+        publisher.publishEvent(new AddTxEvent(request));
     }
 
     public boolean service(ChannelHandlerContext ctx, Inv request) {
@@ -299,6 +270,7 @@ public class PeerChannelClientProtocol implements Closeable {
             logger.info("Skip [Inv] request : {}", request.getPeer().getURI());
             return false;
         }
+        publisher.publishEvent(new InvEvent(request));
         ctx.executor().execute(() -> {
             request.validity();
             GetData.Message[] data = request.getData();

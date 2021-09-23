@@ -57,7 +57,7 @@ public class BlockHeader implements Serializable {
      *
      * @return
      */
-    protected Uint256 hash() {
+    public Uint256 hash() {
         ByteBuf bf = Unpooled.buffer(HEADER_LENGTH);
         this.writer(bf);
         return new Uint256(ByteUtil.sha256sha256(ByteUtil.readAll(bf)));

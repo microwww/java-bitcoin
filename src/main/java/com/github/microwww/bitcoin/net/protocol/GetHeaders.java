@@ -41,11 +41,13 @@ public class GetHeaders extends AbstractProtocolAdapter<GetHeaders> {
 
     @Override
     protected GetHeaders read0(ByteBuf buf) {
-        int size = buf.readableBytes();
-        this.version = buf.readInt();
+        this.version = buf.readIntLE();
         this.count = new Uint32(buf.readByte());
-        for (Uint256 int256 : starting) {
-            buf.writeBytes(int256.fill256bit());
+        int i1 = count.intValue();
+        int len = buf.readableBytes();
+        Assert.isTrue(len >= (i1 + 1) * Uint256.LEN, "GetHeader parse error");
+        for (int i = 0; i < i1; i++) {
+            starting.add(Uint256.read(buf));
         }
         this.stopping = Uint256.read(buf);
         return this;
