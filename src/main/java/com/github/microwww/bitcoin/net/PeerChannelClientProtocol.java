@@ -102,8 +102,10 @@ public class PeerChannelClientProtocol implements Closeable {
         peer.setRemoteReady(true);
         ctx.executor().execute(() -> {
             ctx.write(new SendHeaders(peer));
-            ctx.write(new SendCmpct(peer).setVal(new Uint32(2)));
-            ctx.write(new SendCmpct(peer));
+            if (peer.getVersion().getProtocolVersion() >= 70014) {
+                ctx.write(new SendCmpct(peer).setVal(new Uint32(2)));
+                ctx.write(new SendCmpct(peer));
+            }
             ctx.write(new Ping(peer));
             taskManager.addProvider(ctx);// getheaders
             ctx.writeAndFlush(new FeeFilter(peer));
@@ -302,9 +304,8 @@ public class PeerChannelClientProtocol implements Closeable {
         logger.warn("AddrV2 ignore: {}", request.getNodes());
     }
 
-    //TODO::作用未知
     public void service(ChannelHandlerContext ctx, SendCmpct request) {
-        logger.warn("TODO:: SendCmpct request ! server to do");
+        logger.warn("SendCmpct request ! server to do");
     }
 
     public void service(ChannelHandlerContext ctx, Ping request) {

@@ -70,8 +70,10 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
         peer.setRemoteReady(true);
         ctx.executor().execute(() -> {
             ctx.write(new SendHeaders(peer));
-            ctx.write(new SendCmpct(peer).setVal(new Uint32(2)));
-            ctx.write(new SendCmpct(peer));
+            if (peer.getVersion().getProtocolVersion() >= 70014) {
+                ctx.write(new SendCmpct(peer).setVal(new Uint32(2)));
+                ctx.write(new SendCmpct(peer));
+            }
             ctx.write(new Ping(peer));
             // getheaders
             this.sendGetHeaderNow(ctx);
@@ -83,32 +85,35 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
     public void service(ChannelHandlerContext ctx, GetAddr request) {
     }
 
+    @Override
+    public void service(ChannelHandlerContext ctx, SendCmpct request) {
+        Peer peer = ctx.channel().attr(Peer.PEER).get();
+        if (request.getVal().intValue() != 1) {
+            peer.setCmpct(request);
+        } else {
+            logger.debug("TODO:: Not support SendCmpct second param :{}", request.getVal().intValue());
+        }
+    }
+
     public void service(ChannelHandlerContext ctx, GetData request) {
         for (GetData.Message msg : request.getMessages()) {
-            Optional<GetDataType> select = msg.select();
-            if (!select.isPresent()) {
-                logger.warn("Not support type: {}", msg.getTypeIn());
-                continue;
+            if (msg.isBlock()) {
+                Uint256 hash = msg.getHashIn();
+                chain.getDiskBlock().getChinBlock(hash).ifPresent(k -> {
+                    Block block = new Block(request.getPeer());
+                    block.setChainBlock(k.getBlock());
+                    ctx.writeAndFlush(block);
+                });
+            } else if (msg.isTx()) {
+                Uint256 hash = msg.getHashIn();
+                chain.getTransactionStore().findTransaction(hash).ifPresent(k -> {
+                    Tx tx = new Tx(request.getPeer());
+                    tx.setTransaction(k.getTransaction());
+                    ctx.writeAndFlush(tx);
+                });
+            } else {
+                logger.warn("Not support type: {}", msg);
             }
-            select.ifPresent(e -> {
-                if (e.name().contains("BLOCK")) {
-                    Uint256 hash = msg.getHashIn();
-                    chain.getDiskBlock().getChinBlock(hash).ifPresent(k -> {
-                        Block block = new Block(request.getPeer());
-                        block.setChainBlock(k.getBlock());
-                        ctx.writeAndFlush(block);
-                    });
-                } else if (e.name().contains("TX")) {
-                    Uint256 hash = msg.getHashIn();
-                    chain.getTransactionStore().findTransaction(hash).ifPresent(k -> {
-                        Tx tx = new Tx(request.getPeer());
-                        tx.setTransaction(k.getTransaction());
-                        ctx.writeAndFlush(tx);
-                    });
-                } else {
-                    logger.warn("Not support type: {}", e.name());
-                }
-            });
         }
     }
 

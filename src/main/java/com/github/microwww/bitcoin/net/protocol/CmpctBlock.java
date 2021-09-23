@@ -9,11 +9,10 @@ import io.netty.buffer.ByteBuf;
  */
 public class CmpctBlock extends AbstractProtocolAdapter<CmpctBlock> {
 
-    private final ChainBlock chainBlock;
+    private ChainBlock chainBlock;
 
     public CmpctBlock(Peer peer) {
         super(peer);
-        chainBlock = new ChainBlock();
     }
 
     @Override
@@ -23,11 +22,15 @@ public class CmpctBlock extends AbstractProtocolAdapter<CmpctBlock> {
 
     @Override
     protected CmpctBlock read0(ByteBuf buf) {
-        chainBlock.readHeader(buf).readBody(buf);
+        chainBlock = new ChainBlock().readHeader(buf).readBody(buf);
         return this;
     }
 
     public ChainBlock getChainBlock() {
         return chainBlock;
+    }
+
+    public void setChainBlock(ChainBlock chainBlock) {
+        this.chainBlock = chainBlock;
     }
 }

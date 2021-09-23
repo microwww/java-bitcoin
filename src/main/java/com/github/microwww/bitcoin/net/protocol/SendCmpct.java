@@ -4,6 +4,9 @@ import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.provider.Peer;
 import io.netty.buffer.ByteBuf;
 
+/**
+ * with Get data-type, {@link com.github.microwww.bitcoin.net.protocol.GetData.Type},
+ */
 public class SendCmpct extends AbstractProtocolAdapter<SendCmpct> {
     private boolean status = false;
     private Uint32 val = Uint32.ONE;

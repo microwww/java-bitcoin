@@ -85,6 +85,19 @@ public class GetData extends AbstractProtocolAdapter<GetData> {
             this.hashIn = hashIn;
             return this;
         }
+
+        public boolean isBlock() {
+            return this.select().map(e -> e.name().contains("BLOCK")).orElse(false);
+        }
+
+        public boolean isTx() {
+            return this.select().map(e -> e.name().contains("TX")).orElse(false);
+        }
+
+        @Override
+        public String toString() {
+            return "typeIn=" + typeIn + ", hashIn=" + hashIn;
+        }
     }
 
     public UintVar getCount() {
@@ -115,6 +128,11 @@ public class GetData extends AbstractProtocolAdapter<GetData> {
     private static final int MSG_WITNESS_FLAG = 1 << 30;
     private static final int MSG_TYPE_MASK = 0xffffffff >>> 2;
 
+    /**
+     * sendcmpct
+     * 1,1  cmpctblock
+     * 0 !cmpctblock , invs or headers
+     */
     public enum Type {
         UNDEFINED(0),
         MSG_TX(1),

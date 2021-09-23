@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.provider;
 
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
+import com.github.microwww.bitcoin.net.protocol.SendCmpct;
 import com.github.microwww.bitcoin.net.protocol.Version;
 import io.netty.util.AttributeKey;
 
@@ -18,6 +19,7 @@ public class Peer {
     private final int port;
     private Version version;
     private int blockHeight;
+    private SendCmpct cmpct = new SendCmpct(this);
 
     private InetSocketAddress localAddress;
     private boolean meReady;
@@ -115,6 +117,14 @@ public class Peer {
         if (o == null || getClass() != o.getClass()) return false;
         Peer peer = (Peer) o;
         return port == peer.port && host.equals(peer.host);
+    }
+
+    public SendCmpct getCmpct() {
+        return cmpct;
+    }
+
+    public void setCmpct(SendCmpct cmpct) {
+        this.cmpct = cmpct;
     }
 
     @Override
