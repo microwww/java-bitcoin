@@ -1,15 +1,14 @@
 package com.github.microwww.bitcoin.provider;
 
 import cn.hutool.cache.impl.FIFOCache;
+import com.github.microwww.bitcoin.chain.BlockHeader;
 import com.github.microwww.bitcoin.event.AddBlockEvent;
 import com.github.microwww.bitcoin.event.AddTxEvent;
+import com.github.microwww.bitcoin.event.HeadersEvent;
 import com.github.microwww.bitcoin.event.InvEvent;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.net.PeerChannelServerProtocol;
-import com.github.microwww.bitcoin.net.protocol.Block;
-import com.github.microwww.bitcoin.net.protocol.GetData;
-import com.github.microwww.bitcoin.net.protocol.Inv;
-import com.github.microwww.bitcoin.net.protocol.Tx;
+import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.util.TimeQueue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
@@ -51,6 +50,25 @@ public class InvMessageListener {
             public void onApplicationEvent(AddTxEvent event) {
                 Tx request = event.getBitcoinSource();
                 InvMessageListener.this.loading(request.getTransaction().hash());
+            }
+        };
+    }
+
+    @Bean
+    public ApplicationListener<HeadersEvent> headersEventListener() {
+        return new ApplicationListener<HeadersEvent>() {
+
+            @Override
+            public void onApplicationEvent(HeadersEvent event) {
+                Headers request = event.getBitcoinSource();
+                BlockHeader[] bks = request.getChainBlocks();
+                if (bks.length <= 2) { // TODO: simple, time
+                    for (BlockHeader bk : bks) {
+                        //Date tm = bk.header.getDateTime();
+                        Uint256 hash = bk.hash();
+                        fifoCache.put(hash, new GetData.Message(GetData.Type.MSG_WITNESS_BLOCK, hash));
+                    }
+                }
             }
         };
     }

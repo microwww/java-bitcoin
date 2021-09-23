@@ -75,7 +75,12 @@ public enum NetProtocol {
     /**
      * The getdata message requests one or more data objects from another node.
      */
-    GETDATA,
+    GETDATA {
+        @Override
+        public GetData parse(Peer peer, byte[] buf) throws IgnoreNetProtocolException {
+            return new GetData(peer).read(buf);
+        }
+    },
     /**
      * The merkleblock message is a reply to a getdata message which requested a
      * block using the inventory type MSG_MERKLEBLOCK.

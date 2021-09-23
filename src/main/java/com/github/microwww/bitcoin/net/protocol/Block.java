@@ -3,28 +3,33 @@ package com.github.microwww.bitcoin.net.protocol;
 import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.provider.Peer;
 import io.netty.buffer.ByteBuf;
+import org.springframework.util.Assert;
 
 public class Block extends AbstractProtocolAdapter<Block> {
 
-    private final ChainBlock chainBlock;
+    private ChainBlock chainBlock;
 
     public Block(Peer peer) {
         super(peer);
-        chainBlock = new ChainBlock();
     }
 
     @Override
     protected void write0(ByteBuf buf) {
-        throw new UnsupportedOperationException();
+        Assert.isTrue(chainBlock != null, "Not init chainBlock");
+        chainBlock.writeHeader(buf).writeTxCount(buf).writeTxBody(buf);
     }
 
     @Override
     protected Block read0(ByteBuf buf) {
-        chainBlock.readHeader(buf).readBody(buf);
+        chainBlock = new ChainBlock().readHeader(buf).readBody(buf);
         return this;
     }
 
     public ChainBlock getChainBlock() {
         return chainBlock;
+    }
+
+    public void setChainBlock(ChainBlock chainBlock) {
+        this.chainBlock = chainBlock;
     }
 }

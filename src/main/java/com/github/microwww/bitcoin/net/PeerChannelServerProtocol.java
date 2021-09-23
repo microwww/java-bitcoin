@@ -83,6 +83,35 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
     public void service(ChannelHandlerContext ctx, GetAddr request) {
     }
 
+    public void service(ChannelHandlerContext ctx, GetData request) {
+        for (GetData.Message msg : request.getMessages()) {
+            Optional<GetDataType> select = msg.select();
+            if (!select.isPresent()) {
+                logger.warn("Not support type: {}", msg.getTypeIn());
+                continue;
+            }
+            select.ifPresent(e -> {
+                if (e.name().contains("BLOCK")) {
+                    Uint256 hash = msg.getHashIn();
+                    chain.getDiskBlock().getChinBlock(hash).ifPresent(k -> {
+                        Block block = new Block(request.getPeer());
+                        block.setChainBlock(k.getBlock());
+                        ctx.writeAndFlush(block);
+                    });
+                } else if (e.name().contains("TX")) {
+                    Uint256 hash = msg.getHashIn();
+                    chain.getTransactionStore().findTransaction(hash).ifPresent(k -> {
+                        Tx tx = new Tx(request.getPeer());
+                        tx.setTransaction(k.getTransaction());
+                        ctx.writeAndFlush(tx);
+                    });
+                } else {
+                    logger.warn("Not support type: {}", e.name());
+                }
+            });
+        }
+    }
+
     @Override
     public void service(ChannelHandlerContext ctx, GetHeaders request) {
         List<Uint256> list = request.getStarting();
