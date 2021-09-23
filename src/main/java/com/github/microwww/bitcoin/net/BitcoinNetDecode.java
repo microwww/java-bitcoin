@@ -22,9 +22,14 @@ public class BitcoinNetDecode extends ReplayingDecoder<Void> {
     protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf, List<Object> list) throws Exception {
         int magic = settings.getEnvParams().getMagic();
         ByteBuf bf = byteBuf.readBytes(MessageHeader.HEADER_SIZE);
-        MessageHeader read = MessageHeader.readHeader(bf);
-        bf = byteBuf.readBytes(read.getLength());
-        MessageHeader.readBody(read, bf);
+        MessageHeader read;
+        try {
+            read = MessageHeader.readHeader(bf);
+            bf = byteBuf.readBytes(read.getLength());
+            MessageHeader.readBody(read, bf);
+        } finally {
+            bf.release();
+        }
         if (logger.isDebugEnabled())
             logger.debug("Decode command {}, 0x{}, next bytes {} ", read.getCommand(), ByteUtil.hex(read.getPayload()), byteBuf.readableBytes());
 
