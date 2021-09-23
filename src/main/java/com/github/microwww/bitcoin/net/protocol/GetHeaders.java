@@ -28,7 +28,7 @@ public class GetHeaders extends AbstractProtocolAdapter<GetHeaders> {
     public int write(ByteBuf buf) {
         int size = buf.readableBytes();
         int ver = peer.getMeSettings().getProtocolVersion();
-        buf.writeInt(ver);
+        buf.writeIntLE(ver);
         Assert.isTrue(!starting.isEmpty(), "size must > 0 and not set 000..000");
         Assert.isTrue(starting.size() < 254, "size must < 254 and not set 000..000");
         buf.writeByte(starting.size());
