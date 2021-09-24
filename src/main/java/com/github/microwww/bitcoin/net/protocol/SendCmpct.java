@@ -3,6 +3,9 @@ package com.github.microwww.bitcoin.net.protocol;
 import com.github.microwww.bitcoin.provider.Peer;
 import io.netty.buffer.ByteBuf;
 
+/**
+ * with Get data-type, {@link com.github.microwww.bitcoin.net.protocol.GetData.Type},
+ */
 public class SendCmpct extends AbstractProtocolAdapter<SendCmpct> {
     private boolean status = false; // true,1: High Bandwidth, false,0: low bandwidth
     private int version = 1;

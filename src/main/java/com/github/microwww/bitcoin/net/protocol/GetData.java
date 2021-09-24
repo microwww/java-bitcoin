@@ -128,6 +128,11 @@ public class GetData extends AbstractProtocolAdapter<GetData> {
     private static final int MSG_WITNESS_FLAG = 1 << 30;
     private static final int MSG_TYPE_MASK = 0xffffffff >>> 2;
 
+    /**
+     * sendcmpct
+     * 1,1  cmpctblock
+     * 0 !cmpctblock , invs or headers
+     */
     public enum Type {
         UNDEFINED(0),
         MSG_TX(1),
