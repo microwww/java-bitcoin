@@ -85,6 +85,19 @@ public class GetData extends AbstractProtocolAdapter<GetData> {
             this.hashIn = hashIn;
             return this;
         }
+
+        public boolean isBlock() {
+            return this.select().map(e -> e.name().contains("BLOCK")).orElse(false);
+        }
+
+        public boolean isTx() {
+            return this.select().map(e -> e.name().contains("TX")).orElse(false);
+        }
+
+        @Override
+        public String toString() {
+            return "typeIn=" + typeIn + ", hashIn=" + hashIn;
+        }
     }
 
     public UintVar getCount() {

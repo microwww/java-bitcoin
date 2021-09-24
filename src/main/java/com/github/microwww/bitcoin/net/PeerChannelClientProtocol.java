@@ -102,8 +102,10 @@ public class PeerChannelClientProtocol implements Closeable {
         peer.setRemoteReady(true);
         ctx.executor().execute(() -> {
             ctx.write(new SendHeaders(peer));
-            ctx.write(new SendCmpct(peer).setVal(new Uint32(2)));
-            ctx.write(new SendCmpct(peer));
+            if (peer.getVersion().getProtocolVersion() >= 70014) {
+                //ctx.write(new SendCmpct(peer).setVersion(2));
+                ctx.write(new SendCmpct(peer));
+            }
             ctx.write(new Ping(peer));
             taskManager.addProvider(ctx);// getheaders
             ctx.writeAndFlush(new FeeFilter(peer));
@@ -270,6 +272,7 @@ public class PeerChannelClientProtocol implements Closeable {
             logger.info("Skip [Inv] request : {}", request.getPeer().getURI());
             return false;
         }
+        logger.debug("Inv request : {}, len: {}", request.getPeer().getURI(), request.getData().length);
         publisher.publishEvent(new InvEvent(request));
         ctx.executor().execute(() -> {
             request.validity();

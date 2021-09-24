@@ -4,7 +4,6 @@ import com.github.microwww.bitcoin.chain.BlockHeader;
 import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.math.Uint256;
-import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.provider.Peer;
 import com.github.microwww.bitcoin.store.HeightBlock;
@@ -18,6 +17,7 @@ import org.springframework.util.Assert;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 @Component
 public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
@@ -33,8 +33,8 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
             return;
         }
         if (lock.tryLock()) {
-            logger.debug("Send Inv Message: {}", queue.size());
             try {
+                logger.debug("Send Inv Message: {} -> peer: {}", queue.size(), channels.size());
                 List<GetData.Message> list = new ArrayList<>();
                 for (int i = 0; i < 100 && !queue.isEmpty(); i++) {
                     GetData.Message qr = queue.poll();
@@ -42,9 +42,44 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
                 }
                 channels.values().forEach(e -> {
                     Peer peer = e.channel().attr(Peer.PEER).get();
-                    Inv data = new Inv(peer).setData(list.toArray(new GetData.Message[]{}));
-                    logger.debug("Inv send to peer {}, Length: {}", peer.getURI(), data.getData().length);
-                    e.channel().writeAndFlush(data);
+                    Map<Boolean, List<GetData.Message>> blocks = list.stream().collect(Collectors.partitioningBy(GetData.Message::isBlock));
+                    List<GetData.Message> bks = blocks.get(true);
+                    if (!bks.isEmpty()) {
+                        if (peer.getCmpct().isPresent()) {
+                            if (peer.getCmpct().get().getVersion() == 1) {
+                                for (GetData.Message bk : bks) {
+                                    Optional<HeightBlock> heightBlock = chain.getDiskBlock().readBlock(bk.getHashIn());
+                                    if (heightBlock.isPresent()) {
+                                        CmpctBlock cmpc = new CmpctBlock(peer).setChainBlock(heightBlock.get().getBlock());
+                                        e.channel().writeAndFlush(cmpc);
+                                    }
+                                }
+                                logger.debug("Cmpct Block to peer {}, count: {}", peer.getURI(), bks.size());
+                                bks.clear();
+                            }
+                        }
+                    }
+                    if (!bks.isEmpty()) {
+                        List<BlockHeader> res = new ArrayList<>();
+                        for (GetData.Message bk : bks) {
+                            Optional<HeightBlock> heightBlock = chain.getDiskBlock().readBlock(bk.getHashIn());
+                            if (heightBlock.isPresent()) {
+                                res.add(heightBlock.get().getBlock().header);
+                            }
+                        }
+                        if (!res.isEmpty()) {
+                            Headers data = new Headers(peer);
+                            data.setChainBlocks(res.toArray(new BlockHeader[]{}));
+                            logger.debug("Headers BLOCK send to peer {}, Length: {}", peer.getURI(), data.getChainBlocks().length);
+                            e.channel().writeAndFlush(data);
+                        }
+                    }
+                    List<GetData.Message> tx = blocks.get(false);
+                    if (!tx.isEmpty()) {
+                        Inv data = new Inv(peer).setData(tx.toArray(new GetData.Message[]{}));
+                        logger.debug("Inv TX send to peer {}, {}", peer.getURI(), data.getData().length);
+                        e.channel().writeAndFlush(data);
+                    }
                 });
             } finally {
                 lock.unlock();
@@ -70,8 +105,10 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
         peer.setRemoteReady(true);
         ctx.executor().execute(() -> {
             ctx.write(new SendHeaders(peer));
-            ctx.write(new SendCmpct(peer).setVal(new Uint32(2)));
-            ctx.write(new SendCmpct(peer));
+            if (peer.getVersion().getProtocolVersion() >= 70014) {
+                // ctx.write(new SendCmpct(peer).setVersion(2));
+                ctx.write(new SendCmpct(peer));
+            }
             ctx.write(new Ping(peer));
             // getheaders
             this.sendGetHeaderNow(ctx);
@@ -84,31 +121,24 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
     }
 
     public void service(ChannelHandlerContext ctx, GetData request) {
+        logger.debug("GetData request: {}, {}", request.getPeer(), request.getCount().intValueExact());
         for (GetData.Message msg : request.getMessages()) {
-            Optional<GetDataType> select = msg.select();
-            if (!select.isPresent()) {
-                logger.warn("Not support type: {}", msg.getTypeIn());
-                continue;
+            if (msg.isBlock()) {
+                Uint256 hash = msg.getHashIn();
+                chain.getDiskBlock().getChinBlock(hash).ifPresent(k -> {
+                    Block block = new Block(request.getPeer());
+                    block.setChainBlock(k.getBlock());
+                    ctx.writeAndFlush(block);
+                });
+            } else if (msg.isTx()) {
+                Uint256 hash = msg.getHashIn();
+                chain.getTransactionStore().findCacheTransaction(hash).ifPresent(k -> {
+                    Tx tx = new Tx(request.getPeer()).setTransaction(k);
+                    ctx.writeAndFlush(tx);
+                });
+            } else {
+                logger.warn("Not support type: {}", msg);
             }
-            select.ifPresent(e -> {
-                if (e.name().contains("BLOCK")) {
-                    Uint256 hash = msg.getHashIn();
-                    chain.getDiskBlock().getChinBlock(hash).ifPresent(k -> {
-                        Block block = new Block(request.getPeer());
-                        block.setChainBlock(k.getBlock());
-                        ctx.writeAndFlush(block);
-                    });
-                } else if (e.name().contains("TX")) {
-                    Uint256 hash = msg.getHashIn();
-                    chain.getTransactionStore().findTransaction(hash).ifPresent(k -> {
-                        Tx tx = new Tx(request.getPeer());
-                        tx.setTransaction(k.getTransaction());
-                        ctx.writeAndFlush(tx);
-                    });
-                } else {
-                    logger.warn("Not support type: {}", e.name());
-                }
-            });
         }
     }
 

@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.provider;
 
 import cn.hutool.cache.impl.FIFOCache;
 import com.github.microwww.bitcoin.chain.BlockHeader;
+import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.event.AddBlockEvent;
 import com.github.microwww.bitcoin.event.AddTxEvent;
 import com.github.microwww.bitcoin.event.HeadersEvent;
@@ -10,6 +11,8 @@ import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.net.PeerChannelServerProtocol;
 import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.util.TimeQueue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
@@ -17,7 +20,9 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class InvMessageListener {
-    protected final FIFOCache<Uint256, GetData.Message> fifoCache = new FIFOCache(1_000, 5000);
+    private static final Logger logger = LoggerFactory.getLogger(InvMessageListener.class);
+
+    protected final FIFOCache<Uint256, GetData.Message> fifoCache = new FIFOCache(1_000, 60_000);
     @Autowired
     PeerChannelServerProtocol peerChannelServerProtocol;
     TimeQueue timeQueue; // = new TimeQueue<>(this::consumer, 100, 5_000);
@@ -49,7 +54,12 @@ public class InvMessageListener {
             @Override
             public void onApplicationEvent(AddTxEvent event) {
                 Tx request = event.getBitcoinSource();
-                InvMessageListener.this.loading(request.getTransaction().hash());
+                RawTransaction tr = request.getTransaction();
+                if (tr.isWitness()) {
+                    InvMessageListener.this.loading(tr.whash());
+                } else {
+                    InvMessageListener.this.loading(tr.hash());
+                }
             }
         };
     }
@@ -88,6 +98,7 @@ public class InvMessageListener {
     public void loading(Uint256 hash) {
         GetData.Message msg = fifoCache.get(hash);
         if (msg != null) {
+            logger.debug("Add new HASH: {}", msg.getHashIn());
             fifoCache.remove(hash);
             timeQueue.add(msg);
         }

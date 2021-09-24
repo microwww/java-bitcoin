@@ -26,7 +26,8 @@ public class Tx extends AbstractProtocolAdapter<Tx> {
         return transaction;
     }
 
-    public void setTransaction(RawTransaction transaction) {
+    public Tx setTransaction(RawTransaction transaction) {
         this.transaction = transaction;
+        return this;
     }
 }
