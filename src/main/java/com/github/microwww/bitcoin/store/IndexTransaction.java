@@ -27,7 +27,7 @@ public class IndexTransaction implements Closeable {
     private static final String TX_INDEX_DIR = "txindex";
     private static final Logger logger = LoggerFactory.getLogger(IndexTransaction.class);
     private final CChainParams chainParams;
-    private final HashSet<RawTransaction> transactions;
+    private final Map<Uint256, RawTransaction> transactions;
     private final int maxCount;
     private final Optional<DB> levelDB;
     @Autowired
@@ -35,7 +35,7 @@ public class IndexTransaction implements Closeable {
 
     public IndexTransaction(CChainParams chainParams) {
         this.chainParams = chainParams;
-        transactions = new LinkedHashSet<>();
+        transactions = Collections.synchronizedMap(new LinkedHashMap<>());
         maxCount = chainParams.settings.getTxPoolMax();
         if (chainParams.settings.isTxIndex()) {
             try {
@@ -54,20 +54,17 @@ public class IndexTransaction implements Closeable {
     public void add(RawTransaction request) {
         // TODO:: 需要验证交易
         if (transactions.size() > maxCount) {
-            RawTransaction next = transactions.iterator().next();
+            Uint256 next = transactions.keySet().iterator().next();
             transactions.remove(next);
         }
-        transactions.add(request);
+        transactions.put(request.hash(), request);
+        if (request.isWitness()) {
+            transactions.put(request.whash(), request);
+        }
     }
 
-    public void index(RawTransaction tx) {
-        ByteBuf bf = Unpooled.buffer();
-        tx.write(bf);
-        // levelDB.ifPresent(e -> e.put(tx.hash().fill256bit(), ByteUtil.readAll(bf)));
-    }
-
-    public boolean isSerializable() {
-        return chainParams.settings.isTxIndex();
+    public Optional<RawTransaction> findCacheTransaction(Uint256 uint256) {
+        return Optional.ofNullable(transactions.get(uint256));
     }
 
     public void serializationTransaction(FileTransaction... fts) {
@@ -75,14 +72,17 @@ public class IndexTransaction implements Closeable {
         for (int i = fts.length - 1; i >= 0; i--) {
             FileTransaction ft = fts[i];
             RawTransaction tr = ft.getTransaction();
-            buffer.clear();
             this.serializationLevelDB(ft, buffer);
             levelDB.ifPresent(db -> {
                 Uint256 hash = tr.hash();
                 if (logger.isDebugEnabled())
                     logger.debug("Level-db save transaction : {}", hash);
                 db.put(hash.fill256bit(), ByteUtil.readAll(buffer));
+                if (tr.isWitness()) {
+                    db.put(tr.whash().fill256bit(), ByteUtil.readAll(buffer));
+                }
             });
+            buffer.clear();
         }
     }
 

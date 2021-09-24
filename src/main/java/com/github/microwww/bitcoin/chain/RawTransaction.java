@@ -67,6 +67,12 @@ public class RawTransaction {
         return new Uint256(ByteUtil.sha256sha256(ByteUtil.readAll(bf)));
     }
 
+    public Uint256 whash() {
+        ByteBuf bf = Unpooled.buffer();
+        write(bf);
+        return new Uint256(ByteUtil.sha256sha256(ByteUtil.readAll(bf)));
+    }
+
     public void write(ByteBuf bf) {
         boolean flag = false;
         for (TxIn txIn : this.getTxIns()) {
@@ -156,6 +162,10 @@ public class RawTransaction {
 
     public byte getFlag() {
         return flag;
+    }
+
+    public boolean isWitness() {
+        return flag != 0;
     }
 
     @Override
