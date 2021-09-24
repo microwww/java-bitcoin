@@ -3,6 +3,7 @@ package com.github.microwww.bitcoin.net;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ReplayingDecoder;
 import org.slf4j.Logger;
@@ -21,14 +22,18 @@ public class BitcoinNetDecode extends ReplayingDecoder<Void> {
 
     protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf, List<Object> list) throws Exception {
         int magic = settings.getEnvParams().getMagic();
-        ByteBuf bf = byteBuf.readBytes(MessageHeader.HEADER_SIZE);
         MessageHeader read;
+        ByteBuf temp = byteBuf.readBytes(MessageHeader.HEADER_SIZE);
         try {
-            read = MessageHeader.readHeader(bf);
-            bf = byteBuf.readBytes(read.getLength());
-            MessageHeader.readBody(read, bf);
+            read = MessageHeader.readHeader(temp);
         } finally {
-            bf.release();
+            temp.release();
+        }
+        temp = byteBuf.readBytes(read.getLength());
+        try {
+            MessageHeader.readBody(read, temp);
+        } finally {
+            temp.release();
         }
         if (logger.isDebugEnabled())
             logger.debug("Decode command {}, 0x{}, next bytes {} ", read.getCommand(), ByteUtil.hex(read.getPayload()), byteBuf.readableBytes());
