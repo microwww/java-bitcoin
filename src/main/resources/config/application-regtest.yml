@@ -1,10 +1,10 @@
+#####
 conf:
-  bitcoin:
-    env: REG_TEST  ## MAIN, TEST, REG_TEST
-    tx-index: true
-    data-dir: /tmp/can-delete
-    peers:
-      - 192.168.1.246:18444
+  env: REG_TEST
+  tx-index: true
+  port: 18444
+  connect:
+    - 192.168.1.246:18444
 ##
 logging:
   level:

@@ -51,14 +51,9 @@ public class ServerStarter implements Closeable {
 
     public void start(Consumer<DefaultChannelPromise> bindingListener, Consumer<DefaultChannelPromise> stopListener) {
         String host = DEFAULT_HOST;
-        int port = chainParams.getEnvParams().getDefaultPort();
-        String bind = chainParams.settings.getBind();
-        if (bind != null && bind.trim().length() > 0) {
-            String[] sp = bind.trim().split(":");
-            host = sp[0];
-            if (sp.length > 1) {
-                port = Integer.valueOf(sp[1]);
-            }
+        int port = chainParams.settings.getPort();
+        if(port <= 0){
+            port = chainParams.getEnvParams().getDefaultPort();
         }
         ServerBootstrap bootstrap = new ServerBootstrap()
                 .group(executors)

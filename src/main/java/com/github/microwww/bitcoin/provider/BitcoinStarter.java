@@ -54,7 +54,7 @@ public class BitcoinStarter implements ApplicationListener<ApplicationReadyEvent
                     future.setSuccess(null);
                 }, null);
 
-                List<URI> peers = conf.toPeers();
+                List<URI> peers = conf.peers();
                 if (peers.isEmpty()) {
                     peers = chainParams.getEnvParams().seedsURI();
                     logger.warn("No find PEER, you can set it : `conf.bitcoin.peers`, START with system params.seeds {}", peers.size());

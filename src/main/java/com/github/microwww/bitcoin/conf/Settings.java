@@ -15,16 +15,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
-@ConfigurationProperties(prefix = "conf.bitcoin")
+@ConfigurationProperties(prefix = "conf")
 public class Settings {
     private String agent = "/j-bitcoin-0.18.1:0.0.1/";
     private String dataDir = "/bitcion";
-    private String[] connections;
-    private String[] peers = {};
+    private String[] connect = {};
     private boolean txIndex = false;
     private boolean reIndex = false;
+    private String[] seedNode;
     private int bestConfirmHeight = 6;
-    private String bind; // host:port
+    private int port;
     private int txPoolMax = 500;
     private int maxPeers = 10;
 
@@ -73,20 +73,21 @@ public class Settings {
         return this;
     }
 
-    public String[] getConnections() {
-        return connections;
+    public String[] getConnect() {
+        return connect;
     }
 
-    public void setConnections(String[] connections) {
-        this.connections = connections;
-    }
-
-    public String[] getPeers() {
-        return peers;
-    }
-
-    public List<URI> toPeers() {
-        return toPeers(peers, env.params.getDefaultPort());
+    public List<URI> peers() {
+        String[] ps;
+        if (connect == null || connect.length == 0) {
+            ps = this.seedNode;
+        } else {
+            ps = seedNode;
+        }
+        if (ps == null || connect.length == 0) {
+            ps = new String[]{};
+        }
+        return toPeers(connect, env.params.getDefaultPort());
     }
 
     public static List<URI> toPeers(String[] peers, int defPort) {
@@ -107,8 +108,8 @@ public class Settings {
         return list;
     }
 
-    public void setPeers(String[] peers) {
-        this.peers = peers;
+    public void setConnect(String[] connect) {
+        this.connect = connect;
     }
 
     public CChainParams.Env getEnv() {
@@ -140,12 +141,12 @@ public class Settings {
         return bestConfirmHeight;
     }
 
-    public String getBind() {
-        return bind;
+    public String[] getSeedNode() {
+        return seedNode;
     }
 
-    public void setBind(String bind) {
-        this.bind = bind;
+    public void setSeedNode(String[] seedNode) {
+        this.seedNode = seedNode;
     }
 
     public void setBestConfirmHeight(int bestConfirmHeight) {
@@ -178,5 +179,13 @@ public class Settings {
 
     public void setMaxPeers(int maxPeers) {
         this.maxPeers = maxPeers;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
     }
 }

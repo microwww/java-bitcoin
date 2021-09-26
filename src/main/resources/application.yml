@@ -5,9 +5,12 @@ server:
 #
 spring:
   profiles:
-    active: main
+    active: regtest
   application:
     name: bitcoin
+#
+conf:
+  data-dir: ${user.home}/.bitoin
 #
 logging:
   level:

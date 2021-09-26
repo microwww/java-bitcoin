@@ -45,7 +45,7 @@ public class PeerConnection implements Closeable {
     public void addPeer(URI... uris) {
         int max = params.settings.getMaxPeers();
         for (URI u : uris) {
-            logger.debug("Add new peer {}, max: {}, success: {}, waiting: {}", u, max, taskManager.doing(), taskManager.waiting());
+            logger.debug("Add new peer {}, max: {}, connect: {}, waiting: {}", u, max, taskManager.doing(), taskManager.waiting());
             taskManager.add(u);
         }
     }
@@ -57,7 +57,7 @@ public class PeerConnection implements Closeable {
      * @param uri
      */
     public void connection(URI uri) {
-        logger.info("Connection to {}, success: {}, waiting: {}", uri, taskManager.doing(), taskManager.waiting());
+        logger.info("Connection to {}, connect: {}, waiting: {}", uri, taskManager.doing(), taskManager.waiting());
         try {
             start(uri);
         } catch (TimeoutException e) {
@@ -129,14 +129,14 @@ public class PeerConnection implements Closeable {
             Thread.sleep(TIME_OUT_SECONDS * 1_000);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             taskManager.remove(uri);
-            logger.info("Remove {}, success: {}, waiting: {}", uri, taskManager.doing(), taskManager.waiting());
+            logger.info("Remove {}, connect: {}, waiting: {}", uri, taskManager.doing(), taskManager.waiting());
             throw e;
         }
     }
 
     private void restart(URI uri) throws ExecutionException, InterruptedException, TimeoutException {
         taskManager.remove(uri);
-        logger.info("Restart {}, success: {}, waiting: {}", uri, taskManager.doing(), taskManager.waiting());
+        logger.info("Restart {}, connect: {}, waiting: {}", uri, taskManager.doing(), taskManager.waiting());
         addPeer(uri);
     }
 
@@ -147,7 +147,7 @@ public class PeerConnection implements Closeable {
                 synchronized (timer) {
                     if (taskManager.isEmpty()) {
                         logger.info("Retry all seed address");
-                        for (URI peer : params.settings.toPeers()) {
+                        for (URI peer : params.settings.peers()) {
                             taskManager.add(peer);
                         }
                         for (URI u : params.getEnvParams().seedsURI()) {

@@ -1,16 +1,16 @@
 ####
 conf:
-  bitcoin:
-    env: MAIN
-    data-dir: ${user.home}/.bitoin
-    peers:
-      - 192.168.10.1:8333
-    tx-index: true
-    re-index: false
+  ## MAIN, TEST, REG_TEST
+  env: MAIN
+  tx-index: true
+  port: 8333
+  re-index: false
+  #connect:
+  #  - 192.168.10.1:8333
 #
 logging:
   file:
-    path: ${conf.bitcoin.data-dir}
+    path: ${conf.data-dir}
   level:
     mode.test: debug
 #
