@@ -67,6 +67,7 @@ public class PeerChannelClientHandler extends SimpleChannelInboundHandler<Messag
     public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
         Peer peer = ctx.channel().attr(Peer.PEER).get();
         if (peer != null) {
+            logger.info("Remote peer close: {}", peer.getURI());
             peerChannelClientProtocol.channelClose(peer);
         }
         super.channelUnregistered(ctx);

@@ -21,6 +21,7 @@ public class PeerChannelServerHandler extends PeerChannelClientHandler {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         Peer attr = ctx.channel().attr(Peer.PEER).get();
         Assert.isTrue(null != attr, "Not init peer in channel");
+        logger.info("Peer connect: {}", attr.getURI());
     }
 
     @Override

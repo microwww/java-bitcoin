@@ -4,7 +4,6 @@ import com.github.microwww.bitcoin.chain.BlockHeader;
 import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.event.*;
 import com.github.microwww.bitcoin.math.Uint256;
-import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.math.Uint64;
 import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.provider.LocalBlockChain;
@@ -100,6 +99,7 @@ public class PeerChannelClientProtocol implements Closeable {
     public void service(ChannelHandlerContext ctx, VerACK ack) {
         Peer peer = ctx.channel().attr(Peer.PEER).get();
         peer.setRemoteReady(true);
+        logger.info("New outbound peer connected: version: {}, blocks={}", peer.getVersion().getProtocolVersion(), peer.getBlockHeight());
         ctx.executor().execute(() -> {
             ctx.write(new SendHeaders(peer));
             if (peer.getVersion().getProtocolVersion() >= 70014) {
@@ -148,8 +148,7 @@ public class PeerChannelClientProtocol implements Closeable {
 
     // if (msg_type == NetMsgType::GETHEADERS) {
     public void service(ChannelHandlerContext ctx, GetHeaders request) {
-        Peer peer = ctx.channel().attr(Peer.PEER).get();
-        logger.info("Server support, Peer: {}", peer.getURI());
+        logger.debug("TODO:: GetHeaders request ! server to do");
     }
 
     // PeerManager::ProcessHeadersMessage
@@ -294,11 +293,11 @@ public class PeerChannelClientProtocol implements Closeable {
 
     //TODO::作用未知
     public void service(ChannelHandlerContext ctx, WtxidRelay request) {
-        logger.warn("TODO:: WtxidRelay request ! server to do");
+        logger.debug("TODO:: WtxidRelay request ! server to do");
     }
 
     public void service(ChannelHandlerContext ctx, SendAddrV2 request) {
-        logger.warn("TODO:: SendAddrV2 request ! server to do");
+        logger.debug("TODO:: SendAddrV2 request ! server to do");
     }
 
     public void service(ChannelHandlerContext ctx, AddrV2 request) {
@@ -307,7 +306,7 @@ public class PeerChannelClientProtocol implements Closeable {
 
     //TODO::作用未知
     public void service(ChannelHandlerContext ctx, SendCmpct request) {
-        logger.warn("TODO:: SendCmpct request ! server to do");
+        logger.debug("TODO:: SendCmpct request ! server to do");
     }
 
     public void service(ChannelHandlerContext ctx, Ping request) {
@@ -319,7 +318,7 @@ public class PeerChannelClientProtocol implements Closeable {
     }
 
     public void service(ChannelHandlerContext ctx, Pong request) {
-        logger.info("Pong request ! server to do");
+        logger.debug("Pong request ! server to do");
     }
 
     public void service(ChannelHandlerContext ctx, FeeFilter request) {
@@ -328,7 +327,7 @@ public class PeerChannelClientProtocol implements Closeable {
     }
 
     public void service(ChannelHandlerContext ctx, SendHeaders request) {
-        logger.warn("TODO:: SendHeaders request ! server to do");
+        logger.debug("TODO:: SendHeaders request ! server to do");
     }
 
     public void service(ChannelHandlerContext ctx, Addr request) {
