@@ -3,7 +3,6 @@ package com.github.microwww.bitcoin.net;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ReplayingDecoder;
 import org.slf4j.Logger;
@@ -39,7 +38,7 @@ public class BitcoinNetDecode extends ReplayingDecoder<Void> {
             logger.debug("Decode command {}, 0x{}, next bytes {} ", read.getCommand(), ByteUtil.hex(read.getPayload()), byteBuf.readableBytes());
 
         if (read.getMagic() != magic) {
-            logger.error("Magic not match: NEED 0x{} BUT 0x{}", Integer.toString(magic, 16), Integer.toString(read.getMagic(), 16));
+            logger.error("Magic not match: NEED 0x{} BUT 0x{}", Integer.toUnsignedString(magic, 16), Integer.toUnsignedString(read.getMagic(), 16));
             channelHandlerContext.channel().close();
         } else {
             list.add(read);
