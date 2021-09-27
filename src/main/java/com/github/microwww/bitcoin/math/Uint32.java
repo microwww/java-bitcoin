@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.math;
 
-import io.netty.buffer.Unpooled;
+import org.springframework.util.Assert;
 
 import java.util.Objects;
 
@@ -21,6 +21,15 @@ public class Uint32 extends Number implements Comparable<Uint32> {
      */
     public Uint32(int value) {
         this((long) value);
+    }
+
+    public Uint32(byte[] value) {
+        Assert.isTrue(value.length <= 4, " < 4");
+        long v = 0;
+        for (int i = 0; i < value.length; i++) {
+            v = (v << 8) & Byte.toUnsignedInt(value[i]);
+        }
+        this.value = v;
     }
 
     /**

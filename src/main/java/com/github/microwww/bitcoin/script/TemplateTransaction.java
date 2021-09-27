@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.script;
 
 import com.github.microwww.bitcoin.script.ex.TransactionInvalidException;
+import com.github.microwww.bitcoin.script.instruction.StackOps;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.wallet.CoinAccount;
 import io.netty.buffer.ByteBuf;
@@ -11,14 +12,7 @@ import org.springframework.util.Assert;
 
 import java.util.Arrays;
 
-import static com.github.microwww.bitcoin.script.ins.Instruction_00_4B._1;
-import static com.github.microwww.bitcoin.script.ins.Instruction_00_4B._16;
-import static com.github.microwww.bitcoin.script.ins.Instruction_61_6A.OP_RETURN;
-import static com.github.microwww.bitcoin.script.ins.Instruction_6B_7D.OP_DROP;
-import static com.github.microwww.bitcoin.script.ins.Instruction_6B_7D.OP_DUP;
-import static com.github.microwww.bitcoin.script.ins.Instruction_83_8A.OP_EQUAL;
-import static com.github.microwww.bitcoin.script.ins.Instruction_83_8A.OP_EQUALVERIFY;
-import static com.github.microwww.bitcoin.script.ins.Instruction_A6_AF.*;
+import static com.github.microwww.bitcoin.script.instruction.ScriptNames.*;
 
 public enum TemplateTransaction {
 
@@ -289,7 +283,7 @@ public enum TemplateTransaction {
         public void executor(Interpreter interpreter) {
             interpreter.runNow();
             byte[] sha256 = interpreter.stack.assertSizeGE(2).pop();
-            OP_DROP.exec(interpreter, ZERO);
+            new StackOps.OP_DROP(OP_DROP.opcode()).exec(interpreter);
             byte[] sc = interpreter.stack.pop();
             if (!Arrays.equals(sha256, ByteUtil.sha256(sc))) {
                 throw new TransactionInvalidException("sha256(script) != P2WSH");

@@ -1,10 +1,9 @@
-package com.github.microwww.bitcoin.script.ins;
+package com.github.microwww.bitcoin.script.instruction;
 
 import com.github.microwww.bitcoin.chain.HashType;
+import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.math.UintVar;
-import com.github.microwww.bitcoin.script.Instruction;
 import com.github.microwww.bitcoin.script.Interpreter;
-import com.github.microwww.bitcoin.script.ScriptOperation;
 import com.github.microwww.bitcoin.script.TemplateTransaction;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
@@ -14,66 +13,93 @@ import org.springframework.util.Assert;
 
 import java.util.Arrays;
 
-public enum Instruction_A6_AF implements Instruction {
+public class Crypto {
+    private static final Logger logger = LoggerFactory.getLogger(Crypto.class);
 
     // crypto
-    OP_RIPEMD160 { // 166
+    static class OP_RIPEMD160 extends AbstractScriptNoOperand {
+        public OP_RIPEMD160(int code) {
+            super(code);
+        } // 166
 
         @Override
-        public void exec(Interpreter executor, Object data) {
+        public void exec(Interpreter executor) {
             byte[] pop = executor.stack.assertNotEmpty().pop();
             byte[] bytes = ByteUtil.ripemd160(pop);
             executor.stack.push(bytes);
         }
-    },
-    OP_SHA1,
-    OP_SHA256 {
+    }
+
+    // OP_SHA1,
+    static class OP_SHA256 extends AbstractScriptNoOperand {
+        public OP_SHA256(int code) {
+            super(code);
+        }
+
         @Override
-        public void exec(Interpreter executor, Object data) {
+        public void exec(Interpreter executor) {
             byte[] pop = executor.stack.assertNotEmpty().pop();
             byte[] bytes = ByteUtil.sha256(pop);
             executor.stack.push(bytes);
         }
-    },
-    OP_HASH160 {
-        @Override
-        public ScriptOperation compile(ByteBuf bf) {
-            return new ScriptOperation(this, UintVar.parseAndRead(bf));
+    }
+
+    static class OP_HASH160 extends AbstractScriptOperand {
+        public OP_HASH160(int code) {
+            super(code);
         }
 
         @Override
-        public void exec(Interpreter executor, Object data, int pc) {
+        public void operand(ByteBuf bf) {
+            this.operand = UintVar.parseAndRead(bf);
+        }
+
+        @Override
+        public void exec(Interpreter executor) {
             byte[] pop = executor.stack.assertNotEmpty().pop();
             byte[] bytes = ByteUtil.sha256ripemd160(pop);
             executor.stack.push(bytes);
-            bytes = (byte[]) data;
-            executor.stack.push(bytes);
+            executor.stack.push(this.operand);
         }
-    },
-    OP_HASH256 { // 170
+    }
+
+    static class OP_HASH256 extends AbstractScriptNoOperand {
+        public OP_HASH256(int code) {
+            super(code);
+        } // 170
 
         @Override
-        public void exec(Interpreter executor, Object data) {
+        public void exec(Interpreter executor) {
             byte[] pop = executor.stack.assertNotEmpty().pop();
             byte[] bytes = ByteUtil.sha256sha256(pop);
             executor.stack.push(bytes);
         }
-    },
-    OP_CODESEPARATOR() {
-        @Override
-        public ScriptOperation compile(ByteBuf bf) {
-            int i = bf.readerIndex();
-            return new ScriptOperation(this, i);
+    }
+
+    static class OP_CODESEPARATOR extends AbstractScriptOperand {
+        public OP_CODESEPARATOR(int code) {
+            super(code);
         }
 
         @Override
-        public void exec(Interpreter executor, Object data) {
-            executor.setLastCodeSeparator((Integer) data);
+        public void operand(ByteBuf bf) {
+            int i = bf.readerIndex();
+            this.operand = new Uint32(i).toBytes();
         }
-    },
-    OP_CHECKSIG() {
+
         @Override
-        public void exec(Interpreter executor, Object data) {
+        public void exec(Interpreter executor) {
+            executor.setLastCodeSeparator(new Uint32(this.operand).intValue());
+        }
+    }
+
+    static class OP_CHECKSIG extends AbstractScriptNoOperand {
+        public OP_CHECKSIG(int code) {
+            super(code);
+        }
+
+        @Override
+        public void exec(Interpreter executor) {
             byte[] pk = executor.stack.assertSizeGE(2).pop();
             byte[] sn = executor.stack.pop();
             Assert.isTrue(sn.length >= 50, "signature.length > 1, Usually 70-72 bytes.");
@@ -88,22 +114,28 @@ public enum Instruction_A6_AF implements Instruction {
             }
             executor.stack.push(verify ? 1 : 0);
         }
-    },
-    OP_CHECKSIGVERIFY {
-        @Override
-        public void exec(Interpreter executor, Object data) {
-            OP_CHECKSIG.exec(executor, data);
-            Instruction_61_6A.OP_VERIFY.exec(executor, data);
-        }
-    },
-    OP_CHECKMULTISIG {
-        @Override
-        public ScriptOperation compile(ByteBuf bf) {
-            return new ScriptOperation(this, ZERO);
+    }
+
+    static class OP_CHECKSIGVERIFY extends AbstractScriptNoOperand {
+        public OP_CHECKSIGVERIFY(int code) {
+            super(code);
         }
 
         @Override
-        public void exec(Interpreter executor, Object data) {
+        public void exec(Interpreter executor) {
+            new OP_CHECKSIG(ScriptNames.OP_CHECKSIG.ordinal()).exec(executor);
+            new FlowControl.OP_VERIFY(ScriptNames.OP_VERIFY.ordinal()).exec(executor);
+        }
+    }
+
+    static class OP_CHECKMULTISIG extends AbstractScriptNoOperand {
+
+        public OP_CHECKMULTISIG(int code) {
+            super(code);
+        }
+
+        @Override
+        public void exec(Interpreter executor) {
             byte[] pop = executor.stack.assertSizeGE(1).pop();
             int mm = TemplateTransaction.M2N_MAX;
             Assert.isTrue(pop.length == 1, "Must 1");
@@ -129,37 +161,17 @@ public enum Instruction_A6_AF implements Instruction {
                     if (b) {
                         count++;
                         if (logger.isDebugEnabled()) {
-                            logger.debug("Signature-Verify success : \n pk   : {}, \n sign : {}", ByteUtil.hex(pks[i]), ByteUtil.hex(bytes));
+                            logger.debug("Signature-Verify success : \n pk   : {} \n sign : {}", ByteUtil.hex(pks[i]), ByteUtil.hex(bytes));
                         }
                         break;
                     } else {
                         if (logger.isDebugEnabled())
-                            logger.debug("Signature-Verify fail : \n pk   : {}, \n sign : {}", ByteUtil.hex(pks[i]), ByteUtil.hex(bytes));
+                            logger.debug("Signature-Verify fail : \n pk   : {} \n sign : {}", ByteUtil.hex(pks[i]), ByteUtil.hex(bytes));
                     }
                 }
             }
             executor.stack.push(count >= req ? 1 : 0);
         }
-    },
-    OP_CHECKMULTISIGVERIFY, // 175
-    ;
-    private static final Logger logger = LoggerFactory.getLogger(Instruction_A6_AF.class);
-
-    @Override
-    public ScriptOperation compile(ByteBuf bf) {
-        return new ScriptOperation(this, ZERO);
     }
-
-    @Override
-    public void exec(Interpreter executor, Object data, int pc) {
-        this.exec(executor, data);
-    }
-
-    public void exec(Interpreter executor, Object data) {
-        throw new UnsupportedOperationException(this.name());
-    }
-
-    public byte opcode() {
-        return (byte) (0xA6 + this.ordinal());
-    }
+    // OP_CHECKMULTISIGVERIFY, // 175
 }

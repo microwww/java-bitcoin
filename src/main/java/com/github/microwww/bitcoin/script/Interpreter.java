@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.script;
 
 import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.chain.TxOut;
+import com.github.microwww.bitcoin.script.instruction.Script;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,12 +130,12 @@ public class Interpreter {
 
     protected Interpreter runNow() {
         for (Compiler.SourceCode sc : script) {
-            ScriptOperation sn = sc.opt;
+            Script script = sc.script;
             if (logger.isDebugEnabled())
-                logger.debug("Before Operation : {}, {}", sn.keyword, stack.size());
-            sn.exec(this, sc.position);
+                logger.debug("Before Operation : {}, {}", script, stack.size());
+            script.exec(this);
             if (logger.isDebugEnabled())
-                logger.debug("After  Operation : {}, {}", sn.keyword, stack.size());
+                logger.debug("After  Operation : {}, {}", script, stack.size());
         }
         return this;
     }

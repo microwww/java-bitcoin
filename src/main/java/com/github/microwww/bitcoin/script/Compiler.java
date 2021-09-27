@@ -1,5 +1,7 @@
 package com.github.microwww.bitcoin.script;
 
+import com.github.microwww.bitcoin.script.instruction.Script;
+import com.github.microwww.bitcoin.script.instruction.ScriptNames;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
@@ -21,35 +23,35 @@ public class Compiler {
     public List<SourceCode> compile() {
         List<SourceCode> list = new ArrayList<>();
         while (script.readableBytes() > 0) {
-            byte code = script.readByte();
+            int code = Byte.toUnsignedInt(script.readByte());
             int i = script.readerIndex();
-            ScriptOperation compile = Instructions.SET.select(code).compile(script);
+            Script compile = ScriptNames.values()[code].operand(script);
             list.add(new SourceCode(compile, i, script.readerIndex() - i));
         }
         return list;
     }
 
     public class SourceCode {
-        public final ScriptOperation opt;
+        public final Script script;
         public final int position;
         public final int length;
 
-        public SourceCode(ScriptOperation opt, int position, int length) {
-            this.opt = opt;
+        public SourceCode(Script script, int position, int length) {
+            this.script = script;
             this.position = position;
             this.length = length;
         }
 
         public byte[] getBeforeSource() {
             byte[] bytes = new byte[position];
-            script.getBytes(0, bytes);
+            Compiler.this.script.getBytes(0, bytes);
             return bytes;
         }
 
         public byte[] getRemainingSource() {
             int p = position + length;
-            byte[] bytes = new byte[script.writerIndex() - p];
-            script.getBytes(p, bytes);
+            byte[] bytes = new byte[Compiler.this.script.writerIndex() - p];
+            Compiler.this.script.getBytes(p, bytes);
             return bytes;
         }
     }
