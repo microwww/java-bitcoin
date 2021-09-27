@@ -27,7 +27,7 @@ public class Uint32 extends Number implements Comparable<Uint32> {
         Assert.isTrue(value.length <= 4, " < 4");
         long v = 0;
         for (int i = 0; i < value.length; i++) {
-            v = (v << 8) & Byte.toUnsignedInt(value[i]);
+            v = (v << 8) | Byte.toUnsignedInt(value[i]);
         }
         this.value = v;
     }
