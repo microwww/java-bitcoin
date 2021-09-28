@@ -422,7 +422,7 @@ public enum ScriptNames {
     public static List<Script> compile(ByteBuf bf) {
         List<Script> ss = new ArrayList<>();
         if (bf.isReadable()) {
-            byte code = bf.readByte();
+            int code = Byte.toUnsignedInt(bf.readByte());
             Script scr = ScriptNames.values()[code].operand(bf);
             ss.add(scr);
         }
