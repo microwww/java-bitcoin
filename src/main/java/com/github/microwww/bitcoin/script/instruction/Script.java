@@ -6,9 +6,13 @@ import io.netty.buffer.ByteBuf;
 public interface Script {
     byte[] ZERO = {};
 
-    public void operand(ByteBuf bf);
+    void operand(ByteBuf bf);
 
-    public void exec(Interpreter interpreter);
+    void exec(Interpreter interpreter);
 
-    public int opcode();
+    int opcode();
+
+    default byte[] getOperand() {
+        return ZERO;
+    }
 }

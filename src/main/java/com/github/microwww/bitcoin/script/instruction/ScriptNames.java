@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.script.instruction;
 
 import com.github.microwww.bitcoin.script.Interpreter;
+import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 
 import java.lang.reflect.Constructor;
@@ -441,6 +442,10 @@ public enum ScriptNames {
 
     public byte opcode() {
         return (byte) this.ordinal();
+    }
+
+    public static String style(Script script) {
+        return ScriptNames.values()[script.opcode()].name() + " " + ByteUtil.hex(script.getOperand());
     }
 
     static class UnsupportedScript extends AbstractScriptOperand {

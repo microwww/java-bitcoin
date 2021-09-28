@@ -14,6 +14,11 @@ public abstract class AbstractScriptOperand implements Script {
     }
 
     @Override
+    public byte[] getOperand() {
+        return operand;
+    }
+
+    @Override
     public String toString() {
         return ScriptNames.values()[code].name() + "|0x" + Integer.toUnsignedString(this.opcode(), 16);
     }
