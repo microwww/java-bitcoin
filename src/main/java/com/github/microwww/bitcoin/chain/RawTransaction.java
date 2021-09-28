@@ -2,7 +2,6 @@ package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
-import com.github.microwww.bitcoin.math.Uint8;
 import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
@@ -156,6 +155,16 @@ public class RawTransaction {
         return lockTime;
     }
 
+    public void checkLockTime() {// TODO: checkLockTime
+        long t = lockTime.longValue();
+        if (t < 500_000_000) {
+            //isBlock
+        } else {
+            // system-time
+        }
+        throw new UnsupportedOperationException();
+    }
+
     public void setLockTime(Uint32 lockTime) {
         this.lockTime = lockTime;
     }
@@ -175,6 +184,65 @@ public class RawTransaction {
         this.write(bf);
         tx.read(bf);
         return tx;
+    }
+
+    public StringBuilder beautify() {
+        ByteBuf bf = this.serialize(this.getFlag());
+        RawTransaction tr = this;
+        StringBuilder sb = new StringBuilder();
+        String fm = "%12s: ";
+        hexLength(sb.append(String.format(fm, "version")), bf, 4).append("\n");
+        // private byte marker = 0;
+        if (tr.getFlag() != 0) {
+            hexLength(sb.append(String.format(fm, "witness")), bf, 1);
+            hexLength(sb.append(" "), bf, 1).append("\n");
+        }
+
+        hexLength(sb.append(String.format(fm, "in-count")), bf, tr.getInputCount().bytesLength()).append("\n");
+
+        for (TxIn in : tr.getTxIns()) {
+            in.getPreTxHash();
+            hexLength(sb.append(String.format(fm, "preHash")), bf, 32).append("\n");
+
+            in.getPreTxOutIndex();
+            hexLength(sb.append(String.format(fm, "pre-index")), bf, 4).append("\n");
+
+            in.getScriptLength();
+            hexLength(sb.append(String.format(fm, "script")), bf, in.getScriptLength().bytesLength());
+
+            in.getScript();
+            hexLength(sb.append(" "), bf, in.getScript().length).append("\n");
+
+            in.getSequence();
+            hexLength(sb.append(String.format(fm, "sequence")), bf, 4).append("\n");
+        }
+
+        tr.getOutputCount();
+        hexLength(sb.append(String.format(fm, "out-count")), bf, tr.getOutputCount().bytesLength()).append("\n");
+        for (TxOut out : tr.getTxOuts()) {
+            out.getValue();
+            hexLength(sb.append(String.format(fm, "amount")), bf, 8).append(" -> ").append(out.getValue()).append("\n");
+            out.getScriptLength();
+            hexLength(sb.append(String.format(fm, "script")), bf, out.getScriptLength().bytesLength());
+            out.getScriptPubKey();
+            hexLength(sb.append(" "), bf, out.getScriptPubKey().length).append("\n");
+        }
+
+        if (tr.getFlag() != 0) {
+            for (TxIn in : tr.getTxIns()) {
+                int len = UintVar.valueOf(in.getTxWitness().length).bytesLength();
+                hexLength(sb.append(String.format(fm, "witness")), bf, len).append("\n");
+                for (int i = 0; i < in.getTxWitness().length; i++) {
+                    byte[] w = in.getTxWitness()[i];
+                    len = UintVar.valueOf(w.length).bytesLength();
+                    hexLength(sb.append(String.format(fm, "w" + i + "")), bf, len);
+                    hexLength(sb.append(" "), bf, w.length).append("\n");
+                }
+            }
+        }
+        tr.getLockTime();
+        hexLength(sb.append(String.format(fm, "lockTime")), bf, 4);
+        return sb;
     }
 
     @Override
@@ -198,5 +266,10 @@ public class RawTransaction {
 
         builder.append(prefix).append("lockTime = ").append(lockTime);
         return builder;
+    }
+
+    private static StringBuilder hexLength(StringBuilder sb, ByteBuf buf, int len) {
+        ByteUtil.hex(sb, buf, len);
+        return sb;
     }
 }

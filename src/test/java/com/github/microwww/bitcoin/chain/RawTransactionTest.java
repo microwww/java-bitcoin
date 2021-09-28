@@ -33,4 +33,23 @@ class RawTransactionTest {
         assertEquals("628cc923b14aee7d9b41416b3a25c4b6fe5ca1218fb1fe7b3bd92da4eb945a4b", tx.hash().toHexReverse256());
         assertEquals("c83bd789fd6a542f4cf5f0788b7d65932cf9754e0bde727df5f502aba0799e0c", tx.whash().toHexReverse256());
     }
+
+    @Test
+    public void testStyle() {
+        List<String> strings = ClassPath.readClassPathFile("/data/line-data.txt");
+        int[] c = new int[]{91, 113};
+        for (int i : c) {
+            byte[] dt = ByteUtil.hex(strings.get(i));
+            ByteBuf bf = Unpooled.buffer().writeBytes(dt);
+            bf.markReaderIndex();
+            RawTransaction tr = new RawTransaction();
+            tr.read(bf);
+            // System.out.println(tr.beautify().toString());
+            StringBuilder sb = new StringBuilder();
+            for (String s : tr.beautify().toString().split("\n")) {
+                sb.append(s.substring(14).replace(" ", "").split("->")[0]);
+            }
+            assertEquals(ByteUtil.hex(dt), sb.toString());
+        }
+    }
 }

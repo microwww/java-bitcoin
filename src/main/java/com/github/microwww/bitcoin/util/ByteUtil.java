@@ -11,6 +11,7 @@ import org.springframework.util.Assert;
  * 外部的工具方法放到一个地方, 方便之后更换
  */
 public class ByteUtil {
+    public static final char[] hexs = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
     public static byte[] readAll(ByteBuf buf) {
         return readLength(buf, buf.readableBytes());
@@ -69,5 +70,15 @@ public class ByteUtil {
         byte[] out = new byte[20];
         digest.doFinal(out, 0);
         return out;
+    }
+
+    public static StringBuilder hex(StringBuilder sb, ByteBuf buf, int len) {
+        Assert.isTrue(len >= 0, "length > 0 , But " + len);
+        Assert.isTrue(buf.readableBytes() >= len, "not have data");
+        for (int i = 0; i < len; i++) {
+            byte b = buf.readByte();
+            sb.append(hexs[b >>> 4 & 0x0F]).append(hexs[b & 0x0F]);
+        }
+        return sb;
     }
 }

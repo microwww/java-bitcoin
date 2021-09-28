@@ -75,4 +75,17 @@ public class UintVar extends BigInteger {
         }
         return this;
     }
+
+    public int bytesLength() {
+        long i = this.longValueExact();
+        if (i < 0xFD) {
+            return 1;
+        } else if (i <= 0xFFFF) {
+            return 3;
+        } else if (i <= 0xFFFFFFFF) {
+            return 5;
+        } else {
+            return 9;
+        }
+    }
 }

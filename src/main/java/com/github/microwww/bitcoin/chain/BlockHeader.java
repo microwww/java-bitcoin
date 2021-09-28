@@ -52,6 +52,10 @@ public class BlockHeader implements Serializable {
         txCount = UintVar.parse(bf);
     }
 
+    public Uint256 txid() {
+        return hash();
+    }
+
     /**
      * 在 CBlock中使用, TODO :: 建议缓存
      *
