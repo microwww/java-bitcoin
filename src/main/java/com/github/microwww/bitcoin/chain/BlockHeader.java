@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Date;
+import java.util.OptionalInt;
 
 /**
  * 头部 80 个字节,
@@ -21,7 +22,6 @@ import java.util.Date;
 public class BlockHeader implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(BlockHeader.class);
     private static final int HEADER_LENGTH = 80;
-    private Uint32 blockLength;
 
     // 下面属性 hash
     private int version;
@@ -32,7 +32,8 @@ public class BlockHeader implements Serializable {
     private Uint32 nonce;
     // 上面属性 hash
 
-    private UintVar txCount; // 这只是个标记位, 协议传输和解析的时候需要, 真实使用 txs.length 即可
+    private UintVar txCount = UintVar.ZERO; // 这只是个标记位, 协议传输和解析的时候需要, 真实使用 txs.length 即可
+    private OptionalInt height = OptionalInt.empty();
 
     public BlockHeader() {
     }
@@ -81,14 +82,6 @@ public class BlockHeader implements Serializable {
         bf.writeIntLE(bits.intValue());
         bf.writeIntLE(nonce.intValue());
         return this;
-    }
-
-    public Uint32 getBlockLength() {
-        return blockLength;
-    }
-
-    public void setBlockLength(Uint32 blockLength) {
-        this.blockLength = blockLength;
     }
 
     public int getVersion() {
@@ -179,9 +172,12 @@ public class BlockHeader implements Serializable {
         return txCount;
     }
 
-    public BlockHeader setTxCount(int txCount) {
-        this.txCount = UintVar.valueOf(txCount);
-        return this;
+    public OptionalInt getHeight() {
+        return height;
+    }
+
+    public void setHeight(int height) {
+        this.height = OptionalInt.of(height);
     }
 
     public StringBuilder toString(StringBuilder bf, String prefix) {

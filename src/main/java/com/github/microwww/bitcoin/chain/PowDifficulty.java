@@ -18,7 +18,7 @@ public class PowDifficulty {
     public static final int nTargetSpacing = 10 * 60;  //理想状态 每10分钟生成一个区块
     public static final int nInterval = nTargetTimespan / nTargetSpacing;  //每2016个区块调整一次难度
 
-    public static Uint32 nextWorkRequired(ChainHeight pindexLast, Function<Integer, ChainBlock> pre2016) {
+    public static Uint32 nextWorkRequired(ChainBlock pindexLast, Function<Integer, ChainBlock> pre2016) {
 
         // Genesis block
         if (pindexLast == null)  //创世区块采用系统定义的最小难度值
@@ -26,14 +26,14 @@ public class PowDifficulty {
 
         // Only change once per interval
         if ((pindexLast.getHeight() + 1) % nInterval != 0)
-            return pindexLast.getChainBlock().header.getBits();
+            return pindexLast.header.getBits();
 
         // Go back by what we want to be 14 days worth of blocks
         ChainBlock pindexFirst = pre2016.apply(pindexLast.getHeight() + 1 - nInterval);
 
         // Limit adjustment step
-        long nActualTimespan = pindexLast.getChainBlock().header.getTime().longValue() - pindexFirst.header.getTime().longValue();
-        return timespan(pindexLast.getChainBlock().header.getBits(), nActualTimespan);
+        long nActualTimespan = pindexLast.header.getTime().longValue() - pindexFirst.header.getTime().longValue();
+        return timespan(pindexLast.header.getBits(), nActualTimespan);
     }
 
     /**

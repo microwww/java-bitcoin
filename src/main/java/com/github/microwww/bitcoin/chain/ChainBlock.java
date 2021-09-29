@@ -110,6 +110,10 @@ public class ChainBlock implements Serializable {
         this.txs = txs;
     }
 
+    public int getHeight() {
+        return header.getHeight().getAsInt();
+    }
+
     @Override
     public String toString() {
         StringBuilder append = new StringBuilder().append("{ // _BLOCK");

@@ -1,7 +1,6 @@
 package com.github.microwww.bitcoin.store;
 
 import com.github.microwww.bitcoin.chain.ChainBlock;
-import com.github.microwww.bitcoin.chain.ChainHeight;
 import com.github.microwww.bitcoin.chain.PowDifficulty;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.math.Uint256;
@@ -299,7 +298,9 @@ public class DiskBlock implements Closeable {
 
     public void verifyNBits(ChainBlock cb) {
         HeightBlock hb = this.readBlock(cb.header.getPreHash()).get();
-        Uint32 uint32 = PowDifficulty.nextWorkRequired(new ChainHeight(hb.getHeight(), hb.getBlock()), n -> {
+        ChainBlock block = hb.getBlock();
+        block.header.setHeight(hb.getHeight());
+        Uint32 uint32 = PowDifficulty.nextWorkRequired(block, n -> {
             Optional<Uint256> hash = this.getHash(n);
             return this.readBlock(hash.get()).get().getBlock();
         });

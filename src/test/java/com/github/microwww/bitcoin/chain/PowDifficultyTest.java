@@ -110,7 +110,8 @@ class PowDifficultyTest {
         ChainBlock target = new ChainBlock().readHeader(bf).readBody(bf);
         assertArrayEquals(target.hash().reverse256bit(), ByteUtil.hex("000000000000a8c2cc7f45568c20d3498eba889a182dd72db10d7e7a98fb9f97"));
 
-        Uint32 nextWorkRequired = PowDifficulty.nextWorkRequired(new ChainHeight(114911, end), n -> start);
+        end.header.setHeight(114911);
+        Uint32 nextWorkRequired = PowDifficulty.nextWorkRequired(end, n -> start);
         assertEquals(start.header.getBits(), end.header.getBits());
         assertNotEquals(end.header.getBits(), target.header.getBits());
         assertEquals(nextWorkRequired, target.header.getBits());
@@ -137,7 +138,8 @@ class PowDifficultyTest {
         ChainBlock target = new ChainBlock().readHeader(bf).readBody(bf);
         assertArrayEquals(target.hash().reverse256bit(), ByteUtil.hex("00000000a141216a896c54f211301c436e557a8d55900637bbdce14c6c7bddef"));
 
-        Uint32 nextWorkRequired = PowDifficulty.nextWorkRequired(new ChainHeight(2015, end), n -> start);
+        end.header.setHeight(2015);
+        Uint32 nextWorkRequired = PowDifficulty.nextWorkRequired(end, n -> start);
         assertEquals(start.header.getBits(), end.header.getBits());
         assertEquals(nextWorkRequired, target.header.getBits());
         assertEquals("0x1d00ffff", nextWorkRequired.toString());
