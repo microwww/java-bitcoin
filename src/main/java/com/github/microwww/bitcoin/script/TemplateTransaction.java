@@ -19,6 +19,9 @@ public enum TemplateTransaction {
     /**
      * 0x??[0x41|0x21]...0xAC
      * [PUBLIC-KEY] OP_CHECKSIG
+     *
+     * 04b0bd634234abbb1ba1e986e884185c61cf43e001f9137f23c2c409273eb16e6537a576782eba668a7ef8bd3b3cfb1edb7117ab65129b8a2e681f3c1e0908ef7b
+     * OP_CHECKSIG
      */
     P2PK {
         @Override
@@ -50,7 +53,7 @@ public enum TemplateTransaction {
 
         @Override
         public byte[] scriptPubKey(byte[]... args) {
-            Assert.isTrue(args.length > 0, "one arg for address");
+            Assert.isTrue(args.length == 1, "one arg for address");
             ByteBuf bf = Unpooled.buffer()
                     .writeByte(args[0].length)
                     .writeBytes(args[0])
@@ -61,6 +64,7 @@ public enum TemplateTransaction {
     },
     /**
      * OP_DUP OP_HASH160 [0×14][PKHash] OP_EQUALVERIFY OP_CHECKSIG
+     * 76 a9 14-c825a1ecf2a6830c4401620c3a16f1995057c2ab 88 ac
      * <p>
      * c++ MatchPayToPubkeyHash
      */
@@ -85,7 +89,7 @@ public enum TemplateTransaction {
 
         @Override
         public byte[] scriptPubKey(byte[]... args) {
-            Assert.isTrue(args.length > 0, "one arg for address");
+            Assert.isTrue(args.length == 1, "one arg for address");
             ByteBuf bf = Unpooled.buffer().writeByte(OP_DUP.opcode())
                     .writeByte(OP_HASH160.opcode())
                     .writeByte(args[0].length)
@@ -182,7 +186,7 @@ public enum TemplateTransaction {
 
         @Override
         public byte[] scriptPubKey(byte[]... args) {
-            Assert.isTrue(args.length > 0, "one arg for address");
+            Assert.isTrue(args.length == 1, "one arg for address");
             ByteBuf bf = Unpooled.buffer()
                     .writeByte(OP_HASH160.opcode())
                     .writeByte(args[0].length).writeBytes(args[0])

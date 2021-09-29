@@ -3,6 +3,7 @@ package com.github.microwww.bitcoin.script.instruction;
 import com.github.microwww.bitcoin.script.Interpreter;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -420,9 +421,17 @@ public enum ScriptNames {
         }
     }
 
+    public static byte[] decompile(List<Script> scripts) {
+        ByteBuf bf = Unpooled.buffer();
+        for (Script script : scripts) {
+            bf.writeByte(script.opcode()).writeBytes(script.getOperand());
+        }
+        return ByteUtil.readAll(bf);
+    }
+
     public static List<Script> compile(ByteBuf bf) {
         List<Script> ss = new ArrayList<>();
-        if (bf.isReadable()) {
+        while (bf.isReadable()) {
             int code = Byte.toUnsignedInt(bf.readByte());
             Script scr = ScriptNames.values()[code].operand(bf);
             ss.add(scr);
@@ -444,8 +453,21 @@ public enum ScriptNames {
         return (byte) this.ordinal();
     }
 
-    public static String style(Script script) {
-        return ScriptNames.values()[script.opcode()].name() + " " + ByteUtil.hex(script.getOperand());
+    public static StringBuilder beautify(byte[] scripts) {
+        List<Script> compile = ScriptNames.compile(Unpooled.copiedBuffer(scripts));
+        return beautify(compile);
+    }
+
+    public static StringBuilder beautify(List<Script> scripts) {
+        StringBuilder sb = new StringBuilder();
+        for (Script script : scripts) {
+            sb.append(ScriptNames.values()[script.opcode()].name()).append(" ");
+            if (script.getOperand().length > 0) {
+                sb.append(ByteUtil.hex(script.getOperand()))
+                        .append(" ");
+            }
+        }
+        return sb;
     }
 
     static class UnsupportedScript extends AbstractScriptOperand {

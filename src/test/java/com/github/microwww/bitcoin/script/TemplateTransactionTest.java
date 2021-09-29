@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.script;
 
 import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.chain.TxOut;
+import com.github.microwww.bitcoin.script.instruction.ScriptNames;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.util.ClassPath;
 import com.github.microwww.bitcoin.wallet.CoinAccount;
@@ -64,6 +65,14 @@ class TemplateTransactionTest {
             assertEquals(1, exec.stack.size());
             assertArrayEquals(new byte[]{}, exec.stack.pop());
         }
+    }
+
+    @Test
+    void scriptPubKeyP2PKH() {
+        byte[] addr = ByteUtil.hex("c825a1ecf2a6830c4401620c3a16f1995057c2ab");
+        byte[] bytes = TemplateTransaction.P2PKH.scriptPubKey(addr);
+        assertArrayEquals(ByteUtil.hex("76a914c825a1ecf2a6830c4401620c3a16f1995057c2ab88ac"), bytes);
+        System.out.println(ScriptNames.beautify(bytes));
     }
 
     @Test

@@ -6,7 +6,15 @@ import io.netty.buffer.ByteBuf;
 import org.springframework.util.Assert;
 
 public abstract class Constants {
-    static class PushValue extends AbstractScriptOperand {
+
+    public static PushValue pushValue(byte[] bytes) {
+        Assert.isTrue(bytes.length <= 75, "PushValue max <= 75");
+        PushValue v = new PushValue(bytes.length);
+        v.setOperand(bytes);
+        return v;
+    }
+
+    public static class PushValue extends AbstractScriptOperand {
         public PushValue(int code) {
             super(code);
         }
@@ -77,7 +85,7 @@ public abstract class Constants {
     //OP_1NEGATE,
     //OP_RESERVED,// 80
 
-    static class PushCode extends AbstractScriptNoOperand {
+    public static class PushCode extends AbstractScriptNoOperand {
         public PushCode(int code) {
             super(code);
         }

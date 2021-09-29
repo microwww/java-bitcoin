@@ -1,7 +1,7 @@
 package com.github.microwww.bitcoin.script.instruction;
 
 public abstract class AbstractScriptOperand implements Script {
-    protected byte[] operand;
+    protected byte[] operand = ZERO;
     protected final int code;
 
     public AbstractScriptOperand(int code) {
@@ -16,6 +16,10 @@ public abstract class AbstractScriptOperand implements Script {
     @Override
     public byte[] getOperand() {
         return operand;
+    }
+
+    public void setOperand(byte[] operand) {
+        this.operand = operand;
     }
 
     @Override
