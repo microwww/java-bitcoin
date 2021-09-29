@@ -8,10 +8,18 @@ import com.github.microwww.bitcoin.math.Uint32;
 
 import java.nio.charset.StandardCharsets;
 
+/**
+ * RawTransaction version 2:  https://github.com/bitcoin/bips/blob/master/bip-0068.mediawiki
+ * nLockTime / sequence 重新定义
+ */
 public class GenTransaction {
-    public static final GenTransaction G = new GenTransaction();
+    public static final GenTransaction G = new GenTransaction(1);
+    public static final GenTransaction G2 = new GenTransaction(2);
 
-    private GenTransaction() {
+    private final int version;
+
+    private GenTransaction(int version) {
+        this.version = version;
     }
 
     public RawTransaction genCoinbaseTransaction(String coinbase, long amount, byte[] scriptPubKey) {
@@ -23,7 +31,7 @@ public class GenTransaction {
 
     public RawTransaction genCoinbaseTransaction(String coinbase, TxOut... outs) {
         RawTransaction tx = new RawTransaction();
-        tx.setVersion(1);
+        tx.setVersion(version);
         TxIn in = new TxIn();
         in.setPreTxHash(Uint256.ZERO);
         in.setPreTxOutIndex(-1);
