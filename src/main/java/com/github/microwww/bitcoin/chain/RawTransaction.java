@@ -8,6 +8,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.springframework.util.Assert;
 
+import java.text.DecimalFormat;
+
 public class RawTransaction {
     private int version;
     private byte marker = 0;
@@ -199,32 +201,19 @@ public class RawTransaction {
         }
 
         hexLength(sb.append(String.format(fm, "in-count")), bf, tr.getInputCount().bytesLength()).append("\n");
-
         for (TxIn in : tr.getTxIns()) {
-            in.getPreTxHash();
             hexLength(sb.append(String.format(fm, "preHash")), bf, 32).append("\n");
-
-            in.getPreTxOutIndex();
-            hexLength(sb.append(String.format(fm, "pre-index")), bf, 4).append("\n");
-
-            in.getScriptLength();
+            hexLength(sb.append(String.format(fm, "pre-index")), bf, 4).append(" -> ").append(in.getPreTxOutIndex()).append("\n");
             hexLength(sb.append(String.format(fm, "script")), bf, in.getScriptLength().bytesLength());
-
-            in.getScript();
             hexLength(sb.append(" "), bf, in.getScript().length).append("\n");
-
-            in.getSequence();
             hexLength(sb.append(String.format(fm, "sequence")), bf, 4).append("\n");
         }
 
-        tr.getOutputCount();
         hexLength(sb.append(String.format(fm, "out-count")), bf, tr.getOutputCount().bytesLength()).append("\n");
         for (TxOut out : tr.getTxOuts()) {
-            out.getValue();
-            hexLength(sb.append(String.format(fm, "amount")), bf, 8).append(" -> ").append(out.getValue()).append("\n");
-            out.getScriptLength();
+            String v = new DecimalFormat("#,####").format(out.getValue());
+            hexLength(sb.append(String.format(fm, "amount")), bf, 8).append(" -> ").append(v).append("\n");
             hexLength(sb.append(String.format(fm, "script")), bf, out.getScriptLength().bytesLength());
-            out.getScriptPubKey();
             hexLength(sb.append(" "), bf, out.getScriptPubKey().length).append("\n");
         }
 
@@ -240,7 +229,6 @@ public class RawTransaction {
                 }
             }
         }
-        tr.getLockTime();
         hexLength(sb.append(String.format(fm, "lockTime")), bf, 4);
         return sb;
     }
