@@ -247,8 +247,7 @@ public class PeerChannelClientProtocol implements Closeable {
         if (hc.isPresent()) {
             FileChainBlock fc = hc.get().getFileChainBlock();
             if (!fc.isCache()) {
-                FileTransaction[] ft = fc.getFileTransactions();
-                chain.getTransactionStore().serializationTransaction(ft);
+                chain.getTransactionStore().indexTransaction(fc);
             } else {
                 logger.warn("WHY ! load one exist : {}", fc.loadBlock().getBlock().hash());
             }

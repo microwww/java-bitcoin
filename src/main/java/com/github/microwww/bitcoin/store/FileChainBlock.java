@@ -19,7 +19,6 @@ public class FileChainBlock {
     private int magic;
     private long position;
     private ChainBlock block;
-    private FileTransaction[] fileTransactions; // run writeBlock method will set
 
     public FileChainBlock(File file) {
         this.file = file;
@@ -101,14 +100,6 @@ public class FileChainBlock {
     public FileChainBlock setMagic(int magic) {
         this.magic = magic;
         return this;
-    }
-
-    public FileTransaction[] getFileTransactions() {
-        return fileTransactions;
-    }
-
-    public void setFileTransactions(FileTransaction[] fileTransactions) {
-        this.fileTransactions = fileTransactions;
     }
 
     public boolean isCache() {

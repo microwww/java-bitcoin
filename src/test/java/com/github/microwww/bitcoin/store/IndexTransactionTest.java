@@ -8,7 +8,6 @@ import com.github.microwww.bitcoin.math.Uint256;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,10 +26,9 @@ class IndexTransactionTest {
     @Test
     void serializationTransaction() throws IOException {
         ChainBlock gn = params.env.createGenesisBlock();
-        Optional<HeightBlock> heightBlock = tx.getDiskBlock().writeBlock(gn, 0, true);
-        FileTransaction[] fs = heightBlock.get().getFileChainBlock().getFileTransactions();
-        tx.serializationTransaction(fs);
-        Uint256 hash = fs[0].getTransaction().hash();
+        FileChainBlock block = tx.getDiskBlock().writeBlock(gn, 0, true).get().getFileChainBlock();
+        tx.indexTransaction(block);
+        Uint256 hash = block.getBlock().getTxs()[0].hash();
         RawTransaction rt = tx.findTransaction(hash).get().readFileRawTransaction();
         assertEquals(hash, rt.hash());
     }

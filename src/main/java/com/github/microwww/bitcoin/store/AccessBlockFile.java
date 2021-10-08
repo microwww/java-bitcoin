@@ -128,15 +128,12 @@ public class AccessBlockFile implements Closeable {
                 if (lock != null) {
                     try {
                         cache.clear();
+                        int lengthPosition = 4;// INIT length = 0, and next to set
+                        int magicAndLengthBytes = 8;
                         cache.writeInt(magic).writeIntLE(0);
-                        FileTransaction[] fts = block.writeHeader(cache).writeTxCount(cache).writeTxBody(cache);
-                        fc.setFileTransactions(fts);
-                        for (FileTransaction ft : fts) {
-                            ft.setPosition(ft.getPosition() + position);
-                            ft.setFile(this.currentFile);
-                        }
-                        int i = cache.writerIndex();
-                        cache.setIntLE(4, i - 8);
+                        block.serialization(cache);
+                        int index = cache.writerIndex();
+                        cache.setIntLE(lengthPosition, index - magicAndLengthBytes);
                         ByteBuffer f = cache.nioBuffer();
                         while (f.hasRemaining()) {
                             file.write(f);

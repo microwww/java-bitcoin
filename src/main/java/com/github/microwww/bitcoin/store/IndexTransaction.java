@@ -67,7 +67,17 @@ public class IndexTransaction implements Closeable {
         return Optional.ofNullable(transactions.get(uint256));
     }
 
-    public void serializationTransaction(FileTransaction... fts) {
+    public void indexTransaction(FileChainBlock fc) {
+        FileTransaction[] fts = fc.getBlock().transactionPosition();
+        for (FileTransaction ft : fts) {
+            int magicAndLengthBytes = 8;
+            ft.setPosition(ft.getPosition() + magicAndLengthBytes + fc.getPosition());
+            ft.setFile(fc.getFile());
+        }
+        this.serializationTransaction(fts);
+    }
+
+    private void serializationTransaction(FileTransaction... fts) {
         ByteBuf buffer = Unpooled.buffer();
         for (int i = fts.length - 1; i >= 0; i--) {
             FileTransaction ft = fts[i];

@@ -52,18 +52,26 @@ public class ChainBlock implements ByteSerializable {
         return this;
     }
 
-    public ChainBlock writeHeader(ByteBuf bf) {
+    private ChainBlock writeHeader(ByteBuf bf) {
         this.header.writer(bf);
         return this;
     }
 
-    public ChainBlock writeTxCount(ByteBuf bf) {
+    private ChainBlock writeTxCount(ByteBuf bf) {
         Assert.isTrue(txs.length == header.getTxCount().intValueExact(), "tx and head-tx equals");
         UintVar.valueOf(txs.length).write(bf);
         return this;
     }
 
-    public FileTransaction[] writeTxBody(ByteBuf bf) {
+    private void writeTxBody(ByteBuf bf) {
+        for (RawTransaction tx : this.txs) {
+            tx.serialization(bf);
+        }
+    }
+
+    public FileTransaction[] transactionPosition() {
+        ByteBuf bf = Unpooled.buffer();
+        this.writeHeader(bf).writeTxCount(bf);
         FileTransaction[] fts = new FileTransaction[this.txs.length];
         for (int i = 0; i < this.txs.length; i++) {
             RawTransaction tx = this.txs[i];
