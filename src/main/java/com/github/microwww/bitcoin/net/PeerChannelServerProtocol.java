@@ -6,7 +6,6 @@ import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.provider.Peer;
-import com.github.microwww.bitcoin.store.HeightBlock;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,9 +47,9 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
                         if (peer.getCmpct().isPresent()) {
                             if (peer.getCmpct().get().getVersion() == 1) {
                                 for (GetData.Message bk : bks) {
-                                    Optional<HeightBlock> heightBlock = chain.getDiskBlock().readBlock(bk.getHashIn());
+                                    Optional<ChainBlock> heightBlock = chain.getDiskBlock().readBlock(bk.getHashIn());
                                     if (heightBlock.isPresent()) {
-                                        CmpctBlock cmpc = new CmpctBlock(peer).setChainBlock(heightBlock.get().getBlock());
+                                        CmpctBlock cmpc = new CmpctBlock(peer).setChainBlock(heightBlock.get());
                                         e.channel().writeAndFlush(cmpc);
                                     }
                                 }
@@ -62,9 +61,9 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
                     if (!bks.isEmpty()) {
                         List<BlockHeader> res = new ArrayList<>();
                         for (GetData.Message bk : bks) {
-                            Optional<HeightBlock> heightBlock = chain.getDiskBlock().readBlock(bk.getHashIn());
+                            Optional<ChainBlock> heightBlock = chain.getDiskBlock().readBlock(bk.getHashIn());
                             if (heightBlock.isPresent()) {
-                                res.add(heightBlock.get().getBlock().header);
+                                res.add(heightBlock.get().header);
                             }
                         }
                         if (!res.isEmpty()) {
@@ -127,7 +126,7 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
                 Uint256 hash = msg.getHashIn();
                 chain.getDiskBlock().getChinBlock(hash).ifPresent(k -> {
                     Block block = new Block(request.getPeer());
-                    block.setChainBlock(k.getBlock());
+                    block.setChainBlock(k);
                     ctx.writeAndFlush(block);
                 });
             } else if (msg.isTx()) {
@@ -162,9 +161,9 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
             for (int i = 0; i < GetHeaders.MAX_HEADERS_RESULTS; i++) {
                 Optional<Uint256> hash = chain.getDiskBlock().getHash(from + i);
                 if (hash.isPresent()) {
-                    Optional<HeightBlock> cb = chain.getDiskBlock().readBlock(hash.get());
+                    Optional<ChainBlock> cb = chain.getDiskBlock().readBlock(hash.get());
                     Assert.isTrue(cb.isPresent(), "This hash in height , but not in local file");
-                    ChainBlock fd = cb.get().getBlock();
+                    ChainBlock fd = cb.get();
                     blocks.add(fd.header);
                     if (fd.hash().equals(stopping)) {
                         break;

@@ -67,6 +67,12 @@ public class IndexTransaction implements Closeable {
         return Optional.ofNullable(transactions.get(uint256));
     }
 
+    public void indexTransaction(ChainBlock block) {
+        HeightBlock hc = diskBlock.findChainBlockInLevelDB(block.hash()).get();
+        FileChainBlock fc = hc.getFileChainBlock();
+        indexTransaction(fc);
+    }
+
     public void indexTransaction(FileChainBlock fc) {
         FileTransaction[] fts = fc.getBlock().transactionPosition();
         for (FileTransaction ft : fts) {
@@ -150,7 +156,7 @@ public class IndexTransaction implements Closeable {
     }
 
     public void verifyTransactions(ChainBlock chainBlock) {
-        HeightBlock hb = diskBlock.readBlock(chainBlock.header.getPreHash()).get();
+        ChainBlock hb = diskBlock.readBlock(chainBlock.header.getPreHash()).get();
         verifyTransactions(chainBlock, hb.getHeight() + 1);
     }
 

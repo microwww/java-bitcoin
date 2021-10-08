@@ -8,7 +8,7 @@ import io.netty.buffer.Unpooled;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 
-public class HeightBlock {
+class HeightBlock {
     private FileChainBlock fileChainBlock;
     private int height;
 

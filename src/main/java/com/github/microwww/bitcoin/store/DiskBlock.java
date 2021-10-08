@@ -129,14 +129,14 @@ public class DiskBlock implements Closeable {
         return indexHeight.get(height);
     }
 
-    public HeightBlock getLastBlock() {
+    public ChainBlock getLastBlock() {
         int height = indexHeight.getLastHeight().getHeight();
         return this.getHash(height).flatMap(hash -> {
             return this.getChinBlock(hash);
         }).orElseThrow(() -> new IllegalStateException("Not find height Block : " + height));
     }
 
-    public HeightBlock getBestBlock() {
+    public ChainBlock getBestBlock() {
         int height = indexHeight.getLastHeight().getHeight();
         if (height > bestConfirmHeight) {
             height -= bestConfirmHeight;
@@ -150,16 +150,22 @@ public class DiskBlock implements Closeable {
         });
     }
 
-    public Optional<HeightBlock> getChinBlock(Uint256 hash) {
+    public Optional<ChainBlock> getChinBlock(Uint256 hash) {
         return this.readBlock(hash);
     }
 
-    public Optional<HeightBlock> writeBlock(ChainBlock block, boolean ifExistSkip) {
+    public Optional<Height> writeBlock(ChainBlock block, boolean ifExistSkip) {
         Uint256 pre = block.header.getPreHash();
-        Optional<HeightBlock> hc = this.readBlock(pre);
+        Optional<ChainBlock> hc = this.readBlock(pre);
         if (hc.isPresent()) {
             int h = hc.get().getHeight() + 1;
-            return writeBlock(block, h, ifExistSkip);
+            writeBlock(block, h, ifExistSkip);
+            if (block.header.getHeight().isPresent()) {
+                Assert.isTrue(h == block.getHeight(), "Not set height");
+            } else {
+                block.header.setHeight(h);
+            }
+            return Optional.of(new Height(block.hash(), h));
         }
         return Optional.empty();
     }
@@ -169,17 +175,16 @@ public class DiskBlock implements Closeable {
      *
      * @return
      */
-    public Optional<HeightBlock> writeBlock(ChainBlock block, int height, boolean ifExistSkip) {
+    public HeightBlock writeBlock(ChainBlock block, int height, boolean ifExistSkip) {
         Uint256 hash = block.hash();
         if (ifExistSkip) {
             Optional<HeightBlock> fd = findChainBlockInLevelDB(hash);
             if (fd.isPresent()) {
-                return fd;
+                return fd.get();
             }
         }
         FileChainBlock write = write(block);
-        HeightBlock hb = this.indexBlock(write, height);
-        return Optional.of(hb);
+        return this.indexBlock(write, height);
     }
 
     private synchronized FileChainBlock write(ChainBlock block) {
@@ -193,7 +198,7 @@ public class DiskBlock implements Closeable {
         }
     }
 
-    public HeightBlock indexBlock(FileChainBlock write, int height) {
+    private HeightBlock indexBlock(FileChainBlock write, int height) {
         ChainBlock block = write.getBlock();
         if (logger.isDebugEnabled())
             logger.debug("Add BLOCK to levelDB: {}, {} , {} , {}", write.getPosition(), height, block.hash(), block.header.getPreHash());
@@ -212,14 +217,16 @@ public class DiskBlock implements Closeable {
         }
     }
 
-    public synchronized Optional<HeightBlock> readBlock(Uint256 hash) {
+    public synchronized Optional<ChainBlock> readBlock(Uint256 hash) {
         Optional<HeightBlock> data = this.findChainBlockInLevelDB(hash);
         if (!data.isPresent()) {
             return Optional.empty();
         }
         logger.debug("Get block from levelDB: {}", hash.toHexReverse256());
         data.get().getFileChainBlock().loadBlock();
-        return data;
+        ChainBlock block = data.get().getBlock();
+        block.header.setHeight(data.get().getHeight());
+        return Optional.of(block);
     }
 
     /**
@@ -297,12 +304,10 @@ public class DiskBlock implements Closeable {
     }
 
     public void verifyNBits(ChainBlock cb) {
-        HeightBlock hb = this.readBlock(cb.header.getPreHash()).get();
-        ChainBlock block = hb.getBlock();
-        block.header.setHeight(hb.getHeight());
+        ChainBlock block = this.readBlock(cb.header.getPreHash()).get();
         Uint32 uint32 = PowDifficulty.nextWorkRequired(block, n -> {
             Optional<Uint256> hash = this.getHash(n);
-            return this.readBlock(hash.get()).get().getBlock();
+            return this.readBlock(hash.get()).get();
         });
         if (!uint32.equals(cb.header.getBits())) {
             logger.error("Block nBits error : {} != {}, BLOCK {}", uint32, cb.header.getBits(), cb.hash());

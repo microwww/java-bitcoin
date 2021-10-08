@@ -10,9 +10,7 @@ import com.github.microwww.bitcoin.provider.LocalBlockChain;
 import com.github.microwww.bitcoin.provider.Peer;
 import com.github.microwww.bitcoin.provider.TimeoutTaskManager;
 import com.github.microwww.bitcoin.store.DiskBlock;
-import com.github.microwww.bitcoin.store.FileChainBlock;
-import com.github.microwww.bitcoin.store.FileTransaction;
-import com.github.microwww.bitcoin.store.HeightBlock;
+import com.github.microwww.bitcoin.store.Height;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -170,7 +168,7 @@ public class PeerChannelClientProtocol implements Closeable {
             Uint256 preHash = header.getPreHash();
             int height = chain.getDiskBlock().getHeight(preHash);
             if (height >= 0) {
-                Optional<HeightBlock> hc = chain.getDiskBlock().readBlock(hash);
+                Optional<ChainBlock> hc = chain.getDiskBlock().readBlock(hash);
                 if (!hc.isPresent()) {
                     readyBlocks.putIfAbsent(hash, header);
                 }
@@ -185,8 +183,8 @@ public class PeerChannelClientProtocol implements Closeable {
         }
         if (readyBlocks.isEmpty()) {// no more HEADER
             taskManager.remove(ctx);
-            HeightBlock last = chain.getDiskBlock().getLastBlock();
-            Date time = last.getBlock().header.getDateTime();
+            ChainBlock last = chain.getDiskBlock().getLastBlock();
+            Date time = last.header.getDateTime();
             logger.info("NO new Block BY GetHeader, LAST {}, [{}], IGNORE peer: {}", last.getHeight(), time, peer.getURI());
             return;
         }
@@ -217,7 +215,7 @@ public class PeerChannelClientProtocol implements Closeable {
             // TASKMANAGER: .3. Block, get block-info from GetData request
             taskManager.assertIsMe(ctx).touch(ctx, "Waiting parse BLOCK");
         });
-        Optional<HeightBlock> prehash = chain.getDiskBlock().readBlock(cb.header.getPreHash());
+        Optional<ChainBlock> prehash = chain.getDiskBlock().readBlock(cb.header.getPreHash());
         if (!prehash.isPresent()) {
             logger.warn("LOCATION not find preHash: {}", cb.header.getPreHash());
             if (taskManager.isNoProvider()) {
@@ -236,21 +234,16 @@ public class PeerChannelClientProtocol implements Closeable {
 
         chain.getTransactionStore().verifyTransactions(cb);
 
-        Optional<HeightBlock> hc = disk.writeBlock(cb, true);
+        Optional<Height> hc = disk.writeBlock(cb, true);
         if (logger.isInfoEnabled()) {
             long next = System.currentTimeMillis();
             if (logger.isDebugEnabled() || next - current > 5000) {
                 current = next;
-                logger.info("Get blocks {}, height: {}, {}", request.getPeer().getURI(), hc.map(HeightBlock::getHeight).orElse(-1), cb.hash());
+                logger.info("Get blocks {}, height: {}, {}", request.getPeer().getURI(), hc.map(Height::getHeight).orElse(-1), cb.hash());
             }
         }
         if (hc.isPresent()) {
-            FileChainBlock fc = hc.get().getFileChainBlock();
-            if (!fc.isCache()) {
-                chain.getTransactionStore().indexTransaction(fc);
-            } else {
-                logger.warn("WHY ! load one exist : {}", fc.loadBlock().getBlock().hash());
-            }
+            chain.getTransactionStore().indexTransaction(cb);
             this.sendLoadOneChainBlock(ctx);
         } else {
             logger.warn("STOP ! Peer {}, Not find pre-block: {}", peer.getURI(), cb.header.getPreHash());
