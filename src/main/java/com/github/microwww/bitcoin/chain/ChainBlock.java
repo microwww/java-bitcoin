@@ -59,6 +59,7 @@ public class ChainBlock implements Serializable {
     }
 
     public ChainBlock writeTxCount(ByteBuf bf) {
+        Assert.isTrue(txs.length == header.getTxCount().intValueExact(), "tx and head-tx equals");
         UintVar.valueOf(txs.length).write(bf);
         return this;
     }
@@ -102,12 +103,9 @@ public class ChainBlock implements Serializable {
         return txs;
     }
 
-    public int getTxCount() {
-        return txs == null ? 0 : txs.length;
-    }
-
     public void setTxs(RawTransaction[] txs) {
         this.txs = txs;
+        header.setTxCount(txs.length);
     }
 
     public int getHeight() {

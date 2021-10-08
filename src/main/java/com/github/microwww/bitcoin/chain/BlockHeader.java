@@ -172,6 +172,14 @@ public class BlockHeader implements Serializable {
         return txCount;
     }
 
+    public void setTxCount(int count) {
+        txCount = UintVar.valueOf(count);
+    }
+
+    public void setTxCount(UintVar count) {
+        txCount = count;
+    }
+
     public OptionalInt getHeight() {
         return height;
     }

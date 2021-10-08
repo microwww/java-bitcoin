@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public class TxOut {
     private long value;
-    private UintVar scriptLength;
+    // private UintVar scriptLength;
     private byte[] scriptPubKey;
 
     public TxOut() {
@@ -18,13 +18,13 @@ public class TxOut {
 
     public TxOut(long value) {
         this.value = value;
-        this.scriptLength = UintVar.ZERO;
+        //this.scriptLength = UintVar.ZERO;
         this.scriptPubKey = new byte[]{};
     }
 
     public void read(ByteBuf bf) {
         value = bf.readLongLE();
-        scriptLength = UintVar.parse(bf);
+        UintVar scriptLength = UintVar.parse(bf);
         scriptPubKey = ByteUtil.readLength(bf, scriptLength.intValueExact());
     }
 
@@ -45,7 +45,7 @@ public class TxOut {
     }
 
     public UintVar getScriptLength() {
-        return scriptLength;
+        return UintVar.valueOf(scriptPubKey.length);
     }
 
     public byte[] getScriptPubKey() {
@@ -87,6 +87,6 @@ public class TxOut {
     public StringBuilder toString(StringBuilder append, String s) {
         return append
                 .append(s).append(" value  = ").append(value)
-                .append(s).append(" script = 0x").append(Integer.toUnsignedString(scriptLength.intValue(), 16)).append(" ").append(ByteUtil.hex(scriptPubKey));
+                .append(s).append(" script = 0x").append(Integer.toUnsignedString(scriptPubKey.length, 16)).append(" ").append(ByteUtil.hex(scriptPubKey));
     }
 }

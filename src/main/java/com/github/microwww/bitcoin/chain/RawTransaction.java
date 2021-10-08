@@ -14,15 +14,15 @@ public class RawTransaction {
     private int version;
     private byte marker = 0;
     private byte flag = 0;
-    private UintVar inputCount;
-    private TxIn[] txIns;
-    private UintVar outputCount;
-    private TxOut[] txOuts;
-    private Uint32 lockTime;
+    // private UintVar inputCount;
+    private TxIn[] txIns = new TxIn[]{};
+    // private UintVar outputCount;
+    private TxOut[] txOuts = new TxOut[]{};
+    private Uint32 lockTime = Uint32.ZERO;
 
     public void read(ByteBuf bf) {
         version = bf.readIntLE();
-        inputCount = UintVar.parse(bf);
+        UintVar inputCount = UintVar.parse(bf);
         if (inputCount.intValueExact() == 0) {
             marker = 0;
             flag = bf.readByte();
@@ -39,7 +39,7 @@ public class RawTransaction {
             txIns[i] = in;
         }
         ////// OUT
-        outputCount = UintVar.parse(bf);
+        UintVar outputCount = UintVar.parse(bf);
         len = outputCount.intValueExact();
         txOuts = new TxOut[len];
         for (int i = 0; i < len; i++) {
@@ -129,8 +129,8 @@ public class RawTransaction {
         this.version = version;
     }
 
-    public UintVar getInputCount() {
-        return inputCount;
+    private UintVar getInputCount() {
+        return UintVar.valueOf(txIns.length);
     }
 
     public TxIn[] getTxIns() {
@@ -141,8 +141,8 @@ public class RawTransaction {
         this.txIns = txIns;
     }
 
-    public UintVar getOutputCount() {
-        return outputCount;
+    private UintVar getOutputCount() {
+        return UintVar.valueOf(txOuts.length);
     }
 
     public TxOut[] getTxOuts() {
@@ -200,7 +200,7 @@ public class RawTransaction {
             hexLength(sb.append(" "), bf, 1).append("\n");
         }
 
-        hexLength(sb.append(String.format(fm, "in-count")), bf, tr.getInputCount().bytesLength()).append("\n");
+        hexLength(sb.append(String.format(fm, "in-count")), bf, this.getInputCount().bytesLength()).append("\n");
         for (TxIn in : tr.getTxIns()) {
             hexLength(sb.append(String.format(fm, "preHash")), bf, 32).append("\n");
             hexLength(sb.append(String.format(fm, "pre-index")), bf, 4).append(" -> ").append(in.getPreTxOutIndex()).append("\n");
@@ -209,7 +209,7 @@ public class RawTransaction {
             hexLength(sb.append(String.format(fm, "sequence")), bf, 4).append("\n");
         }
 
-        hexLength(sb.append(String.format(fm, "out-count")), bf, tr.getOutputCount().bytesLength()).append("\n");
+        hexLength(sb.append(String.format(fm, "out-count")), bf, this.getOutputCount().bytesLength()).append("\n");
         for (TxOut out : tr.getTxOuts()) {
             String v = new DecimalFormat("#,####").format(out.getValue());
             hexLength(sb.append(String.format(fm, "amount")), bf, 8).append(" -> ").append(v).append("\n");
@@ -242,11 +242,11 @@ public class RawTransaction {
         builder
                 .append(prefix).append(" hash    = ").append(hash())
                 .append(prefix).append(" version = ").append(version)
-                .append(prefix).append(" txIns   = ").append(inputCount);
+                .append(prefix).append(" txIns   = ").append(txIns.length);
         for (TxIn txIn : txIns) {
             txIn.toString(builder, prefix + "        ");
         }
-        builder.append(prefix).append(" txOuts  = ").append(outputCount);
+        builder.append(prefix).append(" txOuts  = ").append(txOuts.length);
 
         for (TxOut txIn : txOuts) {
             txIn.toString(builder, prefix + "        ");

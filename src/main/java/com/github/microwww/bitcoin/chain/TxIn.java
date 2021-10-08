@@ -9,7 +9,7 @@ import io.netty.buffer.ByteBuf;
 public class TxIn {
     private Uint256 preTxHash;
     private int preTxOutIndex;
-    private UintVar scriptLength;
+    // private UintVar scriptLength;
     private byte[] script;
     private Uint32 sequence;
     private byte[][] txWitness;
@@ -17,7 +17,7 @@ public class TxIn {
     public void read(ByteBuf bf) {
         preTxHash = Uint256.read(bf);
         preTxOutIndex = bf.readIntLE();
-        scriptLength = UintVar.parse(bf);
+        UintVar scriptLength = UintVar.parse(bf);
         script = ByteUtil.readLength(bf, scriptLength.intValueExact());
         sequence = new Uint32(bf.readIntLE());
     }
@@ -47,7 +47,7 @@ public class TxIn {
     }
 
     public UintVar getScriptLength() {
-        return scriptLength;
+        return UintVar.valueOf(script.length);
     }
 
     public byte[] getScript() {
@@ -85,7 +85,7 @@ public class TxIn {
                 .append(prefix).append(" preTxHash     = ").append(preTxHash)
                 .append(prefix).append(" preTxOutIndex = ").append(preTxOutIndex)
                 .append(prefix).append(" script        = 0x")
-                .append(Integer.toUnsignedString(scriptLength.intValue())).append(" ").append(ByteUtil.hex(script));
+                .append(Integer.toString(script.length, 16)).append(" ").append(ByteUtil.hex(script));
         if (txWitness != null) {
             append.append(prefix).append(" txWitness     = ").append(txWitness.length);
             for (byte[] v : txWitness) {
