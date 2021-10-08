@@ -32,7 +32,7 @@ public class Headers extends AbstractProtocolAdapter<Headers> {
         }
         UintVar.valueOf(chainBlocks.length).write(buf);
         for (BlockHeader header : chainBlocks) {
-            new ChainBlock(header).writeHeader(buf).writeTxCount(buf);
+            new ChainBlock(header).serialization(buf, false);
         }
     }
 

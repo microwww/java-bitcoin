@@ -10,7 +10,7 @@ import org.springframework.util.Assert;
 
 import java.text.DecimalFormat;
 
-public class RawTransaction {
+public class RawTransaction implements ByteSerializable {
     private int version;
     private byte marker = 0;
     private byte flag = 0;
@@ -85,10 +85,14 @@ public class RawTransaction {
         write(bf, flag ? 1 : 0);
     }
 
-    public ByteBuf serialize(int witness) {
-        ByteBuf buffer = Unpooled.buffer();
+    public ByteBuf serialization(ByteBuf buffer, int witness) {
         write(buffer, witness);
         return buffer;
+    }
+
+    @Override
+    public ByteBuf serialization(ByteBuf buffer) {
+        return serialization(buffer, this.flag);
     }
 
     public void write(ByteBuf bf, int witness) {
@@ -189,7 +193,8 @@ public class RawTransaction {
     }
 
     public StringBuilder beautify() {
-        ByteBuf bf = this.serialize(this.getFlag());
+        ByteBuf bf = Unpooled.buffer();
+        this.serialization(bf, this.getFlag());
         RawTransaction tr = this;
         StringBuilder sb = new StringBuilder();
         String fm = "%12s: ";
@@ -259,5 +264,11 @@ public class RawTransaction {
     private static StringBuilder hexLength(StringBuilder sb, ByteBuf buf, int len) {
         ByteUtil.hex(sb, buf, len);
         return sb;
+    }
+
+    @Override
+    public ByteBuf deserialization(ByteBuf buffer) {
+        this.read(buffer);
+        return buffer;
     }
 }

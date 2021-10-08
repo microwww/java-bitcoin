@@ -301,7 +301,7 @@ public class PeerChannelClientProtocol implements Closeable {
     }
 
     public void service(ChannelHandlerContext ctx, AddrV2 request) {
-        logger.warn("AddrV2 ignore: {}", request.getNodes());
+        logger.warn("AddrV2 ignore: {}", (Object) request.getNodes());
     }
 
     //TODO::作用未知

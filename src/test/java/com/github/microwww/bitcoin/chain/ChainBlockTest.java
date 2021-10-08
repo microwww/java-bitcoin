@@ -41,7 +41,7 @@ class ChainBlockTest {
         chainBlock.readHeader(bf).readBody(bf);
         assertEquals("00000000afe94c578b4dc327aa64e1203283c5fd5f152ce886341766298cf523", chainBlock.hash().toHexReverse256());
         bf.clear();
-        chainBlock.writeHeader(bf).writeTxCount(bf).writeTxBody(bf);
+        chainBlock.serialization(bf);
         assertEquals(s, ByteUtil.hex(ByteUtil.readAll(bf)));
     }
 }

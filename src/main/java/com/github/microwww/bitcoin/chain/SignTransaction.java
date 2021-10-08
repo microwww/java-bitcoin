@@ -84,12 +84,13 @@ public class SignTransaction {
                 txIn.setScript(preScript);
             }
         }
-        ByteBuf sr = tx.serialize(0).writeBytes(new byte[]{HashType.ALL.TYPE, 0, 0, 0});
-        byte[] data = ByteUtil.readAll(sr);
+        ByteBuf buf = Unpooled.buffer();
+        tx.serialization(buf, 0).writeBytes(new byte[]{HashType.ALL.TYPE, 0, 0, 0});
+        byte[] data = ByteUtil.readAll(buf);
         byte[] sha = ByteUtil.sha256(data); // !!  文档是 sha256两次, 实际是一次 !!!
         if (logger.isDebugEnabled()) {
             logger.debug("Will sign data origin: {}, \n ready: {}, \n sha256: {}",
-                    ByteUtil.hex(ByteUtil.readAll(tx.serialize(0))),
+                    ByteUtil.hex(ByteUtil.readAll(tx.serialization(buf.clear(), 0))),
                     ByteUtil.hex(data),
                     ByteUtil.hex(sha));
         }

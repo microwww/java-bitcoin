@@ -49,12 +49,13 @@ public abstract class AbstractSignatureTransaction implements SignatureTransacti
                 txIn.setScript(preScript);
             }
         }
-        ByteBuf sr = tx.serialize(0).writeBytes(new byte[]{this.supportType().toByte(), 0, 0, 0});
-        byte[] data = ByteUtil.readAll(sr);
+        ByteBuf buf = Unpooled.buffer();
+        tx.serialization(buf, 0).writeBytes(new byte[]{this.supportType().toByte(), 0, 0, 0});
+        byte[] data = ByteUtil.readAll(buf);
         byte[] sha = ByteUtil.sha256sha256(data);
         if (logger.isDebugEnabled()) {
             logger.debug("Will sign data \n origin : {}, \n ready  : {}, \n dSha256: {}",
-                    ByteUtil.hex(ByteUtil.readAll(this.transaction.serialize(0))),
+                    ByteUtil.hex(ByteUtil.readAll(this.transaction.serialization(buf.clear(), 0))),
                     ByteUtil.hex(data),
                     ByteUtil.hex(sha));
         }

@@ -9,10 +9,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.springframework.util.Assert;
 
-import java.io.Serializable;
 import java.util.Arrays;
 
-public class ChainBlock implements Serializable {
+public class ChainBlock implements ByteSerializable {
     public final BlockHeader header;
     private RawTransaction[] txs = new RawTransaction[]{};
 
@@ -134,8 +133,27 @@ public class ChainBlock implements Serializable {
     }
 
     public byte[] serialization() {
-        ByteBuf buffer = Unpooled.buffer();
-        this.writeHeader(buffer).writeTxCount(buffer).writeTxBody(buffer);
-        return ByteUtil.readAll(buffer);
+        return ByteUtil.readAll(serialization(Unpooled.buffer()));
+    }
+
+    @Override
+    public ByteBuf serialization(ByteBuf buffer) {
+        return this.serialization(buffer, true);
+    }
+
+    public ByteBuf serialization(ByteBuf buffer, boolean tx) {
+        this.writeHeader(buffer);
+        if (tx) {
+            this.writeTxCount(buffer).writeTxBody(buffer);
+        } else {
+            UintVar.valueOf(0).write(buffer);
+        }
+        return buffer;
+    }
+
+    @Override
+    public ByteBuf deserialization(ByteBuf buffer) {
+        this.readHeader(buffer).readBody(buffer);
+        return buffer;
     }
 }

@@ -16,7 +16,7 @@ public class Block extends AbstractProtocolAdapter<Block> {
     @Override
     protected void write0(ByteBuf buf) {
         Assert.isTrue(chainBlock != null, "Not init chainBlock");
-        chainBlock.writeHeader(buf).writeTxCount(buf).writeTxBody(buf);
+        chainBlock.serialization(buf);
     }
 
     @Override

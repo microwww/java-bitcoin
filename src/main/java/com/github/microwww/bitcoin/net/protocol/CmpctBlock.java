@@ -17,7 +17,7 @@ public class CmpctBlock extends AbstractProtocolAdapter<CmpctBlock> {
 
     @Override
     protected void write0(ByteBuf buf) {
-        chainBlock.writeHeader(buf).writeTxCount(buf).writeTxBody(buf);
+        chainBlock.serialization(buf);
     }
 
     @Override

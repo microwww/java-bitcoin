@@ -53,6 +53,10 @@ public class BlockHeader implements Serializable {
         txCount = UintVar.parse(bf);
     }
 
+    public int bytesLength() {
+        return HEADER_LENGTH + txCount.bytesLength();
+    }
+
     public Uint256 txid() {
         return hash();
     }
