@@ -13,12 +13,12 @@ public class Tx extends AbstractProtocolAdapter<Tx> {
 
     @Override
     protected void write0(ByteBuf buf) {
-        transaction.write(buf);
+        transaction.serialization(buf);
     }
 
     @Override
     protected Tx read0(ByteBuf buf) {
-        transaction.read(buf);
+        transaction.deserialization(buf);
         return this;
     }
 

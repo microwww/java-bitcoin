@@ -41,12 +41,12 @@ public class ChainBlock implements ByteSerializable {
         return this;
     }
 
-    public ChainBlock readBody(ByteBuf bf) {
+    private ChainBlock readBody(ByteBuf bf) {
         int len = this.header.getTxCount().intValue();
         txs = new RawTransaction[len];
         for (int i = 0; i < len; i++) {
             RawTransaction tr = new RawTransaction();
-            tr.read(bf);
+            tr.deserialization(bf);
             txs[i] = tr;
         }
         return this;
@@ -77,7 +77,7 @@ public class ChainBlock implements ByteSerializable {
             RawTransaction tx = this.txs[i];
             int ix = bf.writerIndex();
             FileTransaction ft = new FileTransaction(tx).setPosition(ix);
-            tx.write(bf);
+            tx.serialization(bf);
             ft.setLength(bf.writerIndex() - ix);
             fts[i] = ft;
         }
@@ -140,13 +140,13 @@ public class ChainBlock implements ByteSerializable {
         return sb;
     }
 
-    public byte[] serialization() {
-        return ByteUtil.readAll(serialization(Unpooled.buffer()));
+    public ChainBlock reset(ByteBuf buffer) {
+        this.deserialization(buffer);
+        return this;
     }
 
-    @Override
-    public ByteBuf serialization(ByteBuf buffer) {
-        return this.serialization(buffer, true);
+    public byte[] serialization() {
+        return ByteUtil.readAll(serialization(Unpooled.buffer()));
     }
 
     public ByteBuf serialization(ByteBuf buffer, boolean tx) {
@@ -157,6 +157,11 @@ public class ChainBlock implements ByteSerializable {
             UintVar.valueOf(0).write(buffer);
         }
         return buffer;
+    }
+
+    @Override
+    public ByteBuf serialization(ByteBuf buffer) {
+        return this.serialization(buffer, true);
     }
 
     @Override

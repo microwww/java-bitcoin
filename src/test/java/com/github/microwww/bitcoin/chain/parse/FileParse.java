@@ -34,8 +34,7 @@ class FileParse {
             int len = buffer.readIntLE();
             // Assertions.assertTrue(len <= buffer.readableBytes());
             ChainBlock rawBlock = new ChainBlock();
-            rawBlock.readHeader(buffer);
-            rawBlock.readBody(buffer);
+            rawBlock.reset(buffer);
             list.add(rawBlock);
         }
         Assertions.assertEquals(list.get(0).hash(), list.get(1).header.getPreHash());
@@ -73,8 +72,7 @@ class FileParse {
                 }
                 bf.clear().writeBytes(bytes);
                 ChainBlock rawBlock = new ChainBlock();
-                rawBlock.readHeader(bf);
-                rawBlock.readBody(bf);
+                rawBlock.reset(bf);
                 System.out.println("SKIP CHECK MARGE " + new Uint32(marge).toHex() + ", " + i + ", " + rawBlock.toString());
                 Thread.sleep(100);
             }
@@ -122,7 +120,7 @@ class FileParse {
 
             // System.out.println(i + ", magic : " + ByteUtil.hex(magic) + ", position " + position + ", len " + len);
             try {
-                ChainBlock chainBlock = new ChainBlock().readHeader(ub).readBody(ub);
+                ChainBlock chainBlock = new ChainBlock().reset(ub);
                 System.out.println(chainBlock.hash() + " , " + chainBlock.header.getPreHash());
             } catch (RuntimeException e) {
                 ub.readerIndex(0);

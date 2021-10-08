@@ -11,7 +11,6 @@ import com.github.microwww.bitcoin.wallet.util.Base58;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -100,7 +99,7 @@ class TemplateTransactionTest {
         RawTransaction tx = new RawTransaction();
         byte[] dt = ByteUtil.hex(strings.get(index));
         ByteBuf bf = Unpooled.copiedBuffer(dt);
-        tx.read(bf);
+        tx.deserialization(bf);
         return tx;
     }
 

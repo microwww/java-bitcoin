@@ -80,7 +80,7 @@ public class FileTransaction {
             i += read; // read enough
         }
         RawTransaction rt = new RawTransaction();
-        rt.read(bf);
+        rt.deserialization(bf);
         return rt;
     }
 }

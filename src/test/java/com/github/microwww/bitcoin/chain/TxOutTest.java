@@ -20,7 +20,7 @@ class TxOutTest {
         byte[] dt = ByteUtil.hex(strings.get(107));
         ByteBuf bf = Unpooled.copiedBuffer(dt);
         RawTransaction tx = new RawTransaction();
-        tx.read(bf);
+        tx.deserialization(bf);
         assertEquals("1df429446c40ea5bb4f65330ef3765a9276fc270918ff2e2af72d54fa2cfbfe4", tx.hash().toHexReverse256());
 
         String s = tx.getTxOuts()[0].loadAddress().get().toBase58Address(Env.MAIN);
@@ -36,7 +36,7 @@ class TxOutTest {
         byte[] dt = ByteUtil.hex(strings.get(64));
         ByteBuf bf = Unpooled.copiedBuffer(dt);
         RawTransaction tx = new RawTransaction();
-        tx.read(bf);
+        tx.deserialization(bf);
         assertEquals("0437cd7f8525ceed2324359c2d0ba26006d92d856a9c20fa0241106ee5a597c9", tx.hash().toHexReverse256());
 
         String s = tx.getTxOuts()[0].loadAddress().get().toBase58Address(Env.MAIN);

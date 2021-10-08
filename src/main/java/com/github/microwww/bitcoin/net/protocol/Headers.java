@@ -18,7 +18,7 @@ public class Headers extends AbstractProtocolAdapter<Headers> {
         int count = UintVar.parse(buf).intValueExact();
         BlockHeader[] blocks = new BlockHeader[count];
         for (int i = 0; i < count; i++) {
-            blocks[i] = new ChainBlock().readHeader(buf).header;
+            blocks[i] = new ChainBlock().reset(buf).header;
         }
         this.chainBlocks = blocks;
         return this;

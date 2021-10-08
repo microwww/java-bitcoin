@@ -22,7 +22,7 @@ public class CmpctBlock extends AbstractProtocolAdapter<CmpctBlock> {
 
     @Override
     protected CmpctBlock read0(ByteBuf buf) {
-        chainBlock = new ChainBlock().readHeader(buf).readBody(buf);
+        chainBlock = new ChainBlock().reset(buf);
         return this;
     }
 

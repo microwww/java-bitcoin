@@ -52,14 +52,14 @@ class InterpreterTest {
         {
             byte[] dt = ByteUtil.hex(strings.get(64));
             ByteBuf bf = Unpooled.copiedBuffer(dt);
-            tx1.read(bf);
+            tx1.deserialization(bf);
             assertEquals("0437cd7f8525ceed2324359c2d0ba26006d92d856a9c20fa0241106ee5a597c9", tx1.hash().toHexReverse256());
         }
         RawTransaction tx2 = new RawTransaction();
         {
             byte[] dt = ByteUtil.hex(strings.get(65));
             ByteBuf bf = Unpooled.copiedBuffer(dt);
-            tx2.read(bf);
+            tx2.deserialization(bf);
             assertEquals("f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16", tx2.hash().toHexReverse256());
         }
         byte[] spk = tx1.getTxOuts()[0].getScriptPubKey();
@@ -79,7 +79,7 @@ class InterpreterTest {
         {
             byte[] dt = ByteUtil.hex(strings.get(72));
             ByteBuf bf = Unpooled.copiedBuffer(dt);
-            tx1.read(bf);
+            tx1.deserialization(bf);
             assertEquals("3335ffae0df20c5407e8de12b49405c8e912371f00fe4132bfaf95ad49c40243", tx1.hash().toHexReverse256());
         }
 
@@ -183,7 +183,7 @@ class InterpreterTest {
         {
             byte[] dt = ByteUtil.hex(strings.get(81));
             ByteBuf bf = Unpooled.copiedBuffer(dt);
-            tx.read(bf);
+            tx.deserialization(bf);
             assertEquals("321a59707939041eeb0d524f34432c0c46ca3920f0964e6c23697581f176b6c0", tx.hash().toHexReverse256());
         }
 
@@ -443,7 +443,7 @@ class InterpreterTest {
         RawTransaction tx = new RawTransaction();
         byte[] dt = ByteUtil.hex(strings.get(index));
         ByteBuf bf = Unpooled.copiedBuffer(dt);
-        tx.read(bf);
+        tx.deserialization(bf);
         return tx;
     }
 }

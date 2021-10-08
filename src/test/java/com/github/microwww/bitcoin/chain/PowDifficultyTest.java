@@ -101,13 +101,13 @@ class PowDifficultyTest {
         byte[] H112896 = ByteUtil.hex("01000000961f982c7914224a9b5293f810cc8e02d457179a64cff43fbb37000000000000e58aa2dedb2ecf091eb0779407be6477abca61ff3d8963a3b73cbed0e66ddf2a039c774d31dc001bef5b6d5400");
 
         ByteBuf bf = Unpooled.buffer().writeBytes(H112896);
-        ChainBlock start = new ChainBlock().readHeader(bf).readBody(bf);
+        ChainBlock start = new ChainBlock().reset(bf);
         assertArrayEquals(start.hash().reverse256bit(), ByteUtil.hex("000000000000cb6aeb7e251ed31a814d9631b5fe3d6994e00229f7ebbfae5344"));
         bf.clear().writeBytes(H114911);
-        ChainBlock end = new ChainBlock().readHeader(bf).readBody(bf);
+        ChainBlock end = new ChainBlock().reset(bf);
         assertArrayEquals(end.hash().reverse256bit(), ByteUtil.hex("0000000000008008f46559fe7f181e9dc0648f213472a1e576e8bf506b88f22f"));
         bf.clear().writeBytes(H114912);
-        ChainBlock target = new ChainBlock().readHeader(bf).readBody(bf);
+        ChainBlock target = new ChainBlock().reset(bf);
         assertArrayEquals(target.hash().reverse256bit(), ByteUtil.hex("000000000000a8c2cc7f45568c20d3498eba889a182dd72db10d7e7a98fb9f97"));
 
         end.header.setHeight(114911);
@@ -128,14 +128,14 @@ class PowDifficultyTest {
         byte[] H2016 = ByteUtil.hex("010000006397bb6abd4fc521c0d3f6071b5650389f0b4551bc40b4e6b067306900000000ace470aecda9c8818c8fe57688cd2a772b5a57954a00df0420a7dd546b6d2c576b0e7f49ffff001d33f0192f00");
 
         ByteBuf bf = Unpooled.buffer().writeBytes(H0000);
-        ChainBlock start = new ChainBlock().readHeader(bf).readBody(bf);
+        ChainBlock start = new ChainBlock().reset(bf);
         start.setTxs(new RawTransaction[]{});
         assertArrayEquals(start.hash().reverse256bit(), ByteUtil.hex("000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"));
         bf.clear().writeBytes(H2015);
-        ChainBlock end = new ChainBlock().readHeader(bf).readBody(bf);
+        ChainBlock end = new ChainBlock().reset(bf);
         assertArrayEquals(end.hash().reverse256bit(), ByteUtil.hex("00000000693067b0e6b440bc51450b9f3850561b07f6d3c021c54fbd6abb9763"));
         bf.clear().writeBytes(H2016);
-        ChainBlock target = new ChainBlock().readHeader(bf).readBody(bf);
+        ChainBlock target = new ChainBlock().reset(bf);
         assertArrayEquals(target.hash().reverse256bit(), ByteUtil.hex("00000000a141216a896c54f211301c436e557a8d55900637bbdce14c6c7bddef"));
 
         end.header.setHeight(2015);

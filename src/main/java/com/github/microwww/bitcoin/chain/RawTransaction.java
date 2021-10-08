@@ -20,7 +20,7 @@ public class RawTransaction implements ByteSerializable {
     private TxOut[] txOuts = new TxOut[]{};
     private Uint32 lockTime = Uint32.ZERO;
 
-    public void read(ByteBuf bf) {
+    private void read(ByteBuf bf) {
         version = bf.readIntLE();
         UintVar inputCount = UintVar.parse(bf);
         if (inputCount.intValueExact() == 0) {
@@ -74,7 +74,7 @@ public class RawTransaction implements ByteSerializable {
         return new Uint256(ByteUtil.sha256sha256(ByteUtil.readAll(bf)));
     }
 
-    public void write(ByteBuf bf) {
+    private void write(ByteBuf bf) {
         boolean flag = false;
         for (TxIn txIn : this.getTxIns()) {
             if (txIn.getTxWitness() != null) {
@@ -90,12 +90,7 @@ public class RawTransaction implements ByteSerializable {
         return buffer;
     }
 
-    @Override
-    public ByteBuf serialization(ByteBuf buffer) {
-        return serialization(buffer, this.flag);
-    }
-
-    public void write(ByteBuf bf, int witness) {
+    private void write(ByteBuf bf, int witness) {
         bf.writeIntLE(version);
         //////// IN
         if (witness != 0) {
@@ -264,6 +259,11 @@ public class RawTransaction implements ByteSerializable {
     private static StringBuilder hexLength(StringBuilder sb, ByteBuf buf, int len) {
         ByteUtil.hex(sb, buf, len);
         return sb;
+    }
+
+    @Override
+    public ByteBuf serialization(ByteBuf buffer) {
+        return serialization(buffer, this.flag);
     }
 
     @Override

@@ -47,7 +47,7 @@ class WitnessSingleSignatureTransactionTest {
         RawTransaction tx = new RawTransaction();
         byte[] dt = ByteUtil.hex(strings.get(index));
         ByteBuf bf = Unpooled.copiedBuffer(dt);
-        tx.read(bf);
+        tx.deserialization(bf);
         return tx;
     }
 }

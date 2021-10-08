@@ -65,7 +65,7 @@ public class FileChainBlock {
             f.rewind();
             cache.writeBytes(f);
         }
-        this.block = new ChainBlock().readHeader(cache).readBody(cache);
+        this.block = new ChainBlock().reset(cache);
         Assert.isTrue(cache.readerIndex() == len + 8, "Fill block bytes.length != block read length");
         channel.position(this.position + cache.readerIndex());
         logger.debug("Read File : {}, Position: {}", file.getName(), this.position);
