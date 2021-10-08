@@ -61,8 +61,15 @@ public class FileTransaction {
     }
 
     public RawTransaction readFileRawTransaction() throws IOException {
+        try (
+                FileChannel fc = new RandomAccessFile(this.file, "r").getChannel()
+        ) {
+            return readFileRawTransaction(fc);
+        }
+    }
+
+    public RawTransaction readFileRawTransaction(FileChannel fc) throws IOException {
         ByteBuf bf = Unpooled.buffer();
-        FileChannel fc = new RandomAccessFile(this.file, "r").getChannel();
         fc.position(this.position);
         ByteBuffer bb = ByteBuffer.allocate(1024 * 10);
         for (int i = 0; i < this.getLength(); i++) {
