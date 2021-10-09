@@ -64,12 +64,12 @@ public class DiskBlock implements Closeable {
             FileChannel channel = new RandomAccessFile(file, "r").getChannel();
             channel.position(0);
             while (channel.position() < length) {
-                FileChainBlock fc = new FileChainBlock(file).setPosition(channel.position())
-                        .readBlock(bf, channel);
+                FileChainBlock fc = new FileChainBlock(file, channel.position());
+                fc.readBlock(bf, channel);
                 int magic = chainParams.getEnvParams().getMagic();
                 Assert.isTrue(fc.getMagic() == chainParams.getEnvParams().getMagic(), "Env is not match , need : " + magic);
-                Uint256 preHash = fc.getBlock().header.getPreHash();
-                Uint256 hash = fc.getBlock().hash();
+                Uint256 preHash = fc.target().header.getPreHash();
+                Uint256 hash = fc.target().hash();
                 int height = indexHeight.getHeight(preHash);
                 if (height < 0) {
                     Optional<IndexBlock.HeightBlock> opt = indexBlock.findChainBlockInLevelDB(preHash);
@@ -190,8 +190,6 @@ public class DiskBlock implements Closeable {
     private synchronized FileChainBlock write(ChainBlock block) {
         try {
             FileChainBlock fc = fileAccess.writeBlock(block);
-            fc.setBlock(block);
-            fc.setMagic(chainParams.getEnvParams().getMagic());
             return fc;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -199,7 +197,7 @@ public class DiskBlock implements Closeable {
     }
 
     private IndexBlock.HeightBlock indexBlock(FileChainBlock write, int height) {
-        ChainBlock block = write.getBlock();
+        ChainBlock block = write.target();
         if (logger.isDebugEnabled())
             logger.debug("Add BLOCK to levelDB: {}, {} , {} , {}", write.getPosition(), height, block.hash(), block.header.getPreHash());
         Assert.isTrue(write.getPosition() < Integer.MAX_VALUE, "Int overflow");
@@ -223,7 +221,7 @@ public class DiskBlock implements Closeable {
             return Optional.empty();
         }
         logger.debug("Get block from levelDB: {}", hash.toHexReverse256());
-        data.get().getFileChainBlock().loadBlock();
+        data.get().getFileChainBlock().load();
         ChainBlock block = data.get().getBlock();
         block.header.setHeight(data.get().getHeight());
         return Optional.of(block);

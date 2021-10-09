@@ -3,7 +3,6 @@ package com.github.microwww.bitcoin.chain;
 import com.github.microwww.bitcoin.math.MerkleTree;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.UintVar;
-import com.github.microwww.bitcoin.store.FileTransaction;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -67,21 +66,6 @@ public class ChainBlock implements ByteSerializable {
         for (RawTransaction tx : this.txs) {
             tx.serialization(bf);
         }
-    }
-
-    public FileTransaction[] transactionPosition() {
-        ByteBuf bf = Unpooled.buffer();
-        this.writeHeader(bf).writeTxCount(bf);
-        FileTransaction[] fts = new FileTransaction[this.txs.length];
-        for (int i = 0; i < this.txs.length; i++) {
-            RawTransaction tx = this.txs[i];
-            int ix = bf.writerIndex();
-            FileTransaction ft = new FileTransaction(tx).setPosition(ix);
-            tx.serialization(bf);
-            ft.setLength(bf.writerIndex() - ix);
-            fts[i] = ft;
-        }
-        return fts;
     }
 
     public Uint256 hash() {

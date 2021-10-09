@@ -73,20 +73,38 @@ public class IndexTransaction implements Closeable {
     }
 
     public void indexTransaction(FileChainBlock fc) {
-        FileTransaction[] fts = fc.getBlock().transactionPosition();
+        int magicAndLengthBytes = 8;
+        FileTransaction[] fts = this.transactionPosition(fc);
         for (FileTransaction ft : fts) {
-            int magicAndLengthBytes = 8;
-            ft.setPosition(ft.getPosition() + magicAndLengthBytes + fc.getPosition());
-            ft.setFile(fc.getFile());
+            ft.position += magicAndLengthBytes + fc.getPosition();
         }
         this.serializationTransaction(fts);
+    }
+
+    public FileTransaction[] transactionPosition(FileChainBlock fc) {
+        ChainBlock chainBlock = fc.getTarget().get();
+        ByteBuf bf = Unpooled.buffer();
+        int offset = chainBlock.header.bytesLength();
+        RawTransaction[] txs = chainBlock.getTxs();
+        FileTransaction[] fts = new FileTransaction[txs.length];
+        for (int i = 0; i < txs.length; i++) {
+            RawTransaction tx = txs[i];
+            int ix = bf.writerIndex();
+            tx.serialization(bf);
+
+            FileTransaction ft = new FileTransaction(fc.getFile(), tx);
+            ft.position = ix + offset;
+            ft.setLength(bf.writerIndex() - ix);
+            fts[i] = ft;
+        }
+        return fts;
     }
 
     private void serializationTransaction(FileTransaction... fts) {
         ByteBuf buffer = Unpooled.buffer();
         for (int i = fts.length - 1; i >= 0; i--) {
             FileTransaction ft = fts[i];
-            RawTransaction tr = ft.getTransaction();
+            RawTransaction tr = ft.getTarget().get();
             this.serializationLevelDB(ft, buffer);
             levelDB.ifPresent(db -> {
                 Uint256 hash = tr.hash();
@@ -128,14 +146,9 @@ public class IndexTransaction implements Closeable {
         int len = buffer.readByte();
         String name = new String(ByteUtil.readLength(buffer, len), StandardCharsets.UTF_8);
         chainParams.getEnvParams().getDataDirPrefix();
-        FileTransaction ft = new FileTransaction(new File(diskBlock.getRoot(), name));
-        ft.setPosition(ps).setLength(length);
-        try {
-            ft.setTransaction(ft.readFileRawTransaction());
-            return ft;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        FileTransaction ft = new FileTransaction(new File(diskBlock.getRoot(), name), ps, length);
+        ft.target = ft.load();
+        return ft;
     }
 
     public DiskBlock getDiskBlock() {
@@ -193,7 +206,7 @@ public class IndexTransaction implements Closeable {
                         throw new IllegalArgumentException("Not find pre-tx: " + in.getPreTxHash());
                     }
                 } else {
-                    preTx = ft.get().getTransaction();
+                    preTx = ft.get().getTarget().get();
                 }
 
                 TxOut txOut = preTx.getTxOuts()[outIndex];

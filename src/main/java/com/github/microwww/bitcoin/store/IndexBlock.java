@@ -58,7 +58,7 @@ public class IndexBlock implements Closeable {
         byte[] bytes = levelDB.get(key);
         if (bytes != null) {
             HeightBlock hb = this.deserializationLevelDB(bytes);
-            hb.fileChainBlock.loadBlock();
+            hb.fileChainBlock.load();
             return Optional.of(hb);
         }
         return Optional.empty();
@@ -70,8 +70,8 @@ public class IndexBlock implements Closeable {
         int position = pool.readIntLE();
         int len = pool.readByte();
         byte[] name = ByteUtil.readLength(pool, len);
-        FileChainBlock f = new FileChainBlock(new File(root, new String(name, StandardCharsets.UTF_8)));
-        f.setPosition(position);
+        File file = new File(root, new String(name, StandardCharsets.UTF_8));
+        FileChainBlock f = new FileChainBlock(file, position);
         HeightBlock h = new HeightBlock(f, height);
         return h;
     }
@@ -102,12 +102,12 @@ public class IndexBlock implements Closeable {
         }
 
         public ChainBlock getBlock() {
-            return fileChainBlock.getBlock();
+            return fileChainBlock.target();
         }
 
         public ChainBlock loadBlock() {
-            fileChainBlock.loadBlock();
-            fileChainBlock.getBlock().header.setHeight(this.height);
+            fileChainBlock.load();
+            fileChainBlock.target().header.setHeight(this.height);
             return this.getBlock();
         }
 

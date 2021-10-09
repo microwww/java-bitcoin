@@ -28,8 +28,8 @@ class IndexTransactionTest {
         ChainBlock gn = params.env.createGenesisBlock();
         FileChainBlock block = tx.getDiskBlock().writeBlock(gn, 0, true).getFileChainBlock();
         tx.indexTransaction(block);
-        Uint256 hash = block.getBlock().getTxs()[0].hash();
-        RawTransaction rt = tx.findTransaction(hash).get().readFileRawTransaction();
+        Uint256 hash = block.getTarget().get().getTxs()[0].hash();
+        RawTransaction rt = tx.findTransaction(hash).get().load();
         assertEquals(hash, rt.hash());
     }
 

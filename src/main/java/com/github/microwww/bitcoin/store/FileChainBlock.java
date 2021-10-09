@@ -9,88 +9,60 @@ import org.springframework.util.Assert;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
-public class FileChainBlock {
+class FileChainBlock extends FilePosition<ChainBlock> {
     private static final Logger logger = LoggerFactory.getLogger(FileChainBlock.class);
-    private final File file;
     private int magic;
-    private long position;
-    private ChainBlock block;
 
-    public FileChainBlock(File file) {
-        this.file = file;
+    public FileChainBlock(File file, ChainBlock target) {
+        super(file, target);
     }
 
-    public FileChainBlock loadBlock() {
-        return loadBlock(false);
+    public FileChainBlock(File file, long position) {
+        super(file, position);
     }
 
-    public FileChainBlock loadBlock(boolean force) {
-        if (block == null || force) {
-            try (FileChannel channel = new RandomAccessFile(file, "r").getChannel()) {
-                channel.position(this.position);
-                readBlock(Unpooled.buffer(), channel);
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
-            }
-        }
-        return this;
+    @Override
+    public ChainBlock deserialization(FileChannel channel) throws IOException {
+        readBlock(channel);
+        return this.target;
     }
 
-    public FileChainBlock readBlock(ByteBuf cache, FileChannel channel) throws IOException {
+    public FileChainBlock readBlock(FileChannel channel) throws IOException {
+        return this.readBlock(Unpooled.buffer(), channel);
+    }
+
+    public FileChainBlock readBlock(ByteBuf buffer, FileChannel channel) throws IOException {
         try {
-            return readBlockWithError(cache, channel);
+            tryReadBlock(buffer, channel);
         } catch (RuntimeException ex) {
-            int i = cache.readerIndex();
+            int i = buffer.readerIndex();
             logger.error("Read block error : {}[{}] bytes-index {}", this.file.getAbsolutePath(), this.position, i);
             throw ex;
         }
+        return this;
     }
 
-    private FileChainBlock readBlockWithError(ByteBuf cache, FileChannel channel) throws IOException {
+    private void tryReadBlock(ByteBuf cache, FileChannel channel) throws IOException {
         ByteBuffer f = ByteBuffer.allocate(1 * 1024 * 1024);
-        channel.position(this.position);
         channel.read(f);
         f.rewind();
         cache.clear().writeBytes(f);
+
+        int magicAndLengthBytes = 8;
         this.magic = cache.readInt();
         int len = cache.readIntLE();
+        // 隔离见证时, 可超过 1M , 最大 4M
         Assert.isTrue(len > 80 && len < 4_000_000, "Data format error, 80 < ? < 4M");
-        while (cache.readableBytes() < len) {
-            f.clear();
-            channel.read(f);
-            f.rewind();
-            cache.writeBytes(f);
-        }
-        this.block = new ChainBlock().reset(cache);
-        Assert.isTrue(cache.readerIndex() == len + 8, "Fill block bytes.length != block read length");
-        channel.position(this.position + cache.readerIndex());
+
+        super.readLength(channel, cache, len);
+
+        this.target = new ChainBlock().reset(cache);
+        Assert.isTrue(cache.readerIndex() == len + magicAndLengthBytes, "Fill block bytes.length != block read length");
+        // channel.position(this.position + cache.readerIndex());
         logger.debug("Read File : {}, Position: {}", file.getName(), this.position);
-        return this;
-    }
-
-    public File getFile() {
-        return file;
-    }
-
-    public ChainBlock getBlock() {
-        return block;
-    }
-
-    public void setBlock(ChainBlock block) {
-        this.block = block;
-    }
-
-    public long getPosition() {
-        return position;
-    }
-
-    public FileChainBlock setPosition(long position) {
-        this.position = position;
-        return this;
     }
 
     public int getMagic() {
@@ -103,6 +75,6 @@ public class FileChainBlock {
     }
 
     public boolean isCache() {
-        return block == null;
+        return target == null;
     }
 }
