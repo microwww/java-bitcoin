@@ -35,36 +35,36 @@ public class IndexBlock implements Closeable {
         }
     }
 
-    public IndexBlock writeChainBlockToLevelDB(HeightBlock hc) {
-        byte[] key = ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hc.getBlock().hash().fill256bit());
+    public IndexBlock writeChainBlockToLevelDB(FileChainBlock hc) {
+        ChainBlock block = hc.getTarget().get();
+        byte[] key = ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, block.hash().fill256bit());
         if (logger.isDebugEnabled())
-            logger.debug("Index Block key: {}, height: {}, block: {}", ByteUtil.hex(key), hc.height, hc.getBlock().hash());
+            logger.debug("Index Block key: {}, height: {}, block: {}", ByteUtil.hex(key), block.getHeight(), block.hash());
         levelDB.put(key, this.serializationLevelDB(hc));
         return this;
     }
 
     public Optional<ChainBlock> findChainBlock(Uint256 hash) {
-        return findChainBlockInLevelDB(hash).map(HeightBlock::loadBlock);
+        return findChainBlockInLevelDB(hash).map(FileChainBlock::load);
     }
 
-    public Optional<HeightBlock> findChainBlockInLevelDB(Uint256 hash) {
+    public Optional<FileChainBlock> findChainBlockInLevelDB(Uint256 hash) {
         return cache.get(hash, () -> {
             byte[] key = ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hash.fill256bit());
             return this.findChainBlockInLevelDB(key);
         });
     }
 
-    private synchronized Optional<HeightBlock> findChainBlockInLevelDB(byte[] key) {
+    private synchronized Optional<FileChainBlock> findChainBlockInLevelDB(byte[] key) {
         byte[] bytes = levelDB.get(key);
         if (bytes != null) {
-            HeightBlock hb = this.deserializationLevelDB(bytes);
-            hb.fileChainBlock.load();
+            FileChainBlock hb = this.deserializationLevelDB(bytes);
             return Optional.of(hb);
         }
         return Optional.empty();
     }
 
-    private HeightBlock deserializationLevelDB(byte[] data) {
+    private FileChainBlock deserializationLevelDB(byte[] data) {
         ByteBuf pool = Unpooled.copiedBuffer(data);
         int height = pool.readIntLE();
         int position = pool.readIntLE();
@@ -72,15 +72,16 @@ public class IndexBlock implements Closeable {
         byte[] name = ByteUtil.readLength(pool, len);
         File file = new File(root, new String(name, StandardCharsets.UTF_8));
         FileChainBlock f = new FileChainBlock(file, position);
-        HeightBlock h = new HeightBlock(f, height);
-        return h;
+        f.load();
+        f.getTarget().get().header.setHeight(height);
+        return f;
     }
 
     // height + position + <name-len> + name
-    private byte[] serializationLevelDB(HeightBlock block) {
+    private byte[] serializationLevelDB(FileChainBlock block) {
         ByteBuf pool = Unpooled.buffer(32); // 4 + 4 + 1 + 12
-        byte[] name = block.fileChainBlock.getFile().getName().getBytes(StandardCharsets.UTF_8);
-        pool.clear().writeIntLE(block.height).writeIntLE((int) block.fileChainBlock.getPosition()).writeByte(name.length).writeBytes(name);
+        byte[] name = block.getFile().getName().getBytes(StandardCharsets.UTF_8);
+        pool.clear().writeIntLE(block.getTarget().get().getHeight()).writeIntLE((int) block.getPosition()).writeByte(name.length).writeBytes(name);
         return ByteUtil.readAll(pool);
     }
 
@@ -90,33 +91,5 @@ public class IndexBlock implements Closeable {
 
     public void close() throws IOException {
         levelDB.close();
-    }
-
-    static class HeightBlock {
-        public final FileChainBlock fileChainBlock;
-        public final int height;
-
-        public HeightBlock(FileChainBlock block, int height) {
-            this.fileChainBlock = block;
-            this.height = height;
-        }
-
-        public ChainBlock getBlock() {
-            return fileChainBlock.target();
-        }
-
-        public ChainBlock loadBlock() {
-            fileChainBlock.load();
-            fileChainBlock.target().header.setHeight(this.height);
-            return this.getBlock();
-        }
-
-        public FileChainBlock getFileChainBlock() {
-            return fileChainBlock;
-        }
-
-        public int getHeight() {
-            return height;
-        }
     }
 }

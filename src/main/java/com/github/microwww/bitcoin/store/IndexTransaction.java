@@ -68,7 +68,7 @@ public class IndexTransaction implements Closeable {
     }
 
     public void indexTransaction(ChainBlock block) {
-        FileChainBlock fc = diskBlock.getIndexBlock().findChainBlockInLevelDB(block.hash()).get().getFileChainBlock();
+        FileChainBlock fc = diskBlock.getIndexBlock().findChainBlockInLevelDB(block.hash()).get();
         indexTransaction(fc);
     }
 

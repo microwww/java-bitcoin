@@ -11,18 +11,18 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-public class BlockCache {
+public class BlockCache<T> {
     private static final Logger logger = LoggerFactory.getLogger(BlockCache.class);
     public static int MAX_CACHE = 2 * 24 * 6;
-    private Map<Uint256, IndexBlock.HeightBlock> cache = Collections.synchronizedMap(new LinkedHashMap<>(MAX_CACHE + 10)); // 缓存 2 天的块
+    private Map<Uint256, T> cache = Collections.synchronizedMap(new LinkedHashMap<>(MAX_CACHE + 10)); // 缓存 2 天的块
     private AtomicInteger count = new AtomicInteger();
     private AtomicInteger hit = new AtomicInteger();
 
-    public Optional<IndexBlock.HeightBlock> get(Uint256 key, Supplier<Optional<IndexBlock.HeightBlock>> supplier) {
+    public Optional<T> get(Uint256 key, Supplier<Optional<T>> supplier) {
         int v = count.incrementAndGet();
         if (logger.isDebugEnabled() && v % 100 == 0)
             logger.debug("Cache HIT {}/{} ", hit.intValue(), v);
-        IndexBlock.HeightBlock h = cache.get(key);
+        T h = cache.get(key);
         if (h == null) {
             return supplier.get();
         }
@@ -30,7 +30,7 @@ public class BlockCache {
         return Optional.of(h);
     }
 
-    public IndexBlock.HeightBlock put(Uint256 key, IndexBlock.HeightBlock value) {
+    public T put(Uint256 key, T value) {
         int size = cache.size();
         int c = size - MAX_CACHE;
         if (c >= 0) {
