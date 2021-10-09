@@ -6,11 +6,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 public class Height {
-    private Uint256 hash;
-    private int height;
-
-    public Height() {
-    }
+    private final Uint256 hash;
+    private final int height;
 
     public Height(Uint256 hash, int height) {
         this.hash = hash;
@@ -21,18 +18,8 @@ public class Height {
         return hash;
     }
 
-    public Height setHash(Uint256 hash) {
-        this.hash = hash;
-        return this;
-    }
-
     public int getHeight() {
         return height;
-    }
-
-    public Height setHeight(int height) {
-        this.height = height;
-        return this;
     }
 
     public byte[] serialization() {

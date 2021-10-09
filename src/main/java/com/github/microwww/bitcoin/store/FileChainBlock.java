@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
-class FileChainBlock extends FilePosition<ChainBlock> {
+class FileChainBlock extends AbstractFilePosition<ChainBlock> {
     private static final Logger logger = LoggerFactory.getLogger(FileChainBlock.class);
     private int magic;
 

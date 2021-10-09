@@ -8,7 +8,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 
-class FileTransaction extends FilePosition<RawTransaction> {
+class FileTransaction extends AbstractFilePosition<RawTransaction> {
 
     private int length;
 

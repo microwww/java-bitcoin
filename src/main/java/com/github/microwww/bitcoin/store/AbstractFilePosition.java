@@ -10,17 +10,17 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Optional;
 
-public abstract class FilePosition<T extends ByteSerializable> {
+public abstract class AbstractFilePosition<T extends ByteSerializable> {
     protected final File file;
     protected T target;
     protected long position;
 
-    public FilePosition(File file, long position) {
+    public AbstractFilePosition(File file, long position) {
         this.file = file;
         this.position = position;
     }
 
-    public FilePosition(File file, T target) {
+    public AbstractFilePosition(File file, T target) {
         this.file = file;
         this.target = target;
     }
