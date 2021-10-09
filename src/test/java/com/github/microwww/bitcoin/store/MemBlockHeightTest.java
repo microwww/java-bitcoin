@@ -52,8 +52,8 @@ class MemBlockHeightTest {
 
     @Test
     void tryAdd() {
-        HeightBlock start = diskBlock.getIndexHeight().getLastBlock();
-        List<ChainBlock> block = createChainBlock(start.getBlock(), 100);
+        ChainBlock start = diskBlock.getIndexHeight().getLastBlock();
+        List<ChainBlock> block = createChainBlock(start, 100);
         IndexHeight mh = diskBlock.getIndexHeight();
         for (int i = 1; i < block.size(); i++) {
             ChainBlock chainBlock = block.get(i);
@@ -61,7 +61,7 @@ class MemBlockHeightTest {
         }
         System.out.println(mh.toString());
         assertEquals(100, mh.getLastHeight().getHeight());
-        assertEquals(mh.get(start.getHeight()).get(), start.getBlock().hash());
+        assertEquals(mh.get(start.getHeight()).get(), start.hash());
         assertEquals(mh.get(mh.getLastHeight().getHeight()).get(), block.get(block.size() - 1).hash());
     }
 
@@ -86,8 +86,8 @@ class MemBlockHeightTest {
 
     @Test
     void conflictHeight() {
-        HeightBlock start = diskBlock.getIndexHeight().getLastBlock();
-        List<ChainBlock> chains = createChainBlock(start.getBlock(), 10);
+        ChainBlock start = diskBlock.getIndexHeight().getLastBlock();
+        List<ChainBlock> chains = createChainBlock(start, 10);
         int latest = start.getHeight() + 10;
         for (ChainBlock chain : chains) {
             diskBlock.writeBlock(chain, true);

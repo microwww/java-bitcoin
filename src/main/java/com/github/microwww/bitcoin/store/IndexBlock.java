@@ -1,5 +1,6 @@
 package com.github.microwww.bitcoin.store;
 
+import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.ChainBlockStore;
 import com.github.microwww.bitcoin.math.Uint256;
@@ -37,9 +38,13 @@ public class IndexBlock implements Closeable {
     public IndexBlock writeChainBlockToLevelDB(HeightBlock hc) {
         byte[] key = ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hc.getBlock().hash().fill256bit());
         if (logger.isDebugEnabled())
-            logger.debug("Index Block key: {}, height: {}, block: {}", ByteUtil.hex(key), hc.getHeight(), hc.getBlock().hash());
+            logger.debug("Index Block key: {}, height: {}, block: {}", ByteUtil.hex(key), hc.height, hc.getBlock().hash());
         levelDB.put(key, this.serializationLevelDB(hc));
         return this;
+    }
+
+    public Optional<ChainBlock> findChainBlock(Uint256 hash) {
+        return findChainBlockInLevelDB(hash).map(HeightBlock::loadBlock);
     }
 
     public Optional<HeightBlock> findChainBlockInLevelDB(Uint256 hash) {
@@ -53,7 +58,7 @@ public class IndexBlock implements Closeable {
         byte[] bytes = levelDB.get(key);
         if (bytes != null) {
             HeightBlock hb = this.deserializationLevelDB(bytes);
-            hb.getFileChainBlock().loadBlock();
+            hb.fileChainBlock.loadBlock();
             return Optional.of(hb);
         }
         return Optional.empty();
@@ -74,8 +79,8 @@ public class IndexBlock implements Closeable {
     // height + position + <name-len> + name
     private byte[] serializationLevelDB(HeightBlock block) {
         ByteBuf pool = Unpooled.buffer(32); // 4 + 4 + 1 + 12
-        byte[] name = block.getFileChainBlock().getFile().getName().getBytes(StandardCharsets.UTF_8);
-        pool.clear().writeIntLE(block.getHeight()).writeIntLE((int) block.getFileChainBlock().getPosition()).writeByte(name.length).writeBytes(name);
+        byte[] name = block.fileChainBlock.getFile().getName().getBytes(StandardCharsets.UTF_8);
+        pool.clear().writeIntLE(block.height).writeIntLE((int) block.fileChainBlock.getPosition()).writeByte(name.length).writeBytes(name);
         return ByteUtil.readAll(pool);
     }
 
@@ -85,5 +90,33 @@ public class IndexBlock implements Closeable {
 
     public void close() throws IOException {
         levelDB.close();
+    }
+
+    static class HeightBlock {
+        public final FileChainBlock fileChainBlock;
+        public final int height;
+
+        public HeightBlock(FileChainBlock block, int height) {
+            this.fileChainBlock = block;
+            this.height = height;
+        }
+
+        public ChainBlock getBlock() {
+            return fileChainBlock.getBlock();
+        }
+
+        public ChainBlock loadBlock() {
+            fileChainBlock.loadBlock();
+            fileChainBlock.getBlock().header.setHeight(this.height);
+            return this.getBlock();
+        }
+
+        public FileChainBlock getFileChainBlock() {
+            return fileChainBlock;
+        }
+
+        public int getHeight() {
+            return height;
+        }
     }
 }

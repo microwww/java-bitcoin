@@ -50,9 +50,9 @@ public class IndexHeight {
         return null;
     }
 
-    public HeightBlock getLastBlock() {
+    public ChainBlock getLastBlock() {
         Height lastHeight = this.getLastHeight();
-        return indexBlock.findChainBlockInLevelDB(lastHeight.getHash()).get();
+        return indexBlock.findChainBlock(lastHeight.getHash()).get();
     }
 
     public synchronized int tryPush(ChainBlock block) {
@@ -103,7 +103,7 @@ public class IndexHeight {
     }
 
     public synchronized int getHeight(Uint256 hash) {
-        return indexBlock.findChainBlockInLevelDB(hash).map(HeightBlock::getHeight).orElse(-1);
+        return indexBlock.findChainBlockInLevelDB(hash).map(IndexBlock.HeightBlock::getHeight).orElse(-1);
     }
 
     public ChainBlock getGenerate() {

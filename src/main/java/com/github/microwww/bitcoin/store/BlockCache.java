@@ -14,15 +14,15 @@ import java.util.function.Supplier;
 public class BlockCache {
     private static final Logger logger = LoggerFactory.getLogger(BlockCache.class);
     public static int MAX_CACHE = 2 * 24 * 6;
-    private Map<Uint256, HeightBlock> cache = Collections.synchronizedMap(new LinkedHashMap<>(MAX_CACHE + 10)); // 缓存 2 天的块
+    private Map<Uint256, IndexBlock.HeightBlock> cache = Collections.synchronizedMap(new LinkedHashMap<>(MAX_CACHE + 10)); // 缓存 2 天的块
     private AtomicInteger count = new AtomicInteger();
     private AtomicInteger hit = new AtomicInteger();
 
-    public Optional<HeightBlock> get(Uint256 key, Supplier<Optional<HeightBlock>> supplier) {
+    public Optional<IndexBlock.HeightBlock> get(Uint256 key, Supplier<Optional<IndexBlock.HeightBlock>> supplier) {
         int v = count.incrementAndGet();
         if (logger.isDebugEnabled() && v % 100 == 0)
             logger.debug("Cache HIT {}/{} ", hit.intValue(), v);
-        HeightBlock h = cache.get(key);
+        IndexBlock.HeightBlock h = cache.get(key);
         if (h == null) {
             return supplier.get();
         }
@@ -30,7 +30,7 @@ public class BlockCache {
         return Optional.of(h);
     }
 
-    public HeightBlock put(Uint256 key, HeightBlock value) {
+    public IndexBlock.HeightBlock put(Uint256 key, IndexBlock.HeightBlock value) {
         int size = cache.size();
         int c = size - MAX_CACHE;
         if (c >= 0) {
