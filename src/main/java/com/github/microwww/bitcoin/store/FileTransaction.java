@@ -10,15 +10,16 @@ import java.nio.channels.FileChannel;
 
 class FileTransaction extends AbstractFilePosition<RawTransaction> {
 
-    private int length;
+    private final int length;
 
     public FileTransaction(File file, long position, int length) {
         super(file, position);
         this.length = length;
     }
 
-    public FileTransaction(File file, RawTransaction target) {
-        super(file, target);
+    public FileTransaction(File file, long position, int length, RawTransaction target) {
+        super(file, position, target);
+        this.length = length;
     }
 
     @Override
@@ -36,10 +37,5 @@ class FileTransaction extends AbstractFilePosition<RawTransaction> {
 
     public int getLength() {
         return length;
-    }
-
-    public FileTransaction setLength(int length) {
-        this.length = length;
-        return this;
     }
 }

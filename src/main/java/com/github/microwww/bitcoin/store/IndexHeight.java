@@ -103,7 +103,7 @@ public class IndexHeight {
     }
 
     public synchronized int getHeight(Uint256 hash) {
-        return indexBlock.findChainBlockInLevelDB(hash).map(e -> e.getTarget().get().getHeight()).orElse(-1);
+        return indexBlock.findChainBlockInLevelDB(hash).map(e -> e.getTarget().getHeight()).orElse(-1);
     }
 
     public ChainBlock getGenerate() {

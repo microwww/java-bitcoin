@@ -2,39 +2,36 @@ package com.github.microwww.bitcoin.store;
 
 import com.github.microwww.bitcoin.chain.ByteSerializable;
 import io.netty.buffer.ByteBuf;
+import org.springframework.util.Assert;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.Optional;
 
 public abstract class AbstractFilePosition<T extends ByteSerializable> {
     protected final File file;
+    protected final long position;
     protected T target;
-    protected long position;
 
     public AbstractFilePosition(File file, long position) {
         this.file = file;
         this.position = position;
     }
 
-    public AbstractFilePosition(File file, T target) {
+    public AbstractFilePosition(File file, long position, T target) {
         this.file = file;
+        this.position = position;
         this.target = target;
     }
 
-    public Optional<T> getTarget() {
-        return Optional.ofNullable(target);
-    }
-
-    public T target() {
+    public T getTarget() {
+        if (target == null) {
+            target = load(false);
+        }
+        Assert.isTrue(target != null, "Loading TARGET error");
         return target;
-    }
-
-    public T load() {
-        return load(false);
     }
 
     public File getFile() {
@@ -45,7 +42,7 @@ public abstract class AbstractFilePosition<T extends ByteSerializable> {
         return position;
     }
 
-    public T load(boolean force) {
+    protected T load(boolean force) {
         if (target == null || force) {
             try (FileChannel channel = new RandomAccessFile(file, "r").getChannel()) {
                 channel.position(this.position);

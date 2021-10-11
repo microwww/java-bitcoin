@@ -59,7 +59,6 @@ class MemBlockHeightTest {
             ChainBlock chainBlock = block.get(i);
             mh.tryPush(chainBlock);
         }
-        System.out.println(mh.toString());
         assertEquals(100, mh.getLastHeight().getHeight());
         assertEquals(mh.get(start.getHeight()).get(), start.hash());
         assertEquals(mh.get(mh.getLastHeight().getHeight()).get(), block.get(block.size() - 1).hash());

@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.store;
 
 import com.github.microwww.bitcoin.chain.ChainBlock;
+import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
@@ -11,13 +12,15 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 
 class FileChainBlock extends AbstractFilePosition<ChainBlock> {
     private static final Logger logger = LoggerFactory.getLogger(FileChainBlock.class);
     private int magic;
+    private Integer height;
 
-    public FileChainBlock(File file, ChainBlock target) {
-        super(file, target);
+    public FileChainBlock(File file, long position, ChainBlock target) {
+        super(file, position, target);
     }
 
     public FileChainBlock(File file, long position) {
@@ -61,7 +64,8 @@ class FileChainBlock extends AbstractFilePosition<ChainBlock> {
 
         this.target = new ChainBlock().reset(cache);
         Assert.isTrue(cache.readerIndex() == len + magicAndLengthBytes, "Fill block bytes.length != block read length");
-        // channel.position(this.position + cache.readerIndex());
+        Assert.isTrue(this.height != null, "Not init `height` in FileChainBlock");
+        this.target.header.setHeight(this.height);
         logger.debug("Read File : {}, Position: {}", file.getName(), this.position);
     }
 
@@ -74,7 +78,51 @@ class FileChainBlock extends AbstractFilePosition<ChainBlock> {
         return this;
     }
 
-    public boolean isCache() {
-        return target == null;
+    @Override
+    public ChainBlock getTarget() {
+        if (this.target == null) {
+            super.getTarget();
+            Assert.isTrue(this.height != null, "Height not init");
+            this.target.header.setHeight(this.height);
+        }
+        return this.target;
+    }
+
+    public int getHeight() {
+        if (this.target == null) {
+            return height;
+        } else {
+            return this.target.getHeight();
+        }
+    }
+
+    public FileChainBlock setHeight(int height) {
+        this.height = height;
+        if (target != null) {
+            target.header.setHeight(height);
+        }
+        return this;
+    }
+
+    public byte[] serialization() {
+        ByteBuf pool = Unpooled.buffer();
+        pool.writeIntLE(this.target.getHeight());
+        pool.writeIntLE((int) position);
+        byte[] name = this.file.getName().getBytes(StandardCharsets.UTF_8);
+        Assert.isTrue(name.length < 0xFF, "name length > 255");
+        pool.writeByte(name.length);
+        pool.writeBytes(name);
+        return ByteUtil.readAll(pool);
+    }
+
+    public static FileChainBlock deserialization(File root, byte[] data) {
+        ByteBuf pool = Unpooled.copiedBuffer(data);
+        int height = pool.readIntLE();
+        int position = pool.readIntLE();
+        int len = pool.readByte();
+        byte[] name = ByteUtil.readLength(pool, len);
+        FileChainBlock fc = new FileChainBlock(new File(root, new String(name, StandardCharsets.UTF_8)), position);
+        fc.height = height;
+        return fc;
     }
 }

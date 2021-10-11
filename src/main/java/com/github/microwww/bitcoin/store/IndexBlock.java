@@ -22,7 +22,7 @@ public class IndexBlock implements Closeable {
 
     private final File root;
     private final DB levelDB;
-    private BlockCache cache = new BlockCache();
+    private BlockCache<FileChainBlock> cache = new BlockCache();
 
     public IndexBlock(CChainParams chainParams) {
         try {
@@ -36,7 +36,7 @@ public class IndexBlock implements Closeable {
     }
 
     public IndexBlock writeChainBlockToLevelDB(FileChainBlock hc) {
-        ChainBlock block = hc.getTarget().get();
+        ChainBlock block = hc.getTarget();
         byte[] key = ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, block.hash().fill256bit());
         if (logger.isDebugEnabled())
             logger.debug("Index Block key: {}, height: {}, block: {}", ByteUtil.hex(key), block.getHeight(), block.hash());
@@ -45,7 +45,7 @@ public class IndexBlock implements Closeable {
     }
 
     public Optional<ChainBlock> findChainBlock(Uint256 hash) {
-        return findChainBlockInLevelDB(hash).map(FileChainBlock::load);
+        return findChainBlockInLevelDB(hash).map(FileChainBlock::getTarget);
     }
 
     public Optional<FileChainBlock> findChainBlockInLevelDB(Uint256 hash) {
@@ -55,33 +55,19 @@ public class IndexBlock implements Closeable {
         });
     }
 
-    private synchronized Optional<FileChainBlock> findChainBlockInLevelDB(byte[] key) {
+    public synchronized Optional<FileChainBlock> findChainBlockInLevelDB(byte[] key) {
         byte[] bytes = levelDB.get(key);
         if (bytes != null) {
-            FileChainBlock hb = this.deserializationLevelDB(bytes);
-            return Optional.of(hb);
+            return Optional.of(FileChainBlock.deserialization(root, bytes));
         }
         return Optional.empty();
-    }
-
-    private FileChainBlock deserializationLevelDB(byte[] data) {
-        ByteBuf pool = Unpooled.copiedBuffer(data);
-        int height = pool.readIntLE();
-        int position = pool.readIntLE();
-        int len = pool.readByte();
-        byte[] name = ByteUtil.readLength(pool, len);
-        File file = new File(root, new String(name, StandardCharsets.UTF_8));
-        FileChainBlock f = new FileChainBlock(file, position);
-        f.load();
-        f.getTarget().get().header.setHeight(height);
-        return f;
     }
 
     // height + position + <name-len> + name
     private byte[] serializationLevelDB(FileChainBlock block) {
         ByteBuf pool = Unpooled.buffer(32); // 4 + 4 + 1 + 12
         byte[] name = block.getFile().getName().getBytes(StandardCharsets.UTF_8);
-        pool.clear().writeIntLE(block.getTarget().get().getHeight()).writeIntLE((int) block.getPosition()).writeByte(name.length).writeBytes(name);
+        pool.clear().writeIntLE(block.getTarget().getHeight()).writeIntLE((int) block.getPosition()).writeByte(name.length).writeBytes(name);
         return ByteUtil.readAll(pool);
     }
 

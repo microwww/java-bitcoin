@@ -119,8 +119,7 @@ public class AccessBlockFile implements Closeable {
 
         // will set `fileTransactions`
         public synchronized FileChainBlock writeBlock(ChainBlock block) throws IOException {
-            FileChainBlock fc = new FileChainBlock(this.currentFile, block);
-            fc.position = position;
+            FileChainBlock fc = new FileChainBlock(this.currentFile, position, block);
             fc.setMagic(magic);
 
             Assert.isTrue(position == current.position(), "Position only append");

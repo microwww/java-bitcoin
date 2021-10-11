@@ -74,17 +74,14 @@ public class IndexTransaction implements Closeable {
 
     public void indexTransaction(FileChainBlock fc) {
         int magicAndLengthBytes = 8;
-        FileTransaction[] fts = this.transactionPosition(fc);
-        for (FileTransaction ft : fts) {
-            ft.position += magicAndLengthBytes + fc.getPosition();
-        }
+        FileTransaction[] fts = this.transactionPosition(fc, magicAndLengthBytes + fc.getPosition());
         this.serializationTransaction(fts);
     }
 
-    public FileTransaction[] transactionPosition(FileChainBlock fc) {
-        ChainBlock chainBlock = fc.getTarget().get();
+    public FileTransaction[] transactionPosition(FileChainBlock fc, long offset) {
+        ChainBlock chainBlock = fc.getTarget();
         ByteBuf bf = Unpooled.buffer();
-        int offset = chainBlock.header.bytesLength();
+        offset += chainBlock.header.bytesLength();
         RawTransaction[] txs = chainBlock.getTxs();
         FileTransaction[] fts = new FileTransaction[txs.length];
         for (int i = 0; i < txs.length; i++) {
@@ -92,10 +89,7 @@ public class IndexTransaction implements Closeable {
             int ix = bf.writerIndex();
             tx.serialization(bf);
 
-            FileTransaction ft = new FileTransaction(fc.getFile(), tx);
-            ft.position = ix + offset;
-            ft.setLength(bf.writerIndex() - ix);
-            fts[i] = ft;
+            fts[i] = new FileTransaction(fc.getFile(), ix + offset, bf.writerIndex() - ix, tx);
         }
         return fts;
     }
@@ -104,7 +98,7 @@ public class IndexTransaction implements Closeable {
         ByteBuf buffer = Unpooled.buffer();
         for (int i = fts.length - 1; i >= 0; i--) {
             FileTransaction ft = fts[i];
-            RawTransaction tr = ft.getTarget().get();
+            RawTransaction tr = ft.getTarget();
             this.serializationLevelDB(ft, buffer);
             levelDB.ifPresent(db -> {
                 Uint256 hash = tr.hash();
@@ -119,16 +113,6 @@ public class IndexTransaction implements Closeable {
         }
     }
 
-    private void serializationLevelDB(FileTransaction ft, ByteBuf buffer) {
-        long ps = ft.getPosition();
-        buffer.writeIntLE((int) ps);
-        buffer.writeIntLE(ft.getLength());
-        byte[] bytes = ft.getFile().getName().getBytes(StandardCharsets.UTF_8);
-        Assert.isTrue(bytes.length < 127, "File name too length");
-        buffer.writeByte(bytes.length);
-        buffer.writeBytes(bytes);
-    }
-
     public synchronized Optional<FileTransaction> findTransaction(Uint256 hash) {
         return levelDB.flatMap(e -> {
             byte[] bytes = e.get(hash.fill256bit());
@@ -139,15 +123,25 @@ public class IndexTransaction implements Closeable {
         });
     }
 
+    private void serializationLevelDB(FileTransaction ft, ByteBuf buffer) {
+        long ps = ft.getPosition();
+        buffer.writeIntLE((int) ps);
+        buffer.writeIntLE(ft.getLength());
+        byte[] bytes = ft.getFile().getName().getBytes(StandardCharsets.UTF_8);
+        Assert.isTrue(bytes.length < 127, "File name too length");
+        buffer.writeByte(bytes.length);
+        buffer.writeBytes(bytes);
+    }
+
     private FileTransaction deserializationLevelDB(byte[] bytes) {
         ByteBuf buffer = Unpooled.copiedBuffer(bytes);
         int ps = buffer.readIntLE();
         int length = buffer.readIntLE();
         int len = buffer.readByte();
         String name = new String(ByteUtil.readLength(buffer, len), StandardCharsets.UTF_8);
-        chainParams.getEnvParams().getDataDirPrefix();
+        // chainParams.getEnvParams().getDataDirPrefix();
         FileTransaction ft = new FileTransaction(new File(diskBlock.getRoot(), name), ps, length);
-        ft.target = ft.load();
+        ft.target = ft.load(false);
         return ft;
     }
 
@@ -206,7 +200,7 @@ public class IndexTransaction implements Closeable {
                         throw new IllegalArgumentException("Not find pre-tx: " + in.getPreTxHash());
                     }
                 } else {
-                    preTx = ft.get().getTarget().get();
+                    preTx = ft.get().getTarget();
                 }
 
                 TxOut txOut = preTx.getTxOuts()[outIndex];
