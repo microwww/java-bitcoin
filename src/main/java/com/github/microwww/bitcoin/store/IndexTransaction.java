@@ -162,11 +162,15 @@ public class IndexTransaction implements Closeable {
     }
 
     public void verifyTransactions(ChainBlock chainBlock) {
-        ChainBlock hb = diskBlock.readBlock(chainBlock.header.getPreHash()).get();
-        verifyTransactions(chainBlock, hb.getHeight() + 1);
+        if(chainBlock.header.getHeight().isPresent()) {
+            ChainBlock hb = diskBlock.readBlock(chainBlock.header.getPreHash()).get();
+            chainBlock.header.setHeight(hb.getHeight() + 1);
+        }
+        verifyTransactionsWithHeight(chainBlock);
     }
 
-    public void verifyTransactions(ChainBlock chainBlock, int height) {
+    private void verifyTransactionsWithHeight(ChainBlock chainBlock) {
+        int height = chainBlock.getHeight();
         Uint256 hash = chainBlock.hash();
         RawTransaction[] txs = chainBlock.getTxs();
         Assert.isTrue(txs.length > 0, "RawTransaction length > 0");
@@ -207,7 +211,7 @@ public class IndexTransaction implements Closeable {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Run tx script, {}, script in: {}, out: {}", hash, ByteUtil.hex(in.getScript()), ByteUtil.hex(txOut.getScriptPubKey()));
                 }
-                verifyScript(height, tx, inIndex, txOut);
+                verifyScript(chainBlock, tx, inIndex, txOut);
 
                 long value = txOut.getValue();
                 Assert.isTrue(value >= 0, "Amount non-negative");
@@ -244,9 +248,9 @@ public class IndexTransaction implements Closeable {
         }
     }
 
-    public void verifyScript(int height, RawTransaction tx, int inIndex, TxOut txOut) {
+    public void verifyScript(ChainBlock block, RawTransaction tx, int inIndex, TxOut txOut) {
         try {
-            this.tryVerifyScript(height, tx, inIndex, txOut);
+            this.tryVerifyScript(block, tx, inIndex, txOut);
         } catch (RuntimeException e) {
             Uint256 txh = tx.hash();
             TxIn in = tx.getTxIns()[inIndex];
@@ -255,9 +259,9 @@ public class IndexTransaction implements Closeable {
         }
     }
 
-    public void tryVerifyScript(int height, RawTransaction tx, int inIndex, TxOut txOut) {
+    public void tryVerifyScript(ChainBlock block, RawTransaction tx, int inIndex, TxOut txOut) {
         Uint256 txh = tx.hash();
-        Interpreter interpreter = new Interpreter(tx, height).indexTxIn(inIndex, txOut).witnessPushStack()
+        Interpreter interpreter = new Interpreter(tx, block).indexTxIn(inIndex, txOut).witnessPushStack()
                 .executor(tx.getTxIns()[inIndex].getScript())
                 .executor(txOut.getScriptPubKey());
 

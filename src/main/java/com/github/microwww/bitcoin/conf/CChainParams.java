@@ -25,6 +25,7 @@ public class CChainParams {
 
     public enum Env {
         MAIN() {
+
             @Override
             public ChainBlock createGenesisBlock() {
                 return Generating.createGenesisBlock(new Uint32(1231006505), new Uint32(2083236893), new Uint32(0x1d00ffff), 1, 50 * Generating.COIN);
@@ -77,12 +78,19 @@ public class CChainParams {
             }
         };
         public final Params params = new Params();
+        public final ChainBlock G;
 
         Env() {
             init();
+            G = this.createGenesisBlock();
         }
 
         public abstract ChainBlock createGenesisBlock();
+
+        public long expectBlockTime(int height) {
+            long time = G.header.getTime().longValue() + params.getPowTargetSpacing() * height;
+            return time;
+        }
 
         abstract void init();
     }
@@ -182,6 +190,10 @@ public class CChainParams {
 
         public String getDataDirPrefix() {
             return dataDirPrefix;
+        }
+
+        public int getPowTargetSpacing() {
+            return nPowTargetSpacing;
         }
 
         public int getMagic() {

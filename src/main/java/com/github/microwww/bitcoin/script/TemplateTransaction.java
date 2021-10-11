@@ -172,7 +172,9 @@ public enum TemplateTransaction {
         public void executor(Interpreter interpreter) {
             byte[] pop = interpreter.stack.peek();
             interpreter.runNow();
-            if (interpreter.getHeight() < 17_3750) {// 软分叉交易, blocks with timestamps >= 1333238400, 2012.04.01
+            long time = interpreter.getBlock().map(e -> e.header.getTime().longValue())
+                    .orElse(System.currentTimeMillis() / 1000).longValue();
+            if (time < 1_333_238_400) { // 软分叉交易, height 173_750, blocks with timestamps >= 1333238400, 2012.04.01
                 // https://www.blockchain.com/btc/tx/6a26d2ecb67f27d1fa5524763b49029d7106e91e3cc05743073461a719776192
                 log.info("OLD P2SH M2N transaction : {}", interpreter.transaction.hash());
                 return;

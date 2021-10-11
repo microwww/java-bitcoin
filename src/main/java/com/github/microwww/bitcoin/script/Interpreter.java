@@ -1,5 +1,6 @@
 package com.github.microwww.bitcoin.script;
 
+import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.chain.TxOut;
 import com.github.microwww.bitcoin.script.instruction.Script;
@@ -15,7 +16,7 @@ public class Interpreter {
     private static final Logger logger = LoggerFactory.getLogger(Interpreter.class);
 
     public final RawTransaction transaction;
-    private final int height;// 不同的高度会有分叉规则, 默认是 Integer.MAX_VALUE , 也就是最新的值
+    private final ChainBlock block;// 不同的高度会有分叉规则, 默认是 Integer.MAX_VALUE , 也就是最新的值
     public final BytesStack stack;
 
     private int indexTxIn = 0;
@@ -30,19 +31,19 @@ public class Interpreter {
         this(tx, new BytesStack());
     }
 
-    public Interpreter(RawTransaction tx, int height) {
-        this(tx, new BytesStack(), height);
+    public Interpreter(RawTransaction tx, ChainBlock block) {
+        this(tx, new BytesStack(), block);
     }
 
     protected Interpreter(RawTransaction tx, BytesStack bytesStack) {
-        this(tx, bytesStack, Integer.MAX_VALUE);
+        this(tx, bytesStack, null);
     }
 
-    protected Interpreter(RawTransaction tx, BytesStack bytesStack, int height) {
+    protected Interpreter(RawTransaction tx, BytesStack bytesStack, ChainBlock block) {
         Assert.isTrue(tx != null, "Not NULL");
         this.transaction = tx.clone();
         stack = bytesStack;
-        this.height = height;
+        this.block = block;
     }
 
     public Interpreter subScript(boolean internally) {
@@ -198,7 +199,7 @@ public class Interpreter {
         return internally;
     }
 
-    public int getHeight() {
-        return height;
+    public Optional<ChainBlock> getBlock() {
+        return Optional.ofNullable(block);
     }
 }

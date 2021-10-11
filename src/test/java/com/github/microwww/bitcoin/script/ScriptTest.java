@@ -1,7 +1,10 @@
 package com.github.microwww.bitcoin.script;
 
+import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.chain.TxOut;
+import com.github.microwww.bitcoin.conf.CChainParams;
+import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.util.ClassPath;
 import com.github.microwww.bitcoin.wallet.Secp256k1;
@@ -182,17 +185,26 @@ public class ScriptTest {
         int in = 0;
         assertEquals(tx.getTxIns()[in].getPreTxHash(), from.hash());
         TxOut txOut = from.getTxOuts()[tx.getTxIns()[in].getPreTxOutIndex()];
-        Interpreter interpreter = new Interpreter(tx, 0).indexTxIn(in, txOut)//.witnessPushStack()
+        ChainBlock block = randomBlock(170_060);
+        Interpreter interpreter = new Interpreter(tx, block).indexTxIn(in, txOut)//.witnessPushStack()
                 .executor(tx.getTxIns()[in].getScript())
                 .executor(txOut.getScriptPubKey());
         assertTrue(interpreter.isSuccess());
 
         try {
-            new Interpreter(tx, 200_000).indexTxIn(in, txOut)//.witnessPushStack()
+            block = randomBlock(200_000);
+            new Interpreter(tx, block).indexTxIn(in, txOut)//.witnessPushStack()
                     .executor(tx.getTxIns()[in].getScript())
                     .executor(txOut.getScriptPubKey());
             fail();
         } catch (Exception e) {
         }
+    }
+
+    public static ChainBlock randomBlock(int height) {
+        ChainBlock block = new ChainBlock();
+        block.header.setHeight(height);
+        block.header.setTime(new Uint32(CChainParams.Env.MAIN.expectBlockTime(height)));
+        return block;
     }
 }
