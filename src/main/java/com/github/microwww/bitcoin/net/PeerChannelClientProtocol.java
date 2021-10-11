@@ -223,6 +223,7 @@ public class PeerChannelClientProtocol implements Closeable {
             }
             return;
         }
+        cb.header.setHeight(prehash.get().getHeight() + 1);
         Assert.isTrue(cb.verifyMerkleTree(), "RawTransaction MerkleRoot do not match : " + cb.hash() + ", Now is test so skip");
         if (verify.isDebugEnabled()) { // 校验数据是否正确
             Assert.isTrue(Arrays.equals(request.getPayload(), request.getChainBlock().serialization()), "BLOCK format serialization error !");
