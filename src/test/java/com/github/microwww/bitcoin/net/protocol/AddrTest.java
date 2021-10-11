@@ -15,17 +15,15 @@ class AddrTest {
         Addr ad = new Addr(null);
         Addr read = ad.read(hex);
         assertEquals(1000, read.getNodes().length);
+        StringBuilder sb = new StringBuilder();
         for (PeerNode node : read.getNodes()) {
-            StringBuilder sb = new StringBuilder();
             for (byte address : node.getAddress()) {
                 sb.append(Byte.toUnsignedInt(address)).append(".");
             }
             sb.append(", ").append(node.getInetAddress());
-            System.out.println(node.getDate() + ", " + sb);
         }
-    }
-
-    public void testWrite() {
-
+        assertTrue(sb.indexOf("2a01:4b00:88db:7700:18f3:1ef5:c298:e4b3") > 0);
+        assertTrue(sb.indexOf("42.1.75.0.136.219.119.0.24.243.30.245.194.152.228.179") > 0);
+        assertTrue(sb.indexOf("198.54.130.52") > 0);
     }
 }
