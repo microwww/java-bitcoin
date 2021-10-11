@@ -11,6 +11,7 @@ import com.github.microwww.bitcoin.provider.Peer;
 import com.github.microwww.bitcoin.provider.TimeoutTaskManager;
 import com.github.microwww.bitcoin.store.DiskBlock;
 import com.github.microwww.bitcoin.store.Height;
+import com.github.microwww.bitcoin.util.Tools;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * `net_processing.cpp`
@@ -36,9 +36,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 public class PeerChannelClientProtocol implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelClientProtocol.class);
+    private static final Logger log5seconds = Tools.timeLogger(logger, 5);
     public static final Logger verify = LoggerFactory.getLogger("mode.test");
     public static final String CACHE_HEADERS = "cache_headers";
-    public static final String CACHE_LOADING_COUNT = "cache_loading_count";
 
     @Autowired
     LocalBlockChain chain;
@@ -56,10 +56,8 @@ public class PeerChannelClientProtocol implements Closeable {
 
     private void init() {
         taskManager.putCache(CACHE_HEADERS, new ConcurrentLinkedDeque<>());
-        taskManager.putCache(CACHE_LOADING_COUNT, new AtomicInteger());
         taskManager.addChangeListeners((t, u) -> {
             taskManager.getCache(CACHE_HEADERS, Queue.class).clear();
-            taskManager.getCache(CACHE_LOADING_COUNT, AtomicInteger.class).set(0);
         });
     }
 
@@ -193,9 +191,9 @@ public class PeerChannelClientProtocol implements Closeable {
         taskManager.getCache(CACHE_HEADERS, Queue.class).addAll(readyBlocks.keySet());
         loadChainBlock(ctx);
         publisher.publishEvent(new HeadersEvent(request));
+        // FOR next header !
+        taskManager.addProvider(ctx);
     }
-
-    private long current = System.currentTimeMillis();
 
     public void service(ChannelHandlerContext ctx, Block request) {
         try {
@@ -211,7 +209,6 @@ public class PeerChannelClientProtocol implements Closeable {
         ChainBlock cb = request.getChainBlock();
         Peer peer = ctx.channel().attr(Peer.PEER).get();
         taskManager.ifMe(ctx, () -> {
-            taskManager.getCache(CACHE_LOADING_COUNT, AtomicInteger.class).decrementAndGet();
             // TASKMANAGER: .3. Block, get block-info from GetData request
             taskManager.assertIsMe(ctx).touch(ctx, "Waiting parse BLOCK");
         });
@@ -236,12 +233,8 @@ public class PeerChannelClientProtocol implements Closeable {
         chain.getTransactionStore().verifyTransactions(cb);
 
         Optional<Height> hc = disk.writeBlock(cb, true);
-        if (logger.isInfoEnabled()) {
-            long next = System.currentTimeMillis();
-            if (logger.isDebugEnabled() || next - current > 5000) {
-                current = next;
-                logger.info("Get blocks {}, height: {}, {}", request.getPeer().getURI(), hc.map(Height::getHeight).orElse(-1), cb.hash());
-            }
+        if (log5seconds.isInfoEnabled()) {
+            log5seconds.info("Get blocks {}, height: {}, {}", request.getPeer().getURI(), hc.map(Height::getHeight).orElse(-1), cb.hash());
         }
         if (hc.isPresent()) {
             chain.getTransactionStore().indexTransaction(cb);
@@ -261,7 +254,7 @@ public class PeerChannelClientProtocol implements Closeable {
 
     public boolean service(ChannelHandlerContext ctx, Inv request) {
         if (!taskManager.isNoProvider()) {
-            logger.info("Skip [Inv] request : {}", request.getPeer().getURI());
+            logger.debug("Loading headers, so skip [Inv] request : {}, {}, {}", request.getPeer().getURI(), request.getData().length, request.getData()[0].select().get().name());
             return false;
         }
         logger.debug("Inv request : {}, len: {}", request.getPeer().getURI(), request.getData().length);
@@ -361,7 +354,6 @@ public class PeerChannelClientProtocol implements Closeable {
                 logger.debug("Add Batch GET-BLOCK request: {}", hash);
             }
             // TASKMANAGER: .3. GetData , send get-data for getting block-info , after get headers-response
-            taskManager.getCache(CACHE_LOADING_COUNT, AtomicInteger.class).addAndGet(ms.size());
             GetData data = new GetData(peer).setMessages(ms.toArray(new GetData.Message[]{}));
             ctx.writeAndFlush(data);
         });
@@ -379,7 +371,6 @@ public class PeerChannelClientProtocol implements Closeable {
                             .setTypeIn(GetDataType.WITNESS_BLOCK)
             });
             logger.debug("Add one request: {}", one);
-            taskManager.getCache(CACHE_LOADING_COUNT, AtomicInteger.class).incrementAndGet();
             ctx.writeAndFlush(data);
         }
     }

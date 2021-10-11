@@ -90,7 +90,9 @@ public class InvMessageListener {
             @Override
             public void onApplicationEvent(AddBlockEvent event) {
                 Block request = event.getBitcoinSource();
-                InvMessageListener.this.loading(request.getChainBlock().hash());
+                if (request.getChainBlock().header.isInTwoHours()) {
+                    InvMessageListener.this.loading(request.getChainBlock().hash());
+                }
             }
         };
     }

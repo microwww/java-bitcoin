@@ -37,7 +37,7 @@ public class TimeoutTaskManager<T> implements Closeable {
     private Map<String, Object> cache = new ConcurrentHashMap<>();
     private Thread thread;
     protected final Map<Integer, BiConsumer<T, T>> changeListeners = new ConcurrentSkipListMap<>();
-    private boolean noProvider = false;
+    private boolean noProvider = true;
 
     public TimeoutTaskManager(Consumer<T> consumer, int time, TimeUnit unit) {
         this((t, x) -> consumer.accept(t), time, unit);
@@ -94,12 +94,13 @@ public class TimeoutTaskManager<T> implements Closeable {
             synchronized (this) {
                 newSupporter = queue.poll();
                 if (newSupporter != null) {
-                    logger.debug("POLL a new supporter : {}", newSupporter);
+                    logger.debug("POLL a new supporter : {}, less: {}", newSupporter, queue.size());
                     this.current = newSupporter;
                     noProvider = false;
                     break;
                 }
                 noProvider = true;
+                logger.debug("No supporter, last provider is: {}", this.current);
             }
             if (newSupporter == null) {
                 logger.debug("Release lock and Waiting .....");

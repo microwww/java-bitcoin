@@ -13,6 +13,7 @@ import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Date;
 import java.util.OptionalInt;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 头部 80 个字节,
@@ -192,9 +193,15 @@ public class BlockHeader implements Serializable {
         this.height = OptionalInt.of(height);
     }
 
+    public boolean isInTwoHours() {
+        long twoHours = TimeUnit.HOURS.toSeconds(2);
+        return this.getTime().longValue() >= System.currentTimeMillis() / 1000 - twoHours;
+    }
+
     public StringBuilder toString(StringBuilder bf, String prefix) {
         return bf
                 .append(prefix).append(" hash   = ").append(hash())
+                .append(prefix).append(" height = ").append(height.orElse(-1))
                 .append(prefix).append(" version= ").append(version)
                 .append(prefix).append(" preHash= ").append(preHash)
                 .append(prefix).append(" merkle = ").append(merkleRoot)
