@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 
 public class AccessBlockFile implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(AccessBlockFile.class);
-    public static final Pattern pt = Pattern.compile("blk0*([0-9]+).dat");
+    public static final Pattern pt = Pattern.compile("blk0*([0-9]+)\\.dat");
     public static final String sequenceFile = "blk%05d.dat"; // blk00000.dat
     public static int MAX_BYTES = 128 * 1024 * 1024 - 2 * 1024; // 128M
 
@@ -90,9 +90,7 @@ public class AccessBlockFile implements Closeable {
             int from = 0;
             if (currentFile != null) {
                 String name = currentFile.getName();
-                Matcher matcher = pt.matcher(name);
-                Assert.isTrue(matcher.matches(), "Not find match string: " + pt.pattern() + ", " + name);
-                from = Integer.valueOf(matcher.group(1));
+                from = parseIndex(name);
             }
             for (int i = from; i < Integer.MAX_VALUE; i++) {
                 File file = sequenceFile(i);
@@ -155,5 +153,11 @@ public class AccessBlockFile implements Closeable {
                 }
             }
         }
+    }
+
+    public static int parseIndex(String name) {
+        Matcher matcher = pt.matcher(name);
+        Assert.isTrue(matcher.matches(), "Not find match string: " + pt.pattern() + ", " + name);
+        return Integer.valueOf(matcher.group(1));
     }
 }

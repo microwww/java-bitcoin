@@ -5,12 +5,16 @@ import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.math.Uint256;
+import com.github.microwww.bitcoin.util.ByteUtil;
+import com.github.microwww.bitcoin.util.ClassPath;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 class IndexTransactionTest {
     private final CChainParams params = new CChainParams(new Settings());
@@ -33,4 +37,21 @@ class IndexTransactionTest {
         assertEquals(hash, rt.hash());
     }
 
+    @Test
+    void serializationLevelDB() {
+        ByteBuf buffer = Unpooled.buffer();
+        String x = ClassPath.readClassPathFile("/data/online.data.txt").get(43);
+        buffer.writeBytes(ByteUtil.hex(x));
+        ChainBlock gn = new ChainBlock();
+        gn.deserialization(buffer);
+        FileChainBlock fc = tx.getDiskBlock().writeBlock(gn, 0, true);
+        FileTransaction[] fts = tx.transactionPosition(fc, 8 + fc.getPosition());
+
+        FileTransaction ft = fts[0];
+        tx.serializationLevelDB(ft, buffer);
+        byte[] bytes = ByteUtil.readAll(buffer);
+        FileTransaction nft = tx.deserializationLevelDB(bytes);
+        tx.serializationLevelDB(nft, buffer.clear());
+        assertArrayEquals(bytes, ByteUtil.readAll(buffer));
+    }
 }

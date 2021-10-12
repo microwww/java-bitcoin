@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.store;
 
 import com.github.microwww.bitcoin.chain.RawTransaction;
+import com.github.microwww.bitcoin.math.Uint256;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
@@ -11,15 +12,18 @@ import java.nio.channels.FileChannel;
 class FileTransaction extends AbstractFilePosition<RawTransaction> {
 
     private final int length;
+    private final Uint256 block;
 
-    public FileTransaction(File file, long position, int length) {
+    public FileTransaction(File file, long position, int length, Uint256 block) {
         super(file, position);
         this.length = length;
+        this.block = block;
     }
 
-    public FileTransaction(File file, long position, int length, RawTransaction target) {
+    public FileTransaction(File file, long position, int length, Uint256 block, RawTransaction target) {
         super(file, position, target);
         this.length = length;
+        this.block = block;
     }
 
     @Override
@@ -37,5 +41,9 @@ class FileTransaction extends AbstractFilePosition<RawTransaction> {
 
     public int getLength() {
         return length;
+    }
+
+    public Uint256 getBlock() {
+        return block;
     }
 }

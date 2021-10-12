@@ -19,7 +19,6 @@ import org.springframework.util.Assert;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @Component
@@ -89,7 +88,7 @@ public class IndexTransaction implements Closeable {
             int ix = bf.writerIndex();
             tx.serialization(bf);
 
-            fts[i] = new FileTransaction(fc.getFile(), ix + offset, bf.writerIndex() - ix, tx);
+            fts[i] = new FileTransaction(fc.getFile(), ix + offset, bf.writerIndex() - ix, chainBlock.hash(), tx);
         }
         return fts;
     }
@@ -123,24 +122,24 @@ public class IndexTransaction implements Closeable {
         });
     }
 
-    private void serializationLevelDB(FileTransaction ft, ByteBuf buffer) {
+    public void serializationLevelDB(FileTransaction ft, ByteBuf buffer) {
         long ps = ft.getPosition();
+        int file = AccessBlockFile.parseIndex(ft.getFile().getName());
+        buffer.writeIntLE(file);
         buffer.writeIntLE((int) ps);
         buffer.writeIntLE(ft.getLength());
-        byte[] bytes = ft.getFile().getName().getBytes(StandardCharsets.UTF_8);
-        Assert.isTrue(bytes.length < 127, "File name too length");
-        buffer.writeByte(bytes.length);
-        buffer.writeBytes(bytes);
+        buffer.writeBytes(ft.getBlock().fill256bit());
     }
 
-    private FileTransaction deserializationLevelDB(byte[] bytes) {
+    public FileTransaction deserializationLevelDB(byte[] bytes) {
         ByteBuf buffer = Unpooled.copiedBuffer(bytes);
+        int file = buffer.readIntLE();
         int ps = buffer.readIntLE();
         int length = buffer.readIntLE();
-        int len = buffer.readByte();
-        String name = new String(ByteUtil.readLength(buffer, len), StandardCharsets.UTF_8);
+        byte[] hash = new byte[32];
+        buffer.readBytes(hash);
         // chainParams.getEnvParams().getDataDirPrefix();
-        FileTransaction ft = new FileTransaction(new File(diskBlock.getRoot(), name), ps, length);
+        FileTransaction ft = new FileTransaction(new File(diskBlock.getRoot(), String.format(AccessBlockFile.sequenceFile, file)), ps, length, new Uint256(hash));
         ft.target = ft.load(false);
         return ft;
     }
@@ -162,7 +161,7 @@ public class IndexTransaction implements Closeable {
     }
 
     public void verifyTransactions(ChainBlock chainBlock) {
-        if(chainBlock.header.getHeight().isPresent()) {
+        if (chainBlock.header.getHeight().isPresent()) {
             ChainBlock hb = diskBlock.readBlock(chainBlock.header.getPreHash()).get();
             chainBlock.header.setHeight(hb.getHeight() + 1);
         }

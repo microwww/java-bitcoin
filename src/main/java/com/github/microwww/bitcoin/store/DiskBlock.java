@@ -29,7 +29,7 @@ public class DiskBlock implements Closeable {
 
     private final int bestConfirmHeight;
     private final CChainParams chainParams;
-    private final File root;
+    private final File root; // end with `../blocks/`
     private final IndexBlock indexBlock;
     private final IndexHeight indexHeight;
     private final AccessBlockFile fileAccess;
