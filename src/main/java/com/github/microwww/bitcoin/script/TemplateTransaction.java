@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 import static com.github.microwww.bitcoin.script.instruction.ScriptNames.*;
 
@@ -19,7 +20,7 @@ public enum TemplateTransaction {
     /**
      * 0x??[0x41|0x21]...0xAC
      * [PUBLIC-KEY] OP_CHECKSIG
-     *
+     * <p>
      * 04b0bd634234abbb1ba1e986e884185c61cf43e001f9137f23c2c409273eb16e6537a576782eba668a7ef8bd3b3cfb1edb7117ab65129b8a2e681f3c1e0908ef7b
      * OP_CHECKSIG
      */
@@ -405,4 +406,13 @@ public enum TemplateTransaction {
     }
 
     public static final int M2N_MAX = 0x16;
+
+    public static Optional<TemplateTransaction> select(byte[] bytes) {
+        for (TemplateTransaction value : TemplateTransaction.values()) {
+            if (value.isSupport(bytes)) {
+                return Optional.of(value);
+            }
+        }
+        return Optional.empty();
+    }
 }

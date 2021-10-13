@@ -115,16 +115,12 @@ public class Interpreter {
         if (logger.isDebugEnabled())
             logger.debug("Exec offset {}, script : {}", offset, ByteUtil.hex(aScript));
 
-        boolean run = false;
-        for (TemplateTransaction value : TemplateTransaction.values()) {
-            if (value.isSupport(aScript)) {
-                logger.debug("Run TemplateTransaction.{}", value);
-                value.executor(this);
-                run = true;
-                break;
-            }
-        }
-        if (!run) {
+        Optional<TemplateTransaction> tt = TemplateTransaction.select(aScript);
+        tt.ifPresent(template -> {
+            logger.debug("Run TemplateTransaction.{}", template);
+            template.executor(this);
+        });
+        if (!tt.isPresent()) {
             runNow();
         }
         return this;
