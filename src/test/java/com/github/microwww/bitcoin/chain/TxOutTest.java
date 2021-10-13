@@ -26,7 +26,7 @@ class TxOutTest {
         String s = tx.getTxOuts()[0].loadAddress().get().toBase58Address(Env.MAIN);
         assertEquals("18cBEMRxXHqzWWCxZNtU91F5sbUNKhL5PX", s);
 
-        TemplateTransaction tt = tx.getTxOuts()[1].loadType().get();
+        TemplateTransaction tt = tx.getTxOuts()[1].getScriptTemplate().get();
         assertEquals(TemplateTransaction.RETURN, tt);
     }
 

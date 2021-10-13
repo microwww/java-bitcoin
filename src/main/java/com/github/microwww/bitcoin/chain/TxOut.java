@@ -40,6 +40,10 @@ public class TxOut {
         return value;
     }
 
+    public double toBTC() {
+        return BigDecimal.valueOf(this.value, 8).doubleValue();
+    }
+
     public TxOut setValue(long value) {
         this.value = value;
         return this;
@@ -58,7 +62,7 @@ public class TxOut {
         return this;
     }
 
-    public Optional<TemplateTransaction> loadType() {
+    public Optional<TemplateTransaction> getScriptTemplate() {
         return TemplateTransaction.select(scriptPubKey);
     }
 

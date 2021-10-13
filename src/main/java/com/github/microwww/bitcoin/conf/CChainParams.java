@@ -25,7 +25,6 @@ public class CChainParams {
 
     public enum Env {
         MAIN() {
-
             @Override
             public ChainBlock createGenesisBlock() {
                 return Generating.createGenesisBlock(new Uint32(1231006505), new Uint32(2083236893), new Uint32(0x1d00ffff), 1, 50 * Generating.COIN);
@@ -93,6 +92,10 @@ public class CChainParams {
         }
 
         abstract void init();
+
+        public com.github.microwww.bitcoin.wallet.Env addressType() {
+            return com.github.microwww.bitcoin.wallet.Env.values()[this.ordinal()];
+        }
     }
 
     public static class Params {

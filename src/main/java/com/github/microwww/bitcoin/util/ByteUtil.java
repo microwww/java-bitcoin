@@ -48,6 +48,10 @@ public class ByteUtil {
         return HexUtil.encodeHexStr(ArrayUtil.reverse(val));
     }
 
+    public static byte[] hexReverse(String val) {
+        return ArrayUtil.reverse(HexUtil.decodeHex(val));
+    }
+
     public static byte[] sha256sha256(byte[]... val) {
         return sha256sha256(ArrayUtil.addAll(val));
     }

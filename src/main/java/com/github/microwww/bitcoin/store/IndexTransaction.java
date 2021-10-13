@@ -112,6 +112,19 @@ public class IndexTransaction implements Closeable {
         }
     }
 
+    public synchronized Optional<RawTransaction> getTransaction(Uint256 hash) {
+        Optional<RawTransaction> raw = this.findCacheTransaction(hash);
+        if (raw.isPresent()) {
+            return raw;
+        } else {
+            Optional<FileTransaction> ft = findTransaction(hash);
+            if (ft.isPresent()) {
+                return Optional.of(ft.get().getTarget());
+            }
+        }
+        return Optional.empty();
+    }
+
     public synchronized Optional<FileTransaction> findTransaction(Uint256 hash) {
         return levelDB.flatMap(e -> {
             byte[] bytes = e.get(hash.fill256bit());
