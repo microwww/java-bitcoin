@@ -6,6 +6,7 @@ import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.wallet.CoinAccount;
 import io.netty.buffer.ByteBuf;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 public class TxOut {
@@ -58,25 +59,11 @@ public class TxOut {
     }
 
     public Optional<TemplateTransaction> loadType() {
-        for (TemplateTransaction tt : TemplateTransaction.values()) {
-            if (tt.isSupport(scriptPubKey)) {
-                return Optional.of(tt);
-            }
-        }
-        return Optional.empty();
+        return TemplateTransaction.select(scriptPubKey);
     }
 
     public Optional<CoinAccount.Address> loadAddress() {
-        for (TemplateTransaction tt : TemplateTransaction.values()) {
-            try {
-                byte[] bytes = tt.parseAddress(scriptPubKey);
-                if (bytes != null) {
-                    return Optional.of(new CoinAccount.Address(bytes));
-                }
-            } catch (UnsupportedOperationException ex) {
-            }
-        }
-        return Optional.empty();
+        return TemplateTransaction.selectAddress(scriptPubKey);
     }
 
     @Override

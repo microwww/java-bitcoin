@@ -415,4 +415,12 @@ public enum TemplateTransaction {
         }
         return Optional.empty();
     }
+
+    public static Optional<CoinAccount.Address> selectAddress(byte[] bytes) {
+        try {
+            return select(bytes).map(e -> e.parseAddress(bytes)).map(CoinAccount.Address::new);
+        } catch (UnsupportedOperationException ex) {
+        }
+        return Optional.empty();
+    }
 }
