@@ -28,6 +28,11 @@
             <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.github.microwww</groupId>
+            <artifactId>rpc-bitcoin</artifactId>
+            <version>0.1.0</version>
+        </dependency>
+        <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
             <version>5.3.7</version>
