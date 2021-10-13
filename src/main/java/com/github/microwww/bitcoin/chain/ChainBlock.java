@@ -63,8 +63,10 @@ public class ChainBlock implements ByteSerializable {
     }
 
     private void writeTxBody(ByteBuf bf) {
+        Uint256 hash = this.hash();
         for (RawTransaction tx : this.txs) {
             tx.serialization(bf);
+            tx.setBlockHash(hash);
         }
     }
 
@@ -81,9 +83,13 @@ public class ChainBlock implements ByteSerializable {
     }
 
     public MerkleTree<RawTransaction, Uint256> merkleTree() {
-        Assert.isTrue(this.getTxs() != null, "Not find any Transaction");
+        return merkleTree(this.txs);
+    }
+
+    public static MerkleTree<RawTransaction, Uint256> merkleTree(RawTransaction[] txs) {
+        Assert.isTrue(txs != null, "Not find any Transaction");
         MerkleTree<RawTransaction, Uint256> tree = MerkleTree.merkleTree(
-                Arrays.asList(this.getTxs()),
+                Arrays.asList(txs),
                 e -> e.hash(),
                 (e1, e2) -> new Uint256(e1.sha256sha256(e2))
         );

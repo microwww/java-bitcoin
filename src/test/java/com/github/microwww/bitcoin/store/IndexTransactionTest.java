@@ -42,8 +42,7 @@ class IndexTransactionTest {
         ByteBuf buffer = Unpooled.buffer();
         String x = ClassPath.readClassPathFile("/data/online.data.txt").get(43);
         buffer.writeBytes(ByteUtil.hex(x));
-        ChainBlock gn = new ChainBlock();
-        gn.deserialization(buffer);
+        ChainBlock gn = new ChainBlock().reset(buffer);
         FileChainBlock fc = tx.getDiskBlock().writeBlock(gn, 0, true);
         FileTransaction[] fts = tx.transactionPosition(fc, 8 + fc.getPosition());
 

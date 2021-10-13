@@ -24,7 +24,7 @@ class RawTransactionTest {
         byte[] b2 = ByteUtil.readAll(bf);
         assertArrayEquals(dt, b2);
         assertEquals("887e1d2a500264d5f5329c623fa64604415ae7627cb17097d07769a932e2df87", tx.hash().toHexReverse256());
-        assertEquals(2, tx.getTxIns()[0].getTxWitness().length);
+        assertEquals(2, tx.getTxIns()[0].getTxWitness().get().length);
 
         dt = ByteUtil.hex(strings.get(113));
         bf.clear().writeBytes(dt);

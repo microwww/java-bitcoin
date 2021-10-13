@@ -33,8 +33,7 @@ class FileParse {
             Assertions.assertEquals(0xf9beb4d9, mage);
             int len = buffer.readIntLE();
             // Assertions.assertTrue(len <= buffer.readableBytes());
-            ChainBlock rawBlock = new ChainBlock();
-            rawBlock.reset(buffer);
+            ChainBlock rawBlock = new ChainBlock().reset(buffer);
             list.add(rawBlock);
         }
         Assertions.assertEquals(list.get(0).hash(), list.get(1).header.getPreHash());
@@ -71,8 +70,7 @@ class FileParse {
                     throw new RuntimeException("文件已经结束");
                 }
                 bf.clear().writeBytes(bytes);
-                ChainBlock rawBlock = new ChainBlock();
-                rawBlock.reset(bf);
+                ChainBlock rawBlock = new ChainBlock().reset(bf);
                 System.out.println("SKIP CHECK MARGE " + new Uint32(marge).toHex() + ", " + i + ", " + rawBlock.toString());
                 Thread.sleep(100);
             }

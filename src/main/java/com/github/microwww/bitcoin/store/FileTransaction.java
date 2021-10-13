@@ -36,6 +36,7 @@ class FileTransaction extends AbstractFilePosition<RawTransaction> {
         super.readLength(fc, bf, this.length);
         RawTransaction rt = new RawTransaction();
         rt.deserialization(bf);
+        rt.setBlockHash(this.block);
         return rt;
     }
 

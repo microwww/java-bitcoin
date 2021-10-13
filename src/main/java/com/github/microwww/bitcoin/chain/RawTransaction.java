@@ -21,6 +21,8 @@ public class RawTransaction implements ByteSerializable {
     private TxOut[] txOuts = new TxOut[]{};
     private Uint32 lockTime = Uint32.ZERO;
 
+    private Uint256 blockHash;
+
     private void read(ByteBuf bf) {
         version = bf.readIntLE();
         UintVar inputCount = UintVar.parse(bf);
@@ -67,6 +69,10 @@ public class RawTransaction implements ByteSerializable {
         ByteBuf bf = Unpooled.buffer();
         write(bf, (byte) 0);
         return new Uint256(ByteUtil.sha256sha256(ByteUtil.readAll(bf)));
+    }
+
+    public Uint256 txid() {
+        return this.hash();
     }
 
     public Uint256 whash() {
@@ -181,6 +187,15 @@ public class RawTransaction implements ByteSerializable {
 
     public boolean isWitness() {
         return flag != 0;
+    }
+
+    public Optional<Uint256> getBlockHash() {
+        return Optional.ofNullable(blockHash);
+    }
+
+    public RawTransaction setBlockHash(Uint256 blockHash) {
+        this.blockHash = blockHash;
+        return this;
     }
 
     @Override

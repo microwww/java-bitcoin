@@ -66,7 +66,10 @@ public class Generating {
         genesis.setTxs(new RawTransaction[]{txNew});
         genesis.header.setPreHash(Uint256.ZERO);
         genesis.header.setMerkleRoot(genesis.merkleRoot());
+
         genesis.header.setHeight(0);
+        txNew.setBlockHash(genesis.hash());
+
         return genesis;
     }
 
