@@ -71,6 +71,15 @@ public class CoinAccount {
         public boolean signatureVerify(byte[] signed, byte[] data) {
             return Secp256k1.signatureVerify(this.key, signed, data);
         }
+
+        public static boolean checkFormat(byte[] bytes) {
+            if (bytes.length == 0x21) {// 压缩的公钥 02/03 + <32位>
+                return bytes[0] == 0x02 || bytes[0] == 0x03;
+            } else if (bytes.length == 0x41) {// 不压缩的公钥 04 + <64位>
+                return bytes[0] == 0x04;
+            }
+            return false;
+        }
     }
 
     public static class Address {
