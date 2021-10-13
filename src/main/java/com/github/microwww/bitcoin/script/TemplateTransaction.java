@@ -55,11 +55,13 @@ public enum TemplateTransaction {
         @Override
         public byte[] scriptPubKey(byte[]... args) {
             Assert.isTrue(args.length == 1, "one arg for address");
+            int length = args[0].length;
+            Assert.isTrue(length == 65 || length == 33, "PK 04[32+][32+] / [02|03][32+]");
             ByteBuf bf = Unpooled.buffer()
-                    .writeByte(args[0].length)
+                    .writeByte(length)
                     .writeBytes(args[0])
                     .writeByte(OP_CHECKSIG.opcode());
-            Assert.isTrue(22 == bf.readableBytes(), "Length 25");
+            // Assert.isTrue(22 == bf.readableBytes(), "Length 25");
             return ByteUtil.readAll(bf);
         }
     },

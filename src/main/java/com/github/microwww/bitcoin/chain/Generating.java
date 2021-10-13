@@ -3,6 +3,8 @@ package com.github.microwww.bitcoin.chain;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
+import com.github.microwww.bitcoin.script.TemplateTransaction;
+import com.github.microwww.bitcoin.script.instruction.ScriptNames;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -46,13 +48,7 @@ public class Generating {
         TxOut out = new TxOut();
         out.setValue(amount);
 
-        // TODO :: 脚本处理 , 暂时直接填内容
-        int clen = genesisOutputScript.length;
-        byte[] bytes = new byte[clen + 2];
-        bytes[0] = (byte) clen;
-        bytes[clen + 1] = (byte) 0xac;
-        System.arraycopy(genesisOutputScript, 0, bytes, 1, clen);
-        // 填充完成
+        byte[] bytes = TemplateTransaction.P2PK.scriptPubKey(genesisOutputScript);
 
         out.setScriptPubKey(bytes);
         txNew.setTxOuts(new TxOut[]{out});
