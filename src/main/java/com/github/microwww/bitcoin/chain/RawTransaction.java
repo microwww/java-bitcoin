@@ -9,6 +9,7 @@ import io.netty.buffer.Unpooled;
 import org.springframework.util.Assert;
 
 import java.text.DecimalFormat;
+import java.util.Optional;
 
 public class RawTransaction implements ByteSerializable {
     private int version;
@@ -75,11 +76,13 @@ public class RawTransaction implements ByteSerializable {
     }
 
     private void write(ByteBuf bf) {
-        boolean flag = false;
-        for (TxIn txIn : this.getTxIns()) {
-            if (txIn.getTxWitness() != null) {
-                flag = true;
-                break;
+        boolean flag = isWitness();
+        if (!flag) {
+            for (TxIn txIn : this.getTxIns()) {
+                if (txIn.getTxWitness().isPresent()) {
+                    flag = true;
+                    break;
+                }
             }
         }
         write(bf, flag ? 1 : 0);
@@ -94,7 +97,8 @@ public class RawTransaction implements ByteSerializable {
         bf.writeIntLE(version);
         //////// IN
         if (witness != 0) {
-            bf.writeBytes(new byte[]{marker, (byte) witness});
+            Assert.isTrue(marker == 0, "marker must equal 0");
+            bf.writeBytes(new byte[]{0, (byte) witness});
         }
         UintVar.valueOf(txIns.length).write(bf);
         for (TxIn txIn : txIns) {
@@ -106,11 +110,12 @@ public class RawTransaction implements ByteSerializable {
             txOut.write(bf);
         }
         if (witness != 0) for (TxIn txIn : txIns) {
-            byte[][] wt = txIn.getTxWitness();
-            if (wt == null) {
+            Optional<byte[][]> opt = txIn.getTxWitness();
+            if (!opt.isPresent()) {
                 UintVar.ZERO.write(bf);
                 continue;
             }
+            byte[][] wt = opt.get();
             UintVar.valueOf(wt.length).write(bf);
             for (byte[] bytes : wt) {
                 UintVar.valueOf(bytes.length).write(bf);
@@ -219,10 +224,11 @@ public class RawTransaction implements ByteSerializable {
 
         if (tr.getFlag() != 0) {
             for (TxIn in : tr.getTxIns()) {
-                int len = UintVar.valueOf(in.getTxWitness().length).bytesLength();
+                byte[][] tw = in.getTxWitness().orElse(new byte[][]{});
+                int len = UintVar.valueOf(tw.length).bytesLength();
                 hexLength(sb.append(String.format(fm, "witness")), bf, len).append("\n");
-                for (int i = 0; i < in.getTxWitness().length; i++) {
-                    byte[] w = in.getTxWitness()[i];
+                for (int i = 0; i < tw.length; i++) {
+                    byte[] w = tw[i];
                     len = UintVar.valueOf(w.length).bytesLength();
                     hexLength(sb.append(String.format(fm, "w" + i + "")), bf, len);
                     hexLength(sb.append(" "), bf, w.length).append("\n");

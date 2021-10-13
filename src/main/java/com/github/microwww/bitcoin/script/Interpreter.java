@@ -84,8 +84,9 @@ public class Interpreter {
     }
 
     public Interpreter witnessPushStack() {
-        byte[][] pushes = transaction.getTxIns()[indexTxIn].getTxWitness();
-        if (pushes != null) {
+        Optional<byte[][]> opt = transaction.getTxIns()[indexTxIn].getTxWitness();
+        if (opt.isPresent()) {
+            byte[][] pushes = opt.get();
             for (byte[] push : pushes) {
                 this.stack.push(push);
             }

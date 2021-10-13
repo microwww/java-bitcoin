@@ -6,6 +6,8 @@ import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 
+import java.util.Optional;
+
 public class TxIn {
     private Uint256 preTxHash;
     private int preTxOutIndex;
@@ -67,8 +69,11 @@ public class TxIn {
         this.sequence = sequence;
     }
 
-    public byte[][] getTxWitness() {
-        return txWitness;
+    public Optional<byte[][]> getTxWitness() {
+        if (txWitness == null || txWitness.length == 0) {
+            return Optional.empty();
+        }
+        return Optional.of(txWitness);
     }
 
     public void setTxWitness(byte[][] txWitness) {

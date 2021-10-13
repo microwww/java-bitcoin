@@ -2,6 +2,8 @@ package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.chain.sign.*;
 
+import java.util.Optional;
+
 public enum HashType {
     // demo : in : c99c49da4c38af669dea436d3e73780dfdb6c1ecf9958baa52960e8baee30e73, from out: 406b2b06bcd34d3c8733e6b79f7a394c8a431fbf4ff5ac705c93f4076bb77602
     //!< Taproot only; implied when sighash byte is missing, and equivalent to SIGHASH_ALL
@@ -100,8 +102,8 @@ public enum HashType {
     }
 
     public boolean signatureVerify(RawTransaction transaction, int indexTxIn, TxOut preout, byte[] pk, byte[] sign, byte[] scripts) {
-        byte[][] txWitness = transaction.getTxIns()[indexTxIn].getTxWitness();
-        if (txWitness != null && txWitness.length > 0) {
+        Optional<byte[][]> txWitness = transaction.getTxIns()[indexTxIn].getTxWitness();
+        if (txWitness.isPresent()) {
             return witnessVerify(transaction, indexTxIn, preout, pk, sign, scripts);
         } else {
             return verify(transaction, indexTxIn, preout, pk, sign, scripts);

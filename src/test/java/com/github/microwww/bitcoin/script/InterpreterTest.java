@@ -143,7 +143,7 @@ class InterpreterTest {
         byte[] pubKey = keyPrivate.getKeyPublic().getKey();
         tx1.getTxIns()[1].setTxWitness(new byte[][]{ByteUtil.concat(snn, new byte[]{HashType.ALL.toByte()}), pubKey});
 
-        byte[][] txWitness = tx1.getTxIns()[1].getTxWitness();
+        byte[][] txWitness = tx1.getTxIns()[1].getTxWitness().get();
         assertEquals(2, txWitness.length);
         assertEquals(71, txWitness[0].length);
         assertArrayEquals(ByteUtil.concat(snn, new byte[]{1}), txWitness[0]);
@@ -239,7 +239,7 @@ class InterpreterTest {
         in0.setScript(new byte[]{});
         in0.setTxWitness(new byte[][]{ByteUtil.concat(snn, new byte[]{HashType.ALL.toByte()}), pk});
 
-        byte[][] txWitness = in0.getTxWitness();
+        byte[][] txWitness = in0.getTxWitness().get();
         assertEquals(2, txWitness.length);
         assertEquals(71, txWitness[0].length);
         assertArrayEquals(ByteUtil.concat(snn, new byte[]{1}), txWitness[0]);
@@ -285,7 +285,10 @@ class InterpreterTest {
         RawTransaction tx = readTx(94);
         byte[] ss = ByteUtil.hex("21036d5c20fa14fb2f635474c1dc4ef5909d4568e5569b79fc94d3448486e14685f8ac");
         int i = 0;
-        Interpreter executor = new Interpreter(tx).executor(tx.getTxIns()[i].getScript()).witnessPushStack().executor(ss);
+        Interpreter executor = new Interpreter(tx)
+                .executor(tx.getTxIns()[i].getScript())
+                .witnessPushStack()
+                .executor(ss);
         assertTrue(executor.isSuccess(true));
 
         i = 1;
