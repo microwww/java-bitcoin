@@ -1,9 +1,10 @@
 package com.github.microwww.bitcoin.wallet;
 
-import com.github.microwww.bitcoin.util.ByteUtil;
+import com.github.microwww.bitcoin.wallet.util.Base58;
 import org.h2.Driver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.Assert;
 
 import java.io.Closeable;
 import java.io.File;
@@ -16,10 +17,12 @@ import java.util.List;
 public class Wallet implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(Wallet.class);
     private static final String TABLE_NAME = "account";
+    private static final int DEFAULT_TYPE = 1;
 
     public static String name = "h2wallet";
     private final File wallet;
     private final Connection conn;
+    private final Env env;
 
     static {
         try {
@@ -29,9 +32,10 @@ public class Wallet implements Closeable {
         }
     }
 
-    public Wallet(File root) throws SQLException, IOException {
+    public Wallet(File root, Env env) throws SQLException, IOException {
         wallet = new File(new File(root, "wallet"), name).getCanonicalFile();
         conn = DriverManager.getConnection("jdbc:h2:file:" + wallet.getCanonicalPath());
+        this.env = env;
     }
 
     public void init() throws SQLException, IOException {
@@ -64,38 +68,50 @@ public class Wallet implements Closeable {
         } else {
             conn.createStatement().execute("CREATE TABLE " + TABLE_NAME + " (" +
                     "id int(11) NOT NULL auto_increment," +
-                    "address VARCHAR(64) NOT NULL," +
-                    "key_private BLOB(1024) NOT NULL," +
+                    "pk_hash VARCHAR(64) NOT NULL," +
+                    "key_private VARCHAR(255) NOT NULL," +
+                    "type int(11) NOT NULL DEFAULT '0'," +
                     "tag VARCHAR(100) NOT NULL," +
                     "create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +
                     "PRIMARY KEY (id)," +
-                    "UNIQUE INDEX address (address)" +
+                    "UNIQUE INDEX address (pk_hash)" +
                     ")");
             //conn.createStatement().execute("CREATE SEQUENCE IF NOT EXISTS RANDOM_USER.RANDOMTABLE_SEQ START WITH 1 INCREMENT BY 1");
             log.info("CREATE TABLE account : {}", wallet.getCanonicalPath());
         }
     }
 
-    public void insert(String tag, CoinAccount.Address kp) {
-        insert(tag, new byte[]{}, kp.getKeyPublicHash());
+    public AccountDB gen() {
+        return gen("");
     }
 
-    public void insert(String tag, CoinAccount.KeyPrivate kp) {
-        insert(tag, kp.getKey(), kp.getAddress().getKeyPublicHash());
+    public AccountDB gen(String tag) {
+        CoinAccount.KeyPrivate prv = new CoinAccount.KeyPrivate(Secp256k1.generatePrivateKey());
+        return insert(tag, prv);
+    }
+
+    public AccountDB insert(String tag, CoinAccount.Address kp, int type) {
+        return insert(tag, new byte[]{}, kp.getKeyPublicHash(), type);
+    }
+
+    public AccountDB insert(String tag, CoinAccount.Address kp) {
+        return insert(tag, new byte[]{}, kp.getKeyPublicHash(), DEFAULT_TYPE);
+    }
+
+    public AccountDB insert(String tag, CoinAccount.KeyPrivate kp, int type) {
+        return insert(tag, kp.getKey(), kp.getAddress().getKeyPublicHash(), type);
+    }
+
+    public AccountDB insert(String tag, CoinAccount.KeyPrivate kp) {
+        return insert(tag, kp.getKey(), kp.getAddress().getKeyPublicHash(), DEFAULT_TYPE);
     }
 
     public List<AccountDB> listAddress() {
         List<AccountDB> res = new ArrayList<>();
         try {
-            ResultSet ps = conn.createStatement().executeQuery("select id, address, key_private, tag, create_time from " + TABLE_NAME);
+            ResultSet ps = conn.createStatement().executeQuery("select id, pk_hash, key_private, type, tag, create_time from " + TABLE_NAME);
             while (ps.next()) {
-                AccountDB ad = new AccountDB();
-                ad.setId(ps.getInt(1));
-                ad.setAddress(ps.getString(2));
-                ad.setKeyPrivate(ps.getBytes(3));
-                ad.setTag(ps.getString(4));
-                ad.setCreateTime(ps.getTimestamp(5));
-                res.add(ad);
+                res.add(mapper(ps));
             }
             return res;
         } catch (SQLException e) {
@@ -103,21 +119,25 @@ public class Wallet implements Closeable {
         }
     }
 
-    private void insert(String tag, byte[] keyPrivate, byte[] address) {
+    private AccountDB insert(String tag, byte[] keyPrivate, byte[] address, int type) {
         try {
-            String hex = ByteUtil.hex(address);
-            PreparedStatement ps = conn.prepareStatement("select address from " + TABLE_NAME + " t where t.address = ?");
-            ps.setString(1, hex);
+            String addr = Base58.encode(address);
+            PreparedStatement ps = conn.prepareStatement("select id, pk_hash, key_private, type, tag, create_time from " + TABLE_NAME + " t where t.pk_hash = ?");
+            ps.setString(1, addr);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                log.warn("Address exist, skip : {}", hex);
-                return;
+                log.warn("pk_hash (address) exist, skip : {}", addr);
+            } else {
+                PreparedStatement ips = conn.prepareStatement("insert into " + TABLE_NAME + "(pk_hash, key_private, type, tag) values(?,?,?,?)");
+                ips.setString(1, addr);
+                ips.setString(2, Base58.encode(keyPrivate));
+                ips.setInt(3, type);
+                ips.setString(4, tag);
+                ips.execute();
+                rs = ps.executeQuery();
+                rs.next();
             }
-            ps = conn.prepareStatement("insert into " + TABLE_NAME + "(address, key_private, tag) values(?,?,?)");
-            ps.setString(1, hex);
-            ps.setBytes(2, keyPrivate);
-            ps.setString(3, tag);
-            ps.execute();
+            return mapper(rs);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -130,5 +150,18 @@ public class Wallet implements Closeable {
         } catch (SQLException e) {
             log.warn("Close H2 error", e);
         }
+    }
+
+    private AccountDB mapper(ResultSet ps) throws SQLException {
+        AccountDB ad = new AccountDB(env);
+        int i = 1;
+        ad.setId(ps.getInt(i++));
+        ad.setPkHash(Base58.decode(ps.getString(i++)));
+        ad.setKeyPrivate(Base58.decode(ps.getString(i++)));
+        ad.setType(ps.getInt(i++));
+        ad.setTag(ps.getString(i++));
+        ad.setCreateTime(ps.getTimestamp(i++));
+        Assert.isTrue(i == 7, "Read 6+");
+        return ad;
     }
 }

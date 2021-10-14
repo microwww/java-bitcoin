@@ -29,7 +29,7 @@ public class ChainBlockStore {
     @Bean
     public Wallet wallet(CChainParams params) {
         try {
-            Wallet wallet = new Wallet(params.settings.lockupRootDirectory());
+            Wallet wallet = new Wallet(params.settings.lockupRootDirectory(), params.env.addressType());
             wallet.init();
             return wallet;
         } catch (SQLException | IOException ex) {

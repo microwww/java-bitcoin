@@ -12,7 +12,7 @@ class WalletTest {
 
     @Test
     public void testCreate() throws SQLException, IOException {
-        Wallet w = new Wallet(new File("/tmp/" + UUID.randomUUID()));
+        Wallet w = new Wallet(new File("/tmp/" + UUID.randomUUID()), Env.MAIN);
         w.init();
 
         CoinAccount.KeyPrivate keyPrivate = CoinAccount.KeyPrivate.create();

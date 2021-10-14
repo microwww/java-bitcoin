@@ -13,8 +13,9 @@ import java.nio.charset.StandardCharsets;
  * nLockTime / sequence 重新定义
  */
 public class GenTransaction {
-    public static final GenTransaction G = new GenTransaction(1);
+    public static final GenTransaction G1 = new GenTransaction(1);
     public static final GenTransaction G2 = new GenTransaction(2);
+    public static final GenTransaction G = G2; // 默认是 G2
 
     private final int version;
 

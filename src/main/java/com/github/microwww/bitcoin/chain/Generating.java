@@ -21,23 +21,23 @@ public class Generating {
     public static ChainBlock createGenesisBlock(Uint32 nTime, Uint32 nNonce, Uint32 nBits, int nVersion, long amount) {
         String pszTimestamp = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
         byte[] genesisOutputScript = ByteUtil.hex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f");
-        return createGenesisBlock(pszTimestamp, genesisOutputScript, nTime, nNonce, nBits, nVersion, amount);
+
+        ByteBuf buffer = Unpooled.buffer();
+        byte[] msg = pszTimestamp.getBytes(StandardCharsets.ISO_8859_1);
+        buffer.writeByte(0x04).writeBytes(new byte[]{(byte) 0xff, (byte) 0xff, 0x00, 0x1d})
+                .writeByte(0x01).writeBytes(new byte[]{0x04})
+                .writeByte(msg.length)
+                .writeBytes(msg);
+        return createGenesisBlock(ByteUtil.readAll(buffer), genesisOutputScript, nTime, nNonce, nBits, nVersion, amount);
     }
 
-    public static ChainBlock createGenesisBlock(String pszTimestamp, byte[] genesisOutputScript, Uint32 nTime, Uint32 nNonce, Uint32 nBits, int nVersion, long amount) {
+    private static ChainBlock createGenesisBlock(byte[] coinbase, byte[] pk, Uint32 nTime, Uint32 nNonce, Uint32 nBits, int nVersion, long amount) {
         RawTransaction txNew = new RawTransaction();
         txNew.setVersion(1);
 
         // txNew.vin[0].scriptSig = CScript() << 486604799 << CScriptNum(4) << std::vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
         TxIn in = new TxIn();
-        ByteBuf buffer = Unpooled.buffer();
-        byte[] msg = pszTimestamp.getBytes(StandardCharsets.ISO_8859_1);
-        buffer.writeByte(0x04).writeInt(0xffff001d)
-                .writeByte(1)
-                .writeByte(4)
-                .writeByte(msg.length)
-                .writeBytes(msg);
-        in.setScript(ByteUtil.readAll(buffer));
+        in.setScript(coinbase);
         in.setPreTxHash(Uint256.ZERO);
         in.setPreTxOutIndex(-1);
         in.setSequence(Uint32.MAX_VALUE);
@@ -47,7 +47,7 @@ public class Generating {
         TxOut out = new TxOut();
         out.setValue(amount);
 
-        ByteBuf bf = PubKeyScript.Type.P2PK.scriptPubKey(genesisOutputScript);
+        ByteBuf bf = PubKeyScript.Type.P2PK.scriptPubKey(pk);
 
         out.setScriptPubKey(ByteUtil.readAll(bf));
         txNew.setTxOuts(new TxOut[]{out});

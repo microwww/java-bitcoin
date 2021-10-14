@@ -5,15 +5,17 @@ import com.github.microwww.bitcoin.util.ByteUtil;
 import java.util.Date;
 
 public class AccountDB {
-    public enum Version {
-        BASE58, BECH32
-    }
+    private final Env env;
     private int id;
-    private String address;
-    private byte[] KeyPrivate;
+    private byte[] pkHash;
+    private byte[] keyPrivate;
+    private int type;// 0: p2pk, 1: witness, 2: p2sh
     private String tag;
-    private Version version;
     private Date createTime;
+
+    public AccountDB(Env env) {
+        this.env = env;
+    }
 
     public int getId() {
         return id;
@@ -32,19 +34,40 @@ public class AccountDB {
     }
 
     public byte[] getKeyPrivate() {
-        return KeyPrivate;
+        return keyPrivate;
     }
 
     public void setKeyPrivate(byte[] keyPrivate) {
-        KeyPrivate = keyPrivate;
+        this.keyPrivate = keyPrivate;
     }
 
-    public String getAddress() {
-        return address;
+    public byte[] getPkHash() {
+        return pkHash;
     }
 
-    public void setAddress(String address) {
-        this.address = address;
+    public String toAddress() {
+        if (type == 1) {
+            return new CoinAccount.Address(pkHash).toBech32Address(env);
+        } else if (type == 2) {
+            return new CoinAccount.Address(pkHash).toP2SHAddress(env);
+        }
+        return new CoinAccount.Address(pkHash).toBase58Address(env);
+    }
+
+    public void setPkHash(byte[] pkHash) {
+        this.pkHash = pkHash;
+    }
+
+    public boolean isWitness() {
+        return this.type == 1;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
     }
 
     public Date getCreateTime() {
@@ -59,8 +82,8 @@ public class AccountDB {
     public String toString() {
         return "AccountDB {" +
                 "  id =" + id +
-                ", address = 0x" + address +
-                ", KeyPrivate = 0x" + ByteUtil.hex(KeyPrivate) +
+                ", address = 0x" + ByteUtil.hex(pkHash) +
+                ", KeyPrivate = 0x" + ByteUtil.hex(keyPrivate) +
                 ", tag = " + tag +
                 ", createTime = " + createTime +
                 '}';
