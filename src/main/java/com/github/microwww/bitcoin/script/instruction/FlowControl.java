@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.script.instruction;
 
 import com.github.microwww.bitcoin.script.Interpreter;
+import com.github.microwww.bitcoin.script.ex.ScriptRuntimeException;
 import com.github.microwww.bitcoin.script.ex.TransactionInvalidException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,5 +45,15 @@ public abstract class FlowControl {
         }
     }
 
-    // OP_RETURN, // 106
+    static class OP_RETURN extends AbstractScriptNoOperand {
+
+        public OP_RETURN(int code) {
+            super(code);
+        }
+
+        @Override
+        public void exec(Interpreter executor) {
+            throw new ScriptRuntimeException("OP_RETURN");
+        }
+    }
 }

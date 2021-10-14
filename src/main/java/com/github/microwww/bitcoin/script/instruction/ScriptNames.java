@@ -226,7 +226,7 @@ public enum ScriptNames {
     // 105, 0x69
     OP_VERIFY(FlowControl.OP_VERIFY.class),
     // 106, 0x6A
-    OP_RETURN(),
+    OP_RETURN(FlowControl.OP_RETURN.class),
 
     // stack ops
     // 107, 0x6B
