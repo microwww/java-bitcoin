@@ -1,6 +1,6 @@
 package com.github.microwww.bitcoin.chain;
 
-import com.github.microwww.bitcoin.script.TemplateTransaction;
+import com.github.microwww.bitcoin.script.PubKeyScript;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.util.ClassPath;
 import com.github.microwww.bitcoin.wallet.Env;
@@ -23,11 +23,11 @@ class TxOutTest {
         tx.deserialization(bf);
         assertEquals("1df429446c40ea5bb4f65330ef3765a9276fc270918ff2e2af72d54fa2cfbfe4", tx.hash().toHexReverse256());
 
-        String s = tx.getTxOuts()[0].loadAddress().get().toBase58Address(Env.MAIN);
+        String s = tx.getTxOuts()[0].getScriptTemplate().getAddress().get().toBase58Address(Env.MAIN);
         assertEquals("18cBEMRxXHqzWWCxZNtU91F5sbUNKhL5PX", s);
 
-        TemplateTransaction tt = tx.getTxOuts()[1].getScriptTemplate().get();
-        assertEquals(TemplateTransaction.RETURN, tt);
+        PubKeyScript tt = tx.getTxOuts()[1].getScriptTemplate();
+        assertEquals(PubKeyScript.Type.RETURN, tt.getType());
     }
 
     @Test
@@ -39,7 +39,7 @@ class TxOutTest {
         tx.deserialization(bf);
         assertEquals("0437cd7f8525ceed2324359c2d0ba26006d92d856a9c20fa0241106ee5a597c9", tx.hash().toHexReverse256());
 
-        String s = tx.getTxOuts()[0].loadAddress().get().toBase58Address(Env.MAIN);
+        String s = tx.getTxOuts()[0].getScriptTemplate().getAddress().get().toBase58Address(Env.MAIN);
         assertEquals("12cbQLTFMXRnSzktFkuoG3eHoMeFtpTu3S", s);
     }
 }

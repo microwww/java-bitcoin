@@ -1,13 +1,11 @@
 package com.github.microwww.bitcoin.chain;
 
 import com.github.microwww.bitcoin.math.UintVar;
-import com.github.microwww.bitcoin.script.TemplateTransaction;
+import com.github.microwww.bitcoin.script.PubKeyScript;
 import com.github.microwww.bitcoin.util.ByteUtil;
-import com.github.microwww.bitcoin.wallet.CoinAccount;
 import io.netty.buffer.ByteBuf;
 
 import java.math.BigDecimal;
-import java.util.Optional;
 
 public class TxOut {
     private long value;
@@ -62,12 +60,8 @@ public class TxOut {
         return this;
     }
 
-    public Optional<TemplateTransaction> getScriptTemplate() {
-        return TemplateTransaction.select(scriptPubKey);
-    }
-
-    public Optional<CoinAccount.Address> loadAddress() {
-        return TemplateTransaction.selectAddress(scriptPubKey);
+    public PubKeyScript getScriptTemplate() {
+        return PubKeyScript.parseScript(scriptPubKey);
     }
 
     @Override

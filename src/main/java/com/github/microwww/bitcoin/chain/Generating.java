@@ -3,8 +3,7 @@ package com.github.microwww.bitcoin.chain;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
-import com.github.microwww.bitcoin.script.TemplateTransaction;
-import com.github.microwww.bitcoin.script.instruction.ScriptNames;
+import com.github.microwww.bitcoin.script.PubKeyScript;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -48,9 +47,9 @@ public class Generating {
         TxOut out = new TxOut();
         out.setValue(amount);
 
-        byte[] bytes = TemplateTransaction.P2PK.scriptPubKey(genesisOutputScript);
+        ByteBuf bf = PubKeyScript.Type.P2PK.scriptPubKey(genesisOutputScript);
 
-        out.setScriptPubKey(bytes);
+        out.setScriptPubKey(ByteUtil.readAll(bf));
         txNew.setTxOuts(new TxOut[]{out});
         txNew.setLockTime(Uint32.ZERO);
 

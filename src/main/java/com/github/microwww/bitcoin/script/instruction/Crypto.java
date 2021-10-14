@@ -4,7 +4,7 @@ import com.github.microwww.bitcoin.chain.HashType;
 import com.github.microwww.bitcoin.math.Uint32;
 import com.github.microwww.bitcoin.math.UintVar;
 import com.github.microwww.bitcoin.script.Interpreter;
-import com.github.microwww.bitcoin.script.TemplateTransaction;
+import com.github.microwww.bitcoin.script.PubKeyScript;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
@@ -137,7 +137,7 @@ public class Crypto {
         @Override
         public void exec(Interpreter executor) {
             byte[] pop = executor.stack.assertSizeGE(1).pop();
-            int mm = TemplateTransaction.M2N_MAX;
+            int mm = PubKeyScript.M2N_MAX;
             Assert.isTrue(pop.length == 1, "Must 1");
             int max = Byte.toUnsignedInt(pop[0]);
             Assert.isTrue(max <= mm, "M2N max " + mm);

@@ -18,7 +18,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class TemplateTransactionTest {
+class PubKeyScriptTest {
     private static List<String> strings = Collections.EMPTY_LIST;
 
     @Test
@@ -27,7 +27,7 @@ class TemplateTransactionTest {
         byte[] pk2 = ByteUtil.hex("02c96db2302d19b43d4c69368babace7854cc84eb9e061cde51cfa77ca4a22b8b9");
         byte[] pk3 = ByteUtil.hex("03c6103b3b83e4a24a0e33a4df246ef11772f9992663db0c35759a5e2ebf68d8e9");
 
-        byte[] ss = TemplateTransaction.getScriptForMultiSig(2, pk1, pk2, pk3);
+        byte[] ss = PubKeyScript.getScriptForMultiSig(2, pk1, pk2, pk3);
         String encode = Base58.encodeAddress(Env.MAIN.addressP2SH, ByteUtil.sha256ripemd160(ss));
         assertEquals("36NUkt6FWUi3LAWBqWRdDmdTWbt91Yvfu7", encode);
 
@@ -69,7 +69,7 @@ class TemplateTransactionTest {
     @Test
     void scriptPubKeyP2PKH() {
         byte[] addr = ByteUtil.hex("c825a1ecf2a6830c4401620c3a16f1995057c2ab");
-        byte[] bytes = TemplateTransaction.P2PKH.scriptPubKey(addr);
+        byte[] bytes = ByteUtil.readAll(PubKeyScript.Type.P2PKH.scriptPubKey(addr));
         assertArrayEquals(ByteUtil.hex("76a914c825a1ecf2a6830c4401620c3a16f1995057c2ab88ac"), bytes);
         System.out.println(ScriptNames.beautify(bytes));
     }

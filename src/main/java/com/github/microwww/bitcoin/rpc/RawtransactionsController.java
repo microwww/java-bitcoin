@@ -8,7 +8,7 @@ import com.github.microwww.bitcoin.model.ScriptPubKey;
 import com.github.microwww.bitcoin.model.ScriptSig;
 import com.github.microwww.bitcoin.model.TxVin;
 import com.github.microwww.bitcoin.model.TxVout;
-import com.github.microwww.bitcoin.script.TemplateTransaction;
+import com.github.microwww.bitcoin.script.PubKeyScript;
 import com.github.microwww.bitcoin.script.instruction.ScriptNames;
 import com.github.microwww.bitcoin.store.DiskBlock;
 import com.github.microwww.bitcoin.store.IndexTransaction;
@@ -116,19 +116,14 @@ public class RawtransactionsController {
                 out.setValue(e.toBTC());
                 out.setScriptPubKey(new ScriptPubKey());
                 ScriptPubKey pk = out.getScriptPubKey();
+                pk.setReqSigs(pk.getReqSigs());
                 pk.setHex(ByteUtil.hex(e.getScriptPubKey()));
                 pk.setAsm(ScriptNames.beautify(e.getScriptPubKey()).toString());
-                Optional<TemplateTransaction> st = e.getScriptTemplate();
-                pk.setType(st.map(TemplateTransaction::name).orElse(null));
+                PubKeyScript st = e.getScriptTemplate();
+                pk.setType(st.getType().name());
                 Env env = chainParams.env.addressType();
-                e.loadAddress().ifPresent(addr -> {
-                    if (TemplateTransaction.P2SH.equals(st.get()) || TemplateTransaction.P2WSH.equals(st.get())) {
-                        pk.setAddresses(new String[]{addr.toP2SHAddress(env)});
-                    } else if (tx.isWitness()) {
-                        pk.setAddresses(new String[]{addr.toBech32Address(env)});
-                    } else {
-                        pk.setAddresses(new String[]{addr.toBase58Address(env)});
-                    }
+                st.getAddress(tx, env).ifPresent(addr -> {
+                    pk.setAddresses(new String[]{addr});
                 });
                 outs[i] = out;
             }

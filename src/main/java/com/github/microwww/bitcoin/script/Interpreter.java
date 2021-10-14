@@ -11,6 +11,7 @@ import org.springframework.util.Assert;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class Interpreter {
     private static final Logger logger = LoggerFactory.getLogger(Interpreter.class);
@@ -115,14 +116,10 @@ public class Interpreter {
         if (logger.isDebugEnabled())
             logger.debug("Exec offset {}, script : {}", offset, ByteUtil.hex(aScript));
 
-        Optional<TemplateTransaction> tt = TemplateTransaction.select(aScript);
-        tt.ifPresent(template -> {
-            logger.debug("Run TemplateTransaction.{}", template);
-            template.executor(this);
-        });
-        if (!tt.isPresent()) {
-            runNow();
-        }
+        List<Script> scripts = script.stream().map(Compiler.SourceCode::getScript).collect(Collectors.toList());
+        PubKeyScript template = PubKeyScript.parseScript(scripts);
+        logger.debug("Run TemplateTransaction.{}", template.getType());
+        template.getType().executor(this);
         return this;
     }
 

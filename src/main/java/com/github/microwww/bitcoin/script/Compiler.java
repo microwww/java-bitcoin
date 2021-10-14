@@ -54,5 +54,9 @@ public class Compiler {
             Compiler.this.script.getBytes(p, bytes);
             return bytes;
         }
+
+        public Script getScript() {
+            return script;
+        }
     }
 }
