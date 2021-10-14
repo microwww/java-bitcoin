@@ -9,6 +9,7 @@ import org.iq80.leveldb.Options;
 import org.iq80.leveldb.impl.Iq80DBFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -21,8 +22,8 @@ public class ChainBlockStore {
     private static final Logger logger = LoggerFactory.getLogger(ChainBlockStore.class);
 
     @Bean
-    public DiskBlock diskBlock(CChainParams params) throws IOException {
-        return new DiskBlock(params);
+    public DiskBlock diskBlock(CChainParams params, ApplicationEventPublisher publisher) throws IOException {
+        return new DiskBlock.SpringDiskBlock(params, publisher);
     }
 
     @Bean

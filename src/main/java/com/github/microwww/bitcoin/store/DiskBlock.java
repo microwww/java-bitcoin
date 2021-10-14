@@ -9,6 +9,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.util.Assert;
 
 import java.io.Closeable;
@@ -33,6 +34,22 @@ public class DiskBlock implements Closeable {
     private final IndexBlock indexBlock;
     private final IndexHeight indexHeight;
     private final AccessBlockFile fileAccess;
+
+    public static class SpringDiskBlock extends DiskBlock {
+        private final ApplicationEventPublisher publisher;
+
+        public SpringDiskBlock(CChainParams chainParams, ApplicationEventPublisher publisher) {
+            super(chainParams);
+            this.publisher = publisher;
+        }
+
+        @Override
+        public FileChainBlock writeBlock(ChainBlock block, int height, boolean ifExistSkip) {
+            FileChainBlock fc = super.writeBlock(block, height, ifExistSkip);
+            publisher.publishEvent(fc.new BlockWrite2fileEvent());
+            return fc;
+        }
+    }
 
     public DiskBlock(CChainParams chainParams) {
         this.chainParams = chainParams;
@@ -185,15 +202,14 @@ public class DiskBlock implements Closeable {
                 return fd.get();
             }
         }
-        FileChainBlock write = write(block);
-        this.indexBlock(write);
-        return write;
+        FileChainBlock fc = write(block);
+        this.indexBlock(fc);
+        return fc;
     }
 
     private synchronized FileChainBlock write(ChainBlock block) {
         try {
-            FileChainBlock fc = fileAccess.writeBlock(block);
-            return fc;
+            return fileAccess.writeBlock(block);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

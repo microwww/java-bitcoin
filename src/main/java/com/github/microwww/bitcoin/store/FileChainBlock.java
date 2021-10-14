@@ -1,6 +1,7 @@
 package com.github.microwww.bitcoin.store;
 
 import com.github.microwww.bitcoin.chain.ChainBlock;
+import com.github.microwww.bitcoin.event.BitcoinEvent;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -18,6 +19,12 @@ class FileChainBlock extends AbstractFilePosition<ChainBlock> {
     private static final Logger logger = LoggerFactory.getLogger(FileChainBlock.class);
     private int magic;
     private Integer height;
+
+    public class BlockWrite2fileEvent extends BitcoinEvent<FileChainBlock> {
+        public BlockWrite2fileEvent() {
+            super(FileChainBlock.this);
+        }
+    }
 
     public FileChainBlock(File file, long position, ChainBlock target) {
         super(file, position, target);

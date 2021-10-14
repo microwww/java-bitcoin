@@ -237,7 +237,6 @@ public class PeerChannelClientProtocol implements Closeable {
             log5seconds.info("Get blocks {}, height: {}, {}", request.getPeer().getURI(), hc.map(Height::getHeight).orElse(-1), cb.hash());
         }
         if (hc.isPresent()) {
-            chain.getTransactionStore().indexTransaction(cb);
             this.sendLoadOneChainBlock(ctx);
         } else {
             logger.warn("STOP ! Peer {}, Not find pre-block: {}", peer.getURI(), cb.header.getPreHash());

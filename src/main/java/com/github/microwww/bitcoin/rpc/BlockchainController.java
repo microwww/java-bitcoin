@@ -99,4 +99,17 @@ public class BlockchainController {
         }
         return Mono.empty();
     }
+
+    /**
+     * getblockhash height
+     *
+     * @param height
+     * @return
+     */
+    // TODO:: not set !
+    @GetMapping("/api/getblockhash")
+    public Mono<String> getBlockHash(@RequestParam(defaultValue = "0") int height) {
+        Optional<Uint256> hash = diskBlock.getHash(height);
+        return Mono.justOrEmpty(hash.map(Uint256::toHexReverse256));
+    }
 }

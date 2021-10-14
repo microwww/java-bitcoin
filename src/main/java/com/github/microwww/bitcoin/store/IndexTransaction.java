@@ -13,6 +13,7 @@ import org.iq80.leveldb.DB;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
@@ -22,7 +23,7 @@ import java.io.IOException;
 import java.util.*;
 
 @Component
-public class IndexTransaction implements Closeable {
+public class IndexTransaction implements ApplicationListener<FileChainBlock.BlockWrite2fileEvent>, Closeable {
     private static final String TX_INDEX_DIR = "txindex";
     private static final Logger logger = LoggerFactory.getLogger(IndexTransaction.class);
     private final CChainParams chainParams;
@@ -50,6 +51,11 @@ public class IndexTransaction implements Closeable {
         }
     }
 
+    @Override
+    public void onApplicationEvent(FileChainBlock.BlockWrite2fileEvent event) {
+        indexTransaction(event.getBitcoinSource());
+    }
+
     public void add(RawTransaction request) {
         // TODO:: 需要验证交易
         if (transactions.size() > maxCount) {
@@ -71,7 +77,7 @@ public class IndexTransaction implements Closeable {
         indexTransaction(fc);
     }
 
-    public void indexTransaction(FileChainBlock fc) {
+    void indexTransaction(FileChainBlock fc) {
         int magicAndLengthBytes = 8;
         FileTransaction[] fts = this.transactionPosition(fc, magicAndLengthBytes + fc.getPosition());
         this.serializationTransaction(fts);

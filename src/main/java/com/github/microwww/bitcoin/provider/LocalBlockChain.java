@@ -8,9 +8,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class LocalBlockChain {
-    private DiskBlock diskBlock;
-    private IndexTransaction indexTransaction;
-    private CChainParams chainParams;
+    private final DiskBlock diskBlock;
+    private final IndexTransaction indexTransaction;
+    private final CChainParams chainParams;
 
     public LocalBlockChain(CChainParams chainParams, DiskBlock diskBlock, IndexTransaction indexTransaction) {
         this.diskBlock = diskBlock;
@@ -22,27 +22,12 @@ public class LocalBlockChain {
         return diskBlock;
     }
 
-    public LocalBlockChain setDiskBlock(DiskBlock diskBlock) {
-        this.diskBlock = diskBlock;
-        return this;
-    }
-
     public IndexTransaction getTransactionStore() {
         return indexTransaction;
     }
 
-    public LocalBlockChain setTransactionStore(IndexTransaction indexTransaction) {
-        this.indexTransaction = indexTransaction;
-        return this;
-    }
-
     public CChainParams getChainParams() {
         return chainParams;
-    }
-
-    public LocalBlockChain setChainParams(CChainParams chainParams) {
-        this.chainParams = chainParams;
-        return this;
     }
 
     public Settings getSettings() {
