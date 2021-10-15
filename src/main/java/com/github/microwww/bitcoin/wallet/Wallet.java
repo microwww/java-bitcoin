@@ -13,11 +13,15 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-// @Component in @Bean
+/**
+ * Bitcoin-core 使用种子地址, 这里使用随机地址
+ */
 public class Wallet implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(Wallet.class);
-    private static final String TABLE_NAME = "account";
-    private static final int DEFAULT_TYPE = 1;
+
+    public static final String TABLE_NAME = "account";
+    public static final String SELECT_ACCOUNT = "select id, pk_hash, key_private, type, tag, create_time from " + TABLE_NAME;
+    public static final int DEFAULT_TYPE = 1;
 
     public static String name = "h2wallet";
     private final File wallet;
@@ -36,6 +40,19 @@ public class Wallet implements Closeable {
         wallet = new File(new File(root, "wallet"), name).getCanonicalFile();
         conn = DriverManager.getConnection("jdbc:h2:file:" + wallet.getCanonicalPath());
         this.env = env;
+    }
+
+    public AccountDB getCoinBaseAddress() {
+        try {
+            PreparedStatement ps = conn.prepareStatement(SELECT_ACCOUNT + " t order by id limit 1");
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return mapper(rs);
+            }
+        } catch (SQLException throwables) {
+            log.error("SELECT coinbase error !", throwables);
+        }
+        throw new RuntimeException("Not find coinbase-address");
     }
 
     public void init() throws SQLException, IOException {
@@ -77,7 +94,10 @@ public class Wallet implements Closeable {
                     "UNIQUE INDEX address (pk_hash)" +
                     ")");
             //conn.createStatement().execute("CREATE SEQUENCE IF NOT EXISTS RANDOM_USER.RANDOMTABLE_SEQ START WITH 1 INCREMENT BY 1");
-            log.info("CREATE TABLE account : {}", wallet.getCanonicalPath());
+            byte[] bytes = Secp256k1.generatePrivateKey();
+            CoinAccount.KeyPrivate kp = new CoinAccount.KeyPrivate(bytes);
+            this.insert("", kp, 0);
+            log.info("CREATE TABLE {}, address : {}, in {}", TABLE_NAME, kp.getAddress().toBase58Address(env), wallet.getCanonicalPath());
         }
     }
 
@@ -109,7 +129,7 @@ public class Wallet implements Closeable {
     public List<AccountDB> listAddress() {
         List<AccountDB> res = new ArrayList<>();
         try {
-            ResultSet ps = conn.createStatement().executeQuery("select id, pk_hash, key_private, type, tag, create_time from " + TABLE_NAME);
+            ResultSet ps = conn.createStatement().executeQuery(SELECT_ACCOUNT);
             while (ps.next()) {
                 res.add(mapper(ps));
             }
@@ -122,7 +142,7 @@ public class Wallet implements Closeable {
     private AccountDB insert(String tag, byte[] keyPrivate, byte[] address, int type) {
         try {
             String addr = Base58.encode(address);
-            PreparedStatement ps = conn.prepareStatement("select id, pk_hash, key_private, type, tag, create_time from " + TABLE_NAME + " t where t.pk_hash = ?");
+            PreparedStatement ps = conn.prepareStatement(SELECT_ACCOUNT + " t where t.pk_hash = ?");
             ps.setString(1, addr);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {

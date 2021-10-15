@@ -5,6 +5,9 @@ import com.github.microwww.bitcoin.chain.TxIn;
 import com.github.microwww.bitcoin.chain.TxOut;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
+import com.github.microwww.bitcoin.script.PubKeyScript;
+import com.github.microwww.bitcoin.util.ByteUtil;
+import io.netty.buffer.ByteBuf;
 
 import java.nio.charset.StandardCharsets;
 
@@ -23,20 +26,25 @@ public class GenTransaction {
         this.version = version;
     }
 
-    public RawTransaction genCoinbaseTransaction(String coinbase, long amount, byte[] scriptPubKey) {
+    public RawTransaction genCoinbaseTransactionP2PKH(byte[] coinbase, long amount, CoinAccount.Address address) {
+        ByteBuf p2ph = PubKeyScript.Type.P2PKH.scriptPubKey(address.getKeyPublicHash());
+        return genCoinbaseTransaction(coinbase, amount, ByteUtil.readAll(p2ph));
+    }
+
+    public RawTransaction genCoinbaseTransaction(byte[] coinbase, long amount, byte[] scriptPubKey) {
         TxOut out = new TxOut();
         out.setValue(amount);
         out.setScriptPubKey(scriptPubKey);
         return this.genCoinbaseTransaction(coinbase, new TxOut[]{out});
     }
 
-    public RawTransaction genCoinbaseTransaction(String coinbase, TxOut... outs) {
+    public RawTransaction genCoinbaseTransaction(byte[] coinbase, TxOut... outs) {
         RawTransaction tx = new RawTransaction();
         tx.setVersion(version);
         TxIn in = new TxIn();
         in.setPreTxHash(Uint256.ZERO);
         in.setPreTxOutIndex(-1);
-        in.setScript(coinbase.getBytes(StandardCharsets.UTF_8));
+        in.setScript(coinbase);
         in.setSequence(Uint32._ONE);
         tx.setTxIns(new TxIn[]{in});
         tx.setTxOuts(outs);
