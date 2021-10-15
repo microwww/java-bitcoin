@@ -142,16 +142,19 @@ public class BlockHeader implements Serializable {
     }
 
     public void assertDifficulty() {
+        if (!this.verifyDifficulty()) {
+            throw new IllegalArgumentException("POW Difficulty ERROR, hash: " + this.hash().toHexReverse256());
+        }
+    }
+
+    public boolean verifyDifficulty() {
         BigInteger dif = threshold();
         Uint256 hash = this.hash();
         BigInteger act = new BigInteger(1, hash.reverse256bit());
         if (logger.isDebugEnabled()) {
             logger.debug("POW Difficulty {}, Target: {}, Active: {}", this.getBits(), dif.toString(16), act.toString(16));
         }
-        if (dif.compareTo(act) < 0) {
-            logger.error("POW Difficulty error: {}, Target: {}", hash, dif.toString(16));
-            throw new IllegalArgumentException("POW Difficulty ERROR, hash: " + hash);
-        }
+        return dif.compareTo(act) >= 0;
     }
 
     public BlockHeader setBits(Uint32 bits) {

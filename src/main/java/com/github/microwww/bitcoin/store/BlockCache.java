@@ -1,24 +1,25 @@
 package com.github.microwww.bitcoin.store;
 
-import com.github.microwww.bitcoin.math.Uint256;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-public class BlockCache<T> {
+public class BlockCache<U, T> {
     private static final Logger logger = LoggerFactory.getLogger(BlockCache.class);
-    public static int MAX_CACHE = 2 * 24 * 6;
-    private Map<Uint256, T> cache = Collections.synchronizedMap(new LinkedHashMap<>(MAX_CACHE + 10)); // 缓存 2 天的块
+    private final int max;
+    private final Map<U, T> cache;
     private AtomicInteger count = new AtomicInteger();
     private AtomicInteger hit = new AtomicInteger();
 
-    public Optional<T> get(Uint256 key, Supplier<Optional<T>> supplier) {
+    public BlockCache(int max) {
+        this.max = max;
+        cache = new LinkedHashMap<>(max + 10);
+    }
+
+    public synchronized Optional<T> get(U key, Supplier<Optional<T>> supplier) {
         int v = count.incrementAndGet();
         if (logger.isDebugEnabled() && v % 100 == 0)
             logger.debug("Cache HIT {}/{} ", hit.intValue(), v);
@@ -30,13 +31,29 @@ public class BlockCache<T> {
         return Optional.of(h);
     }
 
-    public T put(Uint256 key, T value) {
+    public synchronized T put(U key, T value) {
         int size = cache.size();
-        int c = size - MAX_CACHE;
+        int c = size - max;
         if (c >= 0) {
-            logger.debug("Cache size over flow : {}", MAX_CACHE);
+            logger.debug("Cache size over flow : {}", max);
             cache.remove(cache.keySet().iterator().next());
         }
         return cache.put(key, value);
+    }
+
+    public synchronized T remove(U key) {
+        return cache.remove(key);
+    }
+
+    public synchronized List<U> get(int count) {
+        int i = 0;
+        List<U> list = new ArrayList<>();
+        for (U u : cache.keySet()) {
+            if (list.size() >= count) {
+                break;
+            }
+            list.add(u);
+        }
+        return list;
     }
 }

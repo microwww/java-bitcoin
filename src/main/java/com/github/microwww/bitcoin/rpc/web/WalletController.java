@@ -3,7 +3,6 @@ package com.github.microwww.bitcoin.rpc.web;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.model.AddressInfo;
 import com.github.microwww.bitcoin.wallet.AccountDB;
-import com.github.microwww.bitcoin.wallet.CoinAccount;
 import com.github.microwww.bitcoin.wallet.Wallet;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -37,6 +36,8 @@ public class WalletController {
         AddressInfo addr = new AddressInfo();
         addr.setAddress(db.toAddress());
         addr.setIswitness(db.isWitness());
+        addr.setLabel(db.getTag());
+        addr.setTimestamp((int) (db.getCreateTime().getTime() / 1000));
         return addr;
     }
 }

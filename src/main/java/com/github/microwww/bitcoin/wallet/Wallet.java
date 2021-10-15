@@ -36,10 +36,14 @@ public class Wallet implements Closeable {
         }
     }
 
-    public Wallet(File root, Env env) throws SQLException, IOException {
-        wallet = new File(new File(root, "wallet"), name).getCanonicalFile();
-        conn = DriverManager.getConnection("jdbc:h2:file:" + wallet.getCanonicalPath());
-        this.env = env;
+    public Wallet(File root, Env env) {
+        try {
+            wallet = new File(new File(root, "wallet"), name).getCanonicalFile();
+            conn = DriverManager.getConnection("jdbc:h2:file:" + wallet.getCanonicalPath());
+            this.env = env;
+        } catch (IOException | SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public AccountDB getCoinBaseAddress() {
@@ -183,5 +187,9 @@ public class Wallet implements Closeable {
         ad.setCreateTime(ps.getTimestamp(i++));
         Assert.isTrue(i == 7, "Read 6+");
         return ad;
+    }
+
+    public Env getEnv() {
+        return env;
     }
 }

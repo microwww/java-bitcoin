@@ -19,10 +19,11 @@ import java.util.Optional;
 
 public class IndexBlock implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(IndexBlock.class);
+    public static int MAX_CACHE = 2 * 24 * 6; // 2 天的块
 
     private final File root;
     private final DB levelDB;
-    private BlockCache<FileChainBlock> cache = new BlockCache();
+    private BlockCache<Uint256, FileChainBlock> cache = new BlockCache<>(MAX_CACHE);
 
     public IndexBlock(CChainParams chainParams) {
         try {

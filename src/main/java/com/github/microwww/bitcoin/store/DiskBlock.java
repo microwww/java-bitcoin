@@ -317,13 +317,18 @@ public class DiskBlock implements Closeable {
 
     public void verifyNBits(ChainBlock cb) {
         ChainBlock block = this.readBlock(cb.header.getPreHash()).get();
-        Uint32 uint32 = PowDifficulty.nextWorkRequired(block, n -> {
-            Optional<Uint256> hash = this.getHash(n);
-            return this.readBlock(hash.get()).get();
-        });
+        Uint32 uint32 = nextPow(block);
         if (!uint32.equals(cb.header.getBits())) {
             logger.error("Block nBits error : {} != {}, BLOCK {}", uint32, cb.header.getBits(), cb.hash());
             throw new IllegalArgumentException("POW nBits error");
         }
+    }
+
+    public Uint32 nextPow(ChainBlock block) {
+        Uint32 uint32 = PowDifficulty.nextWorkRequired(block, n -> {
+            Optional<Uint256> hash = this.getHash(n);
+            return this.readBlock(hash.get()).get();
+        });
+        return uint32;
     }
 }
