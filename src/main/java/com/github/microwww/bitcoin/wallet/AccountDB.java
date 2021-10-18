@@ -3,6 +3,7 @@ package com.github.microwww.bitcoin.wallet;
 import com.github.microwww.bitcoin.util.ByteUtil;
 
 import java.util.Date;
+import java.util.Optional;
 
 public class AccountDB {
     private final Env env;
@@ -35,6 +36,13 @@ public class AccountDB {
 
     public byte[] getKeyPrivate() {
         return keyPrivate;
+    }
+
+    public Optional<byte[]> getPrivate() {
+        if (this.keyPrivate == null || this.keyPrivate.length <= 0) {
+            return Optional.empty();
+        }
+        return Optional.of(this.keyPrivate);
     }
 
     public void setKeyPrivate(byte[] keyPrivate) {
