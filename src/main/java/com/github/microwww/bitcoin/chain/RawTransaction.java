@@ -282,6 +282,24 @@ public class RawTransaction implements ByteSerializable {
         return sb;
     }
 
+    public int weight() {
+        ByteBuf buf = Unpooled.buffer();
+        this.serialization(buf);
+        int len = buf.writerIndex();
+        if (!this.isWitness()) {
+            return 4 * len;
+        }
+        RawTransaction tr = new RawTransaction();
+        tr.deserialization(buf);
+        tr.serialization(buf.clear(), 0);
+        int wit = buf.writerIndex();
+        return wit * 4 + (len - wit);
+    }
+
+    public int vsize() {
+        return (int) Math.ceil(1.0 * weight() / 4);
+    }
+
     @Override
     public ByteBuf serialization(ByteBuf buffer) {
         return serialization(buffer, this.flag);

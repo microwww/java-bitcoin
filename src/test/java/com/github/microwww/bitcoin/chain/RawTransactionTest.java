@@ -52,4 +52,27 @@ class RawTransactionTest {
             assertEquals(ByteUtil.hex(dt), sb.toString());
         }
     }
+
+    @Test
+    public void testVsize() {
+        List<String> strings = ClassPath.readClassPathFile("/data/line-data.txt");
+        {
+            String s = strings.get(115);
+            RawTransaction tr = new RawTransaction();
+            byte[] hex = ByteUtil.hex(s);
+            ByteBuf buffer = Unpooled.buffer().writeBytes(hex);
+            tr.deserialization(buffer);
+            assertEquals(832, tr.weight());
+            assertEquals(208, tr.vsize());
+        }
+        {
+            String s = strings.get(117);
+            RawTransaction tr = new RawTransaction();
+            byte[] hex = ByteUtil.hex(s);
+            ByteBuf buffer = Unpooled.buffer().writeBytes(hex);
+            tr.deserialization(buffer);
+            assertEquals(561, tr.weight());
+            assertEquals(141, tr.vsize());
+        }
+    }
 }
