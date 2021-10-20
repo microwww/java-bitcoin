@@ -7,10 +7,12 @@ import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.util.ClassPath;
+import com.github.microwww.bitcoin.wallet.Wallet;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
@@ -21,10 +23,9 @@ class IndexTransactionTest {
     private IndexTransaction tx;
 
     {
-        params.settings.setDataDir("/tmp/" + UUID.randomUUID())
-                .setTxIndex(true);
-        tx = new IndexTransaction(params);
-        tx.setDiskBlock(new DiskBlock(params));
+        params.settings.setDataDir("/tmp/" + UUID.randomUUID()).setTxIndex(true);
+        File file = new File(params.settings.getDataDir());
+        tx = new IndexTransaction(new Wallet(file, params.env.addressType()), new DiskBlock(params), params);
     }
 
     @Test

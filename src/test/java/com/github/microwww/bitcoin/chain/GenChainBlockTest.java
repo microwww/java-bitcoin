@@ -43,7 +43,7 @@ class GenChainBlockTest {
     public void mining() throws InterruptedException {
         ByteBuf buffer = Unpooled.buffer();
         DiskBlock d = new DiskBlock(params);
-        TxPool pool = new TxPool();
+        TxPool pool = new TxPool(w);
         GenChainBlock gen = new GenChainBlock(w, d, pool);
         ChainBlock pre = params.env.createGenesisBlock();
         long coin = Generating.getBlockSubsidy(pre.getHeight(), params.env);

@@ -50,7 +50,6 @@ public class RawTransaction implements ByteSerializable {
             out.read(bf);
             txOuts[i] = out;
         }
-        // TODO:: 隔离见证, 格式??
         if (flag == 1) {
             for (TxIn txIn : txIns) {
                 UintVar count = UintVar.parse(bf);

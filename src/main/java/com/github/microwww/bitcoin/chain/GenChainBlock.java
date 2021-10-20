@@ -117,7 +117,11 @@ public class GenChainBlock {
     // 注意去修改 TX, AND MerkleRoot
     public ChainBlock genBlock(ChainBlock pre, byte[] coinbaseScript, long amount) {
         AccountDB acc = wallet.getCoinBaseAddress();
-        ByteBuf bf = PubKeyScript.Type.P2PKH.scriptPubKey(acc.getPkHash());
+        return genBlock(pre, acc.getPkHash(), coinbaseScript, amount);
+    }
+
+    public ChainBlock genBlock(ChainBlock pre, byte[] pkHash, byte[] coinbaseScript, long amount) {
+        ByteBuf bf = PubKeyScript.Type.P2PKH.scriptPubKey(pkHash);
         TxIn in = genTxIn(coinbaseScript);
         TxOut out = genTxOut(ByteUtil.readAll(bf), amount);
         RawTransaction tx = genTx(in, out);

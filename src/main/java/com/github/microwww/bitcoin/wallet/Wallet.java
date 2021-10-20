@@ -1,5 +1,10 @@
 package com.github.microwww.bitcoin.wallet;
 
+import com.github.microwww.bitcoin.chain.RawTransaction;
+import com.github.microwww.bitcoin.chain.TxOut;
+import com.github.microwww.bitcoin.math.Uint256;
+import com.github.microwww.bitcoin.script.PubKeyScript;
+import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.wallet.util.Base58;
 import org.h2.Driver;
 import org.slf4j.Logger;
@@ -10,8 +15,8 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Bitcoin-core 使用种子地址, 这里使用随机地址
@@ -19,14 +24,17 @@ import java.util.List;
 public class Wallet implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(Wallet.class);
 
-    public static final String TABLE_NAME = "account";
-    public static final String SELECT_ACCOUNT = "select id, pk_hash, key_private, type, tag, create_time from " + TABLE_NAME;
+    public static final String ACCOUNT_TABLE_NAME = "account";
+    public static final String SELECT_ACCOUNT = "select id, pk_hash, key_private, type, tag, create_time from " + ACCOUNT_TABLE_NAME;
     public static final int DEFAULT_TYPE = 1;
+    public static final String TRANSACTION_TABLE_NAME = "transaction";
+    public static final String SELECT_TRANSACTION = "select id, pk_hash, trans, amount, create_time from " + TRANSACTION_TABLE_NAME;
 
     public static String name = "h2wallet";
     private final File wallet;
     private final Connection conn;
     private final Env env;
+    private Map<Uint256, AccountDB> accounts = new ConcurrentHashMap<>();
 
     static {
         try {
@@ -63,7 +71,7 @@ public class Wallet implements Closeable {
         log.info("Wallet dir : {}", wallet.getParentFile().getCanonicalPath());
         ResultSet main = conn.getMetaData().getTables(null, null, "%", new String[]{"TABLE"});
         if (main.next()) {
-            log.info("TABLE {} EXIST, {}", TABLE_NAME, wallet.getCanonicalPath());
+            log.info("TABLE {} EXIST, {}", ACCOUNT_TABLE_NAME, wallet.getCanonicalPath());
             if (log.isDebugEnabled()) {
                 ResultSetMetaData metaData = main.getMetaData();
                 int c = metaData.getColumnCount();
@@ -87,7 +95,7 @@ public class Wallet implements Closeable {
                 log.debug("TABLE : \n" + sb);
             }
         } else {
-            conn.createStatement().execute("CREATE TABLE " + TABLE_NAME + " (" +
+            conn.createStatement().execute("CREATE TABLE " + ACCOUNT_TABLE_NAME + " (" +
                     "id int(11) NOT NULL auto_increment," +
                     "pk_hash VARCHAR(64) NOT NULL," +
                     "key_private VARCHAR(255) NOT NULL," +
@@ -101,7 +109,16 @@ public class Wallet implements Closeable {
             byte[] bytes = Secp256k1.generatePrivateKey();
             CoinAccount.KeyPrivate kp = new CoinAccount.KeyPrivate(bytes);
             this.insert("", kp, 0);
-            log.info("CREATE TABLE {}, address : {}, in {}", TABLE_NAME, kp.getAddress().toBase58Address(env), wallet.getCanonicalPath());
+            log.info("CREATE TABLE {}, address : {}, in {}", ACCOUNT_TABLE_NAME, kp.getAddress().toBase58Address(env), wallet.getCanonicalPath());
+
+            conn.createStatement().execute("CREATE TABLE " + TRANSACTION_TABLE_NAME + " (" +
+                    " id INT NOT NULL AUTO_INCREMENT," +
+                    " pk_hash VARCHAR(64) NOT NULL," +
+                    " trans VARCHAR(64) NOT NULL," +
+                    " amount BIGINT NOT NULL," +
+                    " create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                    " PRIMARY KEY (id)" +
+                    ")");
         }
     }
 
@@ -130,6 +147,63 @@ public class Wallet implements Closeable {
         return insert(tag, kp.getKey(), kp.getAddress().getKeyPublicHash(), DEFAULT_TYPE);
     }
 
+    public void localTransaction(RawTransaction trans) {
+        Uint256 hash = trans.hash();
+        for (TxOut out : trans.getTxOuts()) {
+            PubKeyScript scr = out.getScriptTemplate();
+            // scr.getAddress(trans, env).ifPresent(System.out::println);
+            scr.getAddress().ifPresent(e -> {
+                byte[] kph = e.getKeyPublicHash();
+                if (accounts.containsKey(new Uint256(kph))) {
+                    AccTrans at = new AccTrans();
+                    at.setPkHash(kph);
+                    at.setTrans(hash.reverse256bit());
+                    at.setAmount(out.getValue());
+                    this.insertTransaction(at);
+                }
+            });
+        }
+    }
+
+    public AccTrans insertTransaction(AccTrans trans) {
+        try {
+            String nt = Base58.encode(trans.getTrans());
+            PreparedStatement ps = conn.prepareStatement(SELECT_TRANSACTION + " t where t.trans = ?");
+            ps.setString(1, nt);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                log.warn("trans exist, skip : {}", ByteUtil.hex(trans.getTrans()));
+            } else {
+                PreparedStatement ips = conn.prepareStatement("insert into " + TRANSACTION_TABLE_NAME + "(pk_hash, trans, amount) values(?,?,?)");
+                ips.setString(1, Base58.encode(trans.getPkHash()));
+                ips.setString(2, nt);
+                ips.setLong(3, trans.getAmount());
+                ips.execute();
+                rs = ps.executeQuery();
+                rs.next();
+            }
+            return mapperTrans(rs);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<AccTrans> selectTransaction(byte[] address) {
+        try {
+            List<AccTrans> list = new ArrayList<>();
+            String nt = Base58.encode(address);
+            PreparedStatement ps = conn.prepareStatement(SELECT_TRANSACTION + " t where t.pk_hash = ?");
+            ps.setString(1, nt);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(mapperTrans(rs));
+            }
+            return list;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public List<AccountDB> listAddress() {
         List<AccountDB> res = new ArrayList<>();
         try {
@@ -143,7 +217,7 @@ public class Wallet implements Closeable {
         }
     }
 
-    private AccountDB insert(String tag, byte[] keyPrivate, byte[] address, int type) {
+    private synchronized AccountDB insert(String tag, byte[] keyPrivate, byte[] address, int type) {
         try {
             String addr = Base58.encode(address);
             PreparedStatement ps = conn.prepareStatement(SELECT_ACCOUNT + " t where t.pk_hash = ?");
@@ -152,7 +226,7 @@ public class Wallet implements Closeable {
             if (rs.next()) {
                 log.warn("pk_hash (address) exist, skip : {}", addr);
             } else {
-                PreparedStatement ips = conn.prepareStatement("insert into " + TABLE_NAME + "(pk_hash, key_private, type, tag) values(?,?,?,?)");
+                PreparedStatement ips = conn.prepareStatement("insert into " + ACCOUNT_TABLE_NAME + "(pk_hash, key_private, type, tag) values(?,?,?,?)");
                 ips.setString(1, addr);
                 ips.setString(2, Base58.encode(keyPrivate));
                 ips.setInt(3, type);
@@ -161,10 +235,16 @@ public class Wallet implements Closeable {
                 rs = ps.executeQuery();
                 rs.next();
             }
-            return mapper(rs);
+            AccountDB db = mapper(rs);
+            accounts.put(new Uint256(db.getPkHash()), db);
+            return db;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public Map<Uint256, AccountDB> getAccounts() {
+        return Collections.unmodifiableMap(accounts);
     }
 
     @Override
@@ -186,6 +266,18 @@ public class Wallet implements Closeable {
         ad.setTag(ps.getString(i++));
         ad.setCreateTime(ps.getTimestamp(i++));
         Assert.isTrue(i == 7, "Read 6+");
+        return ad;
+    }
+
+    private AccTrans mapperTrans(ResultSet ps) throws SQLException {
+        AccTrans ad = new AccTrans();
+        int i = 1;
+        ad.setId(ps.getInt(i++));
+        ad.setPkHash(Base58.decode(ps.getString(i++)));
+        ad.setTrans(Base58.decode(ps.getString(i++)));
+        ad.setAmount(ps.getLong(i++));
+        ad.setCreateTime(ps.getTimestamp(i++));
+        Assert.isTrue(i == 6, "Read 5+");
         return ad;
     }
 

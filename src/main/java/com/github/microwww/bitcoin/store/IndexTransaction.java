@@ -7,6 +7,7 @@ import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.script.Interpreter;
 import com.github.microwww.bitcoin.script.ex.TransactionInvalidException;
 import com.github.microwww.bitcoin.util.ByteUtil;
+import com.github.microwww.bitcoin.wallet.Wallet;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.iq80.leveldb.DB;
@@ -26,14 +27,21 @@ import java.util.*;
 public class IndexTransaction implements ApplicationListener<FileChainBlock.BlockWrite2fileEvent>, Closeable {
     private static final String TX_INDEX_DIR = "txindex";
     private static final Logger logger = LoggerFactory.getLogger(IndexTransaction.class);
-    private final CChainParams chainParams;
     private final Map<Uint256, RawTransaction> transactions;
     private final int maxCount;
     private final Optional<DB> levelDB;
-    @Autowired
-    private DiskBlock diskBlock;
+    private final DiskBlock diskBlock;
+    private final Wallet wallet;
+    private final CChainParams chainParams;
 
     public IndexTransaction(CChainParams chainParams) {
+        this(null, null, chainParams);
+    }
+
+    @Autowired
+    public IndexTransaction(Wallet wallet, DiskBlock diskBlock, CChainParams chainParams) {
+        this.diskBlock = diskBlock;
+        this.wallet = wallet;
         this.chainParams = chainParams;
         transactions = Collections.synchronizedMap(new LinkedHashMap<>());
         maxCount = chainParams.settings.getTxPoolMax();
@@ -105,8 +113,8 @@ public class IndexTransaction implements ApplicationListener<FileChainBlock.Bloc
             FileTransaction ft = fts[i];
             RawTransaction tr = ft.getTarget();
             this.serializationLevelDB(ft, buffer);
+            Uint256 hash = tr.hash();
             levelDB.ifPresent(db -> {
-                Uint256 hash = tr.hash();
                 if (logger.isDebugEnabled())
                     logger.debug("Level-db save transaction : {}", hash);
                 db.put(hash.fill256bit(), ByteUtil.readAll(buffer));
@@ -115,6 +123,7 @@ public class IndexTransaction implements ApplicationListener<FileChainBlock.Bloc
                 }
             });
             buffer.clear();
+            wallet.localTransaction(tr);
         }
     }
 
@@ -165,11 +174,6 @@ public class IndexTransaction implements ApplicationListener<FileChainBlock.Bloc
 
     public DiskBlock getDiskBlock() {
         return diskBlock;
-    }
-
-    public IndexTransaction setDiskBlock(DiskBlock diskBlock) {
-        this.diskBlock = diskBlock;
-        return this;
     }
 
     @Override
