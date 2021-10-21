@@ -1,6 +1,8 @@
 package com.github.microwww.bitcoin.wallet;
 
 import com.github.microwww.bitcoin.chain.RawTransaction;
+import com.github.microwww.bitcoin.conf.CChainParams;
+import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.util.ClassPath;
 import com.github.microwww.bitcoin.util.FilesUtil;
@@ -25,7 +27,9 @@ class WalletTest {
 
     @BeforeAll
     public static void init() throws SQLException, IOException {
-        wallet = new Wallet(file, Env.MAIN);
+        CChainParams params = new CChainParams(new Settings(CChainParams.Env.REG_TEST));
+        params.settings.setDataDir("/tmp/" + UUID.randomUUID()).setTxIndex(true);
+        wallet = Wallet.wallet(params);
         wallet.init();
     }
 

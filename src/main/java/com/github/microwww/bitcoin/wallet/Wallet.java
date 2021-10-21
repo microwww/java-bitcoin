@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.wallet;
 
 import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.chain.TxOut;
+import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.script.PubKeyScript;
 import com.github.microwww.bitcoin.util.ByteUtil;
@@ -31,10 +32,12 @@ public class Wallet implements Closeable {
     public static final String SELECT_TRANSACTION = "select id, pk_hash, trans, amount, create_time from " + TRANSACTION_TABLE_NAME;
 
     public static String name = "h2wallet";
-    private final File wallet;
+    private final File walletRoot;
     private final Connection conn;
     private final Env env;
     private Map<Uint256, AccountDB> accounts = new ConcurrentHashMap<>();
+
+    private static Wallet wallet;
 
     static {
         try {
@@ -44,10 +47,27 @@ public class Wallet implements Closeable {
         }
     }
 
-    public Wallet(File root, Env env) {
+    public static Wallet wallet(CChainParams params) {
+        if (wallet == null) {
+            synchronized (Wallet.class) {
+                if (wallet == null) {
+                    Wallet w = new Wallet(new File(params.settings.getDataDir()), params.env.addressType());
+                    try {
+                        w.init();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                    wallet = w;
+                }
+            }
+        }
+        return wallet;
+    }
+
+    private Wallet(File root, Env env) {
         try {
-            wallet = new File(new File(root, "wallet"), name).getCanonicalFile();
-            conn = DriverManager.getConnection("jdbc:h2:file:" + wallet.getCanonicalPath());
+            this.walletRoot = new File(new File(root, "wallet"), name).getCanonicalFile();
+            conn = DriverManager.getConnection("jdbc:h2:file:" + this.walletRoot.getCanonicalPath());
             this.env = env;
         } catch (IOException | SQLException e) {
             throw new RuntimeException(e);
@@ -68,10 +88,10 @@ public class Wallet implements Closeable {
     }
 
     public void init() throws SQLException, IOException {
-        log.info("Wallet dir : {}", wallet.getParentFile().getCanonicalPath());
+        log.info("Wallet dir : {}", walletRoot.getParentFile().getCanonicalPath());
         ResultSet main = conn.getMetaData().getTables(null, null, "%", new String[]{"TABLE"});
         if (main.next()) {
-            log.info("TABLE {} EXIST, {}", ACCOUNT_TABLE_NAME, wallet.getCanonicalPath());
+            log.info("TABLE {} EXIST, {}", ACCOUNT_TABLE_NAME, walletRoot.getCanonicalPath());
             if (log.isDebugEnabled()) {
                 ResultSetMetaData metaData = main.getMetaData();
                 int c = metaData.getColumnCount();
@@ -109,7 +129,7 @@ public class Wallet implements Closeable {
             byte[] bytes = Secp256k1.generatePrivateKey();
             CoinAccount.KeyPrivate kp = new CoinAccount.KeyPrivate(bytes);
             this.insert("", kp, 0);
-            log.info("CREATE TABLE {}, address : {}, in {}", ACCOUNT_TABLE_NAME, kp.getAddress().toBase58Address(env), wallet.getCanonicalPath());
+            log.info("CREATE TABLE {}, address : {}, in {}", ACCOUNT_TABLE_NAME, kp.getAddress().toBase58Address(env), walletRoot.getCanonicalPath());
 
             conn.createStatement().execute("CREATE TABLE " + TRANSACTION_TABLE_NAME + " (" +
                     " id INT NOT NULL AUTO_INCREMENT," +

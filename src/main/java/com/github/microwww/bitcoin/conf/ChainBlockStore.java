@@ -28,13 +28,7 @@ public class ChainBlockStore {
 
     @Bean
     public Wallet wallet(CChainParams params) {
-        try {
-            Wallet wallet = new Wallet(params.settings.lockupRootDirectory(), params.env.addressType());
-            wallet.init();
-            return wallet;
-        } catch (SQLException | IOException ex) {
-            throw new RuntimeException(ex);
-        }
+        return Wallet.wallet(params);
     }
 
     public static DB leveldb(File root, String dir, boolean clear) throws IOException {

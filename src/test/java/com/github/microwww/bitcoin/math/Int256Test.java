@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.math;
 
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.HexUtil;
+import com.github.microwww.bitcoin.util.ByteUtil;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
@@ -18,18 +19,16 @@ public class Int256Test {
         assertEquals(64, HexUtil.encodeHexStr(bytes).length());
         bytes[0] = (byte) 255;
         byte[] big = ArrayUtil.addAll(bytes, new byte[]{(byte) 255, 0});
-        System.out.println(HexUtil.encodeHexStr(big));
-        System.out.println(HexUtil.encodeHexStr(big));
+        assertArrayEquals(big, ByteUtil.hex("ff00000000000000000000000000000000000000000000000000000001020304ff00"));
     }
 
     @Test
     public void testLong() {
         BigInteger big = BigInteger.valueOf(Integer.MAX_VALUE);
-        System.out.println(big.toString(16));
+        assertEquals("7fffffff", big.toString(16));
         BigInteger bg = BigInteger.valueOf(Integer.valueOf(Integer.MAX_VALUE + 1));
-        System.out.println(bg.abs().toString(16));
-
-        System.out.println(Integer.toUnsignedString(Integer.MAX_VALUE + 1, 16));
+        assertEquals("80000000", bg.abs().toString(16));
+        assertEquals("80000000", Integer.toUnsignedString(Integer.MAX_VALUE + 1, 16));
 
         long v = Integer.valueOf(Integer.MAX_VALUE + 1).intValue();
         v = v << 32 >>> 32;

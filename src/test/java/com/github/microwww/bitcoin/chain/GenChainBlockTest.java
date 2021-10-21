@@ -34,8 +34,7 @@ class GenChainBlockTest {
     public static void init() throws SQLException, IOException {
         params = new CChainParams(new Settings(CChainParams.Env.REG_TEST));
         params.settings.setDataDir("/tmp/" + UUID.randomUUID()).setTxIndex(true);
-        String file = GenChainBlockTest.class.getResource("/").getFile();
-        w = new Wallet(new File(file), Env.MAIN);
+        w = Wallet.wallet(params);
         w.init();
     }
 

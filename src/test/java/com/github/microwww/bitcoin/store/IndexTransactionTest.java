@@ -25,7 +25,8 @@ class IndexTransactionTest {
     {
         params.settings.setDataDir("/tmp/" + UUID.randomUUID()).setTxIndex(true);
         File file = new File(params.settings.getDataDir());
-        tx = new IndexTransaction(new Wallet(file, params.env.addressType()), new DiskBlock(params), params);
+        Wallet w = Wallet.wallet(params);
+        tx = new IndexTransaction(w, new DiskBlock(params), params);
     }
 
     @Test
