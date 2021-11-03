@@ -15,7 +15,6 @@ import org.springframework.context.annotation.Configuration;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.SQLException;
 
 @Configuration
 public class ChainBlockStore {
@@ -31,16 +30,14 @@ public class ChainBlockStore {
         return Wallet.wallet(params);
     }
 
-    public static DB leveldb(File root, String dir, boolean clear) throws IOException {
-        File file = new File(root, dir);
+    public static DB leveldb(File root, boolean clear) throws IOException {
         if (clear) {
-            FilesUtil.deleteRecursively(file);
+            FilesUtil.deleteRecursively(root);
         }
-        return leveldb(root, dir);
+        return leveldb(root);
     }
 
-    public static DB leveldb(File root, String dir) throws IOException {
-        File file = new File(root, dir);
+    public static DB leveldb(File file) throws IOException {
         if (!file.exists()) {
             file.mkdirs();
         } else {

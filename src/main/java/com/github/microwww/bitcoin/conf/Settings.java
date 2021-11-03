@@ -165,6 +165,30 @@ public class Settings {
         }
     }
 
+    public File getBlocksDirectory() {
+        File file = new File(this.lockupRootDirectory(), "blocks");
+        if (!file.exists()) {
+            file.mkdirs();
+        }
+        return file;
+    }
+
+    public File getBlocksIndexDirectory() {
+        File file = new File(this.getBlocksDirectory(), "index");
+        if (!file.exists()) {
+            file.mkdirs();
+        }
+        return file;
+    }
+
+    public File getTxIndexDirectory() {
+        File file = new File(this.lockupRootDirectory(), "txindex");
+        if (!file.exists()) {
+            file.mkdirs();
+        }
+        return file;
+    }
+
     public int getTxPoolMax() {
         return txPoolMax;
     }

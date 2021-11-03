@@ -84,7 +84,7 @@ public class CChainParams {
             G = this.createGenesisBlock();
         }
 
-        public abstract ChainBlock createGenesisBlock();
+        abstract ChainBlock createGenesisBlock();
 
         public long expectBlockTime(int height) {
             long time = G.header.getTime().longValue() + params.getPowTargetSpacing() * height;

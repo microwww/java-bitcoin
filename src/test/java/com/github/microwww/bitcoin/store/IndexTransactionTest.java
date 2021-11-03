@@ -31,7 +31,7 @@ class IndexTransactionTest {
 
     @Test
     void serializationTransaction() throws IOException {
-        ChainBlock gn = params.env.createGenesisBlock();
+        ChainBlock gn = params.env.G;
         FileChainBlock block = tx.getDiskBlock().writeBlock(gn, 0, true);
         tx.indexTransaction(block);
         Uint256 hash = block.getTarget().getTxs()[0].hash();

@@ -52,9 +52,9 @@ class MemBlockHeightTest {
 
     @Test
     void tryAdd() {
-        ChainBlock start = diskBlock.getIndexHeight().getLastBlock();
+        ChainBlock start = diskBlock.getLastBlock();
         List<ChainBlock> block = createChainBlock(start, 100);
-        IndexHeight mh = diskBlock.getIndexHeight();
+        IndexBlock mh = diskBlock.getIndexBlock();
         for (int i = 1; i < block.size(); i++) {
             ChainBlock chainBlock = block.get(i);
             mh.tryPush(chainBlock);
@@ -66,7 +66,7 @@ class MemBlockHeightTest {
 
     @Test
     void writeAndRead() throws IOException {
-        ChainBlock genesisBlock = pa.env.createGenesisBlock();
+        ChainBlock genesisBlock = pa.env.G;
         List<ChainBlock> chains = createChainBlock(genesisBlock, 100);
         ChainBlock last = chains.get(chains.size() - 1);
         for (ChainBlock chain : chains) {
@@ -85,7 +85,7 @@ class MemBlockHeightTest {
 
     @Test
     void conflictHeight() {
-        ChainBlock start = diskBlock.getIndexHeight().getLastBlock();
+        ChainBlock start = diskBlock.getIndexBlock().getLastBlock();
         List<ChainBlock> chains = createChainBlock(start, 10);
         int latest = start.getHeight() + 10;
         for (ChainBlock chain : chains) {

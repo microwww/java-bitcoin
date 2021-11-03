@@ -44,7 +44,7 @@ class GenChainBlockTest {
         DiskBlock d = new DiskBlock(params);
         TxPool pool = new TxPool(w);
         GenChainBlock gen = new GenChainBlock(w, d, pool);
-        ChainBlock pre = params.env.createGenesisBlock();
+        ChainBlock pre = params.env.G;
         long coin = Generating.getBlockSubsidy(pre.getHeight(), params.env);
         byte[] s = "JAVA-agent".getBytes(StandardCharsets.UTF_8);
         Uint256 mk = null;

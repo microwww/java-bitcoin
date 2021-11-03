@@ -137,7 +137,7 @@ public class PeerChannelClientProtocol implements Closeable {
                 return;
             }
         }
-        list.add(chain.getDiskBlock().getIndexHeight().getGenerate().hash());
+        list.add(chain.getChainParams().env.G.hash());
         GetHeaders hd = new GetHeaders(peer).setStarting(list);
         ctx.write(hd);
     }

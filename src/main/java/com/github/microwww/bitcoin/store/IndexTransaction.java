@@ -25,7 +25,6 @@ import java.util.*;
 
 @Component
 public class IndexTransaction implements ApplicationListener<FileChainBlock.BlockWrite2fileEvent>, Closeable {
-    private static final String TX_INDEX_DIR = "txindex";
     private static final Logger logger = LoggerFactory.getLogger(IndexTransaction.class);
     private final Map<Uint256, RawTransaction> transactions;
     private final int maxCount;
@@ -47,9 +46,9 @@ public class IndexTransaction implements ApplicationListener<FileChainBlock.Bloc
         maxCount = chainParams.settings.getTxPoolMax();
         if (chainParams.settings.isTxIndex()) {
             try {
-                File file = chainParams.settings.lockupRootDirectory();
-                logger.info("Transaction Index-dir: {}{}", file.getCanonicalPath(), TX_INDEX_DIR);
-                DB db = ChainBlockStore.leveldb(file, TX_INDEX_DIR, chainParams.settings.isReIndex());
+                File file = chainParams.settings.getTxIndexDirectory();
+                logger.info("Transaction Index-dir: {}", file.getCanonicalPath());
+                DB db = ChainBlockStore.leveldb(file, chainParams.settings.isReIndex());
                 levelDB = Optional.of(db);
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -78,11 +77,6 @@ public class IndexTransaction implements ApplicationListener<FileChainBlock.Bloc
 
     public Optional<RawTransaction> findCacheTransaction(Uint256 uint256) {
         return Optional.ofNullable(transactions.get(uint256));
-    }
-
-    public void indexTransaction(ChainBlock block) {
-        FileChainBlock fc = diskBlock.getIndexBlock().findChainBlockInLevelDB(block.hash()).get();
-        indexTransaction(fc);
     }
 
     void indexTransaction(FileChainBlock fc) {
@@ -166,8 +160,8 @@ public class IndexTransaction implements ApplicationListener<FileChainBlock.Bloc
         int length = buffer.readIntLE();
         byte[] hash = new byte[32];
         buffer.readBytes(hash);
-        // chainParams.getEnvParams().getDataDirPrefix();
-        FileTransaction ft = new FileTransaction(new File(diskBlock.getRoot(), String.format(AccessBlockFile.sequenceFile, file)), ps, length, new Uint256(hash));
+        File root = chainParams.settings.getBlocksDirectory();
+        FileTransaction ft = new FileTransaction(new File(root, String.format(AccessBlockFile.sequenceFile, file)), ps, length, new Uint256(hash));
         ft.target = ft.load(false);
         return ft;
     }
