@@ -1,37 +1,30 @@
 package com.github.microwww.bitcoin.store;
 
+import com.github.microwww.bitcoin.AbstractEnv;
 import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.conf.CChainParams;
-import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.util.ClassPath;
-import com.github.microwww.bitcoin.wallet.Wallet;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class IndexTransactionTest {
-    private final CChainParams params = new CChainParams(new Settings());
-    private IndexTransaction tx;
+class IndexTransactionTest extends AbstractEnv {
 
-    {
-        params.settings.setDataDir("/tmp/" + UUID.randomUUID()).setTxIndex(true);
-        File file = new File(params.settings.getDataDir());
-        Wallet w = Wallet.wallet(params);
-        tx = new IndexTransaction(w, new DiskBlock(params), params);
+    public IndexTransactionTest() {
+        super(CChainParams.Env.MAIN);
     }
 
     @Test
     void serializationTransaction() throws IOException {
-        ChainBlock gn = params.env.G;
+        ChainBlock gn = chainParams.env.G;
+        IndexTransaction tx = this.indexTransaction;
         FileChainBlock block = tx.getDiskBlock().writeBlock(gn, 0, true);
         tx.indexTransaction(block);
         Uint256 hash = block.getTarget().getTxs()[0].hash();
@@ -41,6 +34,7 @@ class IndexTransactionTest {
 
     @Test
     void serializationLevelDB() {
+        IndexTransaction tx = this.indexTransaction;
         ByteBuf buffer = Unpooled.buffer();
         String x = ClassPath.readClassPathFile("/data/online.data.txt").get(43);
         buffer.writeBytes(ByteUtil.hex(x));

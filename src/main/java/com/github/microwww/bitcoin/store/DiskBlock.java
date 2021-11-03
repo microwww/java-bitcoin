@@ -61,6 +61,7 @@ public class DiskBlock implements Closeable {
             throw new RuntimeException(e);
         }
         this.fileAccess = new AccessBlockFile(root, chainParams.getEnvParams().getMagic());
+        logger.info("Remember to invoke `init`, And it is a long time task maybe!");
     }
 
     /**
@@ -106,6 +107,11 @@ public class DiskBlock implements Closeable {
         }
     }
 
+    /**
+     * 因为耗时太长, 所以要等 Spring 启动后再执行.
+     *
+     * @return this
+     */
     public synchronized DiskBlock init() {
         logger.info("Init DiskBlock, Get block-file, And init chain-height");
 

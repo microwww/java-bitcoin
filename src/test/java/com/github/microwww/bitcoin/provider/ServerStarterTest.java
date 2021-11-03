@@ -1,26 +1,39 @@
 package com.github.microwww.bitcoin.provider;
 
+import com.github.microwww.bitcoin.AbstractEnv;
 import com.github.microwww.bitcoin.conf.CChainParams;
-import com.github.microwww.bitcoin.conf.Settings;
-import org.junit.jupiter.api.Disabled;
+import com.github.microwww.bitcoin.net.PeerChannelServerProtocol;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.UUID;
+import java.net.InetSocketAddress;
+import java.util.concurrent.CountDownLatch;
 
-class ServerStarterTest {
+class ServerStarterTest extends AbstractEnv {
+    private static final Logger logger = LoggerFactory.getLogger(ServerStarterTest.class);
+
+    public ServerStarterTest() {
+        super(CChainParams.Env.MAIN);
+        this.chainParams.settings.setPort(0);
+    }
 
     @Test
-    @Disabled
     void onApplicationEvent() throws InterruptedException, IOException {
-        ServerStarter start = new ServerStarter();
-        start.chainParams = new CChainParams(new Settings().setDataDir("/tmp/" + UUID.randomUUID()));
-        //start.handler = new ServerChannelInboundHandler();
-
+        ServerStarter start = new ServerStarter(chainParams, new PeerChannelServerProtocol(chainParams), localBlockChain);
+        CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch d2 = new CountDownLatch(1);
         start.newThreadSTART(e -> {
-            System.out.println(e);
+            latch.countDown();
+            InetSocketAddress sa = (InetSocketAddress) e.channel().localAddress();
+            logger.info("Listener {}:{}", sa.getHostName(), sa.getPort());
         }, e -> {
-            System.out.println("这里可以优雅处理关闭");
+            logger.info("这里可以优雅处理关闭");
+            d2.countDown();
         });
+        latch.await();
+        start.close();
+        d2.await();
     }
 }

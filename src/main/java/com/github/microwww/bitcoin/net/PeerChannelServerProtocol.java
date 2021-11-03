@@ -22,10 +22,13 @@ import java.util.stream.Collectors;
 public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
     private static final Logger logger = LoggerFactory.getLogger(PeerChannelServerProtocol.class);
 
-    @Autowired
-    CChainParams chainParams;
+    private final CChainParams chainParams;
     private final ReentrantLock lock = new ReentrantLock();
     private final Map<Peer, ChannelHandlerContext> channels = new ConcurrentHashMap<>();
+
+    public PeerChannelServerProtocol(CChainParams chainParams) {
+        this.chainParams = chainParams;
+    }
 
     public void publishInv(Queue<GetData.Message> queue) {
         if (queue.isEmpty()) {

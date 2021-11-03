@@ -1,36 +1,22 @@
 package com.github.microwww.bitcoin.wallet;
 
+import com.github.microwww.bitcoin.AbstractEnv;
 import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.conf.CChainParams;
-import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.util.ClassPath;
-import com.github.microwww.bitcoin.util.FilesUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
-import java.io.IOException;
-import java.sql.SQLException;
 import java.util.List;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class WalletTest {
+class WalletTest extends AbstractEnv {
 
-    static File file = new File("/tmp/" + UUID.randomUUID());
-    static Wallet wallet;
-
-    @BeforeAll
-    public static void init() throws SQLException, IOException {
-        CChainParams params = new CChainParams(new Settings(CChainParams.Env.REG_TEST));
-        params.settings.setDataDir("/tmp/" + UUID.randomUUID()).setTxIndex(true);
-        wallet = Wallet.wallet(params);
-        wallet.init();
+    public WalletTest() {
+        super(CChainParams.Env.REG_TEST);
     }
 
     @Test
@@ -55,10 +41,5 @@ class WalletTest {
         wallet.localTransaction(trans);
         List<AccTrans> ts = wallet.selectTransaction(keyPrivate.getAddress().getKeyPublicHash());
         assertEquals(1, ts.size());
-    }
-
-    @AfterAll
-    public static void after() {
-        FilesUtil.deleteRecursively(file);
     }
 }

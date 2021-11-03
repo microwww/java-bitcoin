@@ -1,53 +1,29 @@
 package com.github.microwww.bitcoin.store;
 
-import cn.hutool.core.io.FileUtil;
+import com.github.microwww.bitcoin.AbstractEnv;
 import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.conf.CChainParams;
-import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-class MemBlockHeightTest {
+class MemBlockHeightTest extends AbstractEnv {
     private static final Logger logger = LoggerFactory.getLogger(MemBlockHeightTest.class);
-    private static final CChainParams pa = new CChainParams(new Settings());
 
-    static {
-        pa.settings.setDataDir("/tmp/" + UUID.randomUUID());
-    }
-
-    private DiskBlock diskBlock;
-
-    @BeforeEach
-    public void init() {
-        diskBlock = new DiskBlock(pa);
-        diskBlock.init();
-    }
-
-    @AfterEach
-    public void close() {
-        try {
-            diskBlock.close();
-            pa.settings.setDataDir("/tmp/" + UUID.randomUUID());
-        } catch (IOException e) {
-        }
+    public MemBlockHeightTest() {
+        super(CChainParams.Env.MAIN);
     }
 
     @Test
@@ -66,7 +42,7 @@ class MemBlockHeightTest {
 
     @Test
     void writeAndRead() throws IOException {
-        ChainBlock genesisBlock = pa.env.G;
+        ChainBlock genesisBlock = chainParams.env.G;
         List<ChainBlock> chains = createChainBlock(genesisBlock, 100);
         ChainBlock last = chains.get(chains.size() - 1);
         for (ChainBlock chain : chains) {
@@ -75,8 +51,7 @@ class MemBlockHeightTest {
         // levelDB.put(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes, new HeightChainBlock(last, chains.size() - 1).serialization());
         diskBlock.close();
         logger.info(" --------------------------  新的开始 ---------------------------------------------");
-        diskBlock = new DiskBlock(pa);
-        diskBlock.init();
+        diskBlock = new DiskBlock(chainParams).init();
         assertEquals(100, diskBlock.getLatestHeight());
         ChainBlock nb = createChainBlock(last, 1).get(0);
         diskBlock.writeBlock(nb, true);
@@ -136,10 +111,5 @@ class MemBlockHeightTest {
             genesis = cb;
         }
         return list;
-    }
-
-    @AfterAll
-    public static void del() {
-        FileUtil.del(new File(pa.settings.getDataDir()));
     }
 }

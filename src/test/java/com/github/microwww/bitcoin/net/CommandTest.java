@@ -1,5 +1,6 @@
 package com.github.microwww.bitcoin.net;
 
+import com.github.microwww.bitcoin.AbstractEnv;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
@@ -22,24 +23,11 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.UUID;
 
-public class CommandTest {
+public class CommandTest extends AbstractEnv {
     private static final Logger logger = LoggerFactory.getLogger(CommandTest.class);
-    private CChainParams cp;
-    private LocalBlockChain localBlockChain;
 
-    @BeforeEach
-    public void init() {
-        cp = new CChainParams(new Settings(CChainParams.Env.REG_TEST));
-        cp.settings.setDataDir("/tmp/" + UUID.randomUUID());
-        localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new IndexTransaction(cp));
-    }
-
-    @AfterEach
-    public void close() {
-        try {
-            localBlockChain.getDiskBlock().close();
-        } catch (IOException e) {
-        }
+    public CommandTest() {
+        super(CChainParams.Env.REG_TEST);
     }
 
     @Test

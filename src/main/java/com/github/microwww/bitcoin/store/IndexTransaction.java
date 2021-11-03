@@ -33,12 +33,8 @@ public class IndexTransaction implements ApplicationListener<FileChainBlock.Bloc
     private final Wallet wallet;
     private final CChainParams chainParams;
 
-    public IndexTransaction(CChainParams chainParams) {
-        this(null, null, chainParams);
-    }
-
     @Autowired
-    public IndexTransaction(Wallet wallet, DiskBlock diskBlock, CChainParams chainParams) {
+    public IndexTransaction(CChainParams chainParams, Wallet wallet, DiskBlock diskBlock) {
         this.diskBlock = diskBlock;
         this.wallet = wallet;
         this.chainParams = chainParams;

@@ -48,18 +48,21 @@ public class Wallet implements Closeable {
     }
 
     public static Wallet wallet(CChainParams params) {
-        if (wallet == null) {
-            synchronized (Wallet.class) {
-                if (wallet == null) {
-                    Wallet w = new Wallet(new File(params.settings.getDataDir()), params.env.addressType());
-                    try {
-                        w.init();
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                    wallet = w;
-                }
+        try {
+            if (wallet == null || wallet.conn.isClosed()) {
+                return create(params);
             }
+            return wallet;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static synchronized Wallet create(CChainParams params) throws SQLException, IOException {
+        if (wallet == null || wallet.conn.isClosed()) {
+            Wallet w = new Wallet(new File(params.settings.getDataDir()), params.env.addressType());
+            w.init();
+            wallet = w;
         }
         return wallet;
     }

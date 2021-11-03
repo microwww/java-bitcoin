@@ -1,41 +1,32 @@
 package com.github.microwww.bitcoin.net.protocol;
 
 import cn.hutool.core.util.HexUtil;
+import com.github.microwww.bitcoin.AbstractEnv;
 import com.github.microwww.bitcoin.conf.CChainParams;
-import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.net.MessageHeader;
 import com.github.microwww.bitcoin.net.NetProtocol;
-import com.github.microwww.bitcoin.provider.Peer;
 import com.github.microwww.bitcoin.provider.LocalBlockChain;
-import com.github.microwww.bitcoin.store.DiskBlock;
-import com.github.microwww.bitcoin.store.IndexTransaction;
+import com.github.microwww.bitcoin.provider.Peer;
 import com.github.microwww.bitcoin.util.ClassPath;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.Date;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class VersionTest {
-    private static CChainParams cp = new CChainParams(new Settings(CChainParams.Env.REG_TEST));
+public class VersionTest extends AbstractEnv {
+    private Peer peer;
 
-    private static LocalBlockChain localBlockChain;
-    private static Peer peer;
-
-    @BeforeAll
-    public static void inti() {
-        cp.settings.setDataDir("/tmp/" + UUID.randomUUID());
-        localBlockChain = new LocalBlockChain(cp, new DiskBlock(cp), new IndexTransaction(cp));
-        peer = new Peer(localBlockChain, "localhost", 8333);
+    public VersionTest() {
+        super(CChainParams.Env.REG_TEST);
     }
 
-    @AfterAll
-    public static void close() throws IOException {
-        localBlockChain.getDiskBlock().close();
+    @BeforeEach
+    public void init() {
+        peer = new Peer(localBlockChain, "localhost", 8333);
     }
 
     @Test
@@ -43,12 +34,12 @@ public class VersionTest {
         ByteBuf payload = Unpooled.buffer();
         //buffer.skipBytes(MessageHeader.HEADER_SIZE);
         Date date = new Date(40 * 365 * 24 * 60 * 60 * 1000); // 1970 + 40年
-        Version.builder(peer, cp).setTimestamp(date).setNonce(123456789012345678L).write(payload);
+        Version.builder(peer, chainParams).setTimestamp(date).setNonce(123456789012345678L).write(payload);
         int i = payload.readableBytes();
         byte[] byts = new byte[i];
         payload.readBytes(byts);
         ByteBuf bf = Unpooled.buffer();
-        MessageHeader header = new MessageHeader(cp.getEnvParams().getMagic(), NetProtocol.VERSION).setPayload(byts).writer(bf);
+        MessageHeader header = new MessageHeader(chainParams.getEnvParams().getMagic(), NetProtocol.VERSION).setPayload(byts).writer(bf);
         bf.writeBytes(payload);
 
         byte[] by = new byte[bf.readableBytes()];
@@ -71,7 +62,7 @@ public class VersionTest {
         String line5 = ClassPath.readClassPathFile("/data/line-data.txt").get(4);
         byte[] bytes = HexUtil.decodeHex(line5);
         MessageHeader read = MessageHeader.read(Unpooled.copiedBuffer(bytes));
-        assertEquals(cp.getEnvParams().getMagic(), read.getMagic());
+        assertEquals(chainParams.getEnvParams().getMagic(), read.getMagic());
         assertEquals(NetProtocol.VERSION, read.getNetProtocol());
         // payload length
         assertTrue(read.verifyChecksum());

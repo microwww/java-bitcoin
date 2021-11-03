@@ -30,14 +30,17 @@ public class ServerStarter implements Closeable {
     public static final int IDLE_SECONDS = 60; // 分钟的心跳
     public static final int TIME_OUT_SECONDS = 5;
 
-    @Autowired
     CChainParams chainParams;
-    @Autowired
     PeerChannelServerProtocol peerChannelServerProtocol;
-    @Autowired
     LocalBlockChain localBlockChain;
 
     private Channel server;
+
+    public ServerStarter(CChainParams chainParams, PeerChannelServerProtocol peerChannelServerProtocol, LocalBlockChain localBlockChain) {
+        this.chainParams = chainParams;
+        this.peerChannelServerProtocol = peerChannelServerProtocol;
+        this.localBlockChain = localBlockChain;
+    }
 
     public void newThreadSTART(Consumer<DefaultChannelPromise> bindingListener, Consumer<DefaultChannelPromise> stopListener) {
         executors.next().execute(() -> {
@@ -52,7 +55,7 @@ public class ServerStarter implements Closeable {
     public void start(Consumer<DefaultChannelPromise> bindingListener, Consumer<DefaultChannelPromise> stopListener) {
         String host = DEFAULT_HOST;
         int port = chainParams.settings.getPort();
-        if(port <= 0){
+        if (port <= 0) {
             port = chainParams.getEnvParams().getDefaultPort();
         }
         ServerBootstrap bootstrap = new ServerBootstrap()
