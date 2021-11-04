@@ -11,7 +11,6 @@ import com.github.microwww.bitcoin.model.TxVout;
 import com.github.microwww.bitcoin.script.PubKeyScript;
 import com.github.microwww.bitcoin.script.instruction.ScriptNames;
 import com.github.microwww.bitcoin.store.DiskBlock;
-import com.github.microwww.bitcoin.store.IndexTransaction;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import com.github.microwww.bitcoin.wallet.Env;
 import io.netty.buffer.ByteBuf;
@@ -50,13 +49,10 @@ public class RawtransactionsController {
     CChainParams chainParams;
     @Autowired
     DiskBlock diskBlock;
-    @Autowired
-    IndexTransaction indexTransaction;
 
-    public RawtransactionsController(CChainParams chainParams, DiskBlock diskBlock, IndexTransaction indexTransaction) {
+    public RawtransactionsController(CChainParams chainParams, DiskBlock diskBlock) {
         this.chainParams = chainParams;
         this.diskBlock = diskBlock;
-        this.indexTransaction = indexTransaction;
     }
 
     /**
@@ -70,7 +66,7 @@ public class RawtransactionsController {
             @RequestParam(required = false) String blockhash
     ) {
         Uint256 hash = new Uint256(ByteUtil.hexReverse(txid));
-        Optional<RawTransaction> raw = indexTransaction.getTransaction(hash);
+        Optional<RawTransaction> raw = diskBlock.getTransaction(hash);
         if (raw.isPresent()) {
             RpcRawTransaction res = new RpcRawTransaction();
             RawTransaction tx = raw.get();

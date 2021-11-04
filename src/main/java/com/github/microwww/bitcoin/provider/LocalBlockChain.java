@@ -3,27 +3,27 @@ package com.github.microwww.bitcoin.provider;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.store.DiskBlock;
-import com.github.microwww.bitcoin.store.IndexTransaction;
+import com.github.microwww.bitcoin.store.TxPool;
 import org.springframework.stereotype.Component;
 
 @Component
 public class LocalBlockChain {
     private final DiskBlock diskBlock;
-    private final IndexTransaction indexTransaction;
     private final CChainParams chainParams;
+    private final TxPool txPool;
 
-    public LocalBlockChain(CChainParams chainParams, DiskBlock diskBlock, IndexTransaction indexTransaction) {
-        this.diskBlock = diskBlock;
-        this.indexTransaction = indexTransaction;
+    public LocalBlockChain(CChainParams chainParams, DiskBlock diskBlock, TxPool txPool) {
         this.chainParams = chainParams;
+        this.diskBlock = diskBlock;
+        this.txPool = txPool;
     }
 
     public DiskBlock getDiskBlock() {
         return diskBlock;
     }
 
-    public IndexTransaction getTransactionStore() {
-        return indexTransaction;
+    public TxPool getTxPool() {
+        return txPool;
     }
 
     public CChainParams getChainParams() {

@@ -2,14 +2,16 @@ package com.github.microwww.bitcoin.net;
 
 import com.github.microwww.bitcoin.chain.BlockHeader;
 import com.github.microwww.bitcoin.chain.ChainBlock;
+import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.net.protocol.*;
+import com.github.microwww.bitcoin.provider.LocalBlockChain;
 import com.github.microwww.bitcoin.provider.Peer;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
@@ -26,8 +28,9 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
     private final ReentrantLock lock = new ReentrantLock();
     private final Map<Peer, ChannelHandlerContext> channels = new ConcurrentHashMap<>();
 
-    public PeerChannelServerProtocol(CChainParams chainParams) {
-        this.chainParams = chainParams;
+    public PeerChannelServerProtocol(LocalBlockChain localBlockChain, ApplicationEventPublisher publisher) {
+        super(localBlockChain, publisher);
+        chainParams = localBlockChain.getChainParams();
     }
 
     public void publishInv(Queue<GetData.Message> queue) {
@@ -134,10 +137,14 @@ public class PeerChannelServerProtocol extends PeerChannelClientProtocol {
                 });
             } else if (msg.isTx()) {
                 Uint256 hash = msg.getHashIn();
-                chain.getTransactionStore().findCacheTransaction(hash).ifPresent(k -> {
-                    Tx tx = new Tx(request.getPeer()).setTransaction(k);
+                Optional<RawTransaction> opt = chain.getTxPool().get(hash);
+                if (opt.isPresent()) {
+                    RawTransaction tran = opt.get();
+                    Tx tx = new Tx(request.getPeer()).setTransaction(tran);
                     ctx.writeAndFlush(tx);
-                });
+                } else {
+                    logger.warn("Not find TX {} in pool", hash);
+                }
             } else {
                 logger.warn("Not support type: {}", msg);
             }

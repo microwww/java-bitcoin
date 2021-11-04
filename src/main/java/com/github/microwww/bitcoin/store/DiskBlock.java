@@ -2,6 +2,7 @@ package com.github.microwww.bitcoin.store;
 
 import com.github.microwww.bitcoin.chain.ChainBlock;
 import com.github.microwww.bitcoin.chain.PowDifficulty;
+import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
@@ -17,6 +18,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 
@@ -33,6 +35,7 @@ public class DiskBlock implements Closeable {
     private final CChainParams chainParams;
     private final File root; // end with `../blocks/`
     private final IndexBlock indexBlock;
+    private final IndexTransaction indexTransaction;
     private final AccessBlockFile fileAccess;
 
     public static class SpringDiskBlock extends DiskBlock {
@@ -46,6 +49,7 @@ public class DiskBlock implements Closeable {
         @Override
         public FileChainBlock writeBlock(ChainBlock block, int height, boolean ifExistSkip) {
             FileChainBlock fc = super.writeBlock(block, height, ifExistSkip);
+            this.getIndexTransaction().indexTransaction(fc);
             publisher.publishEvent(fc.new BlockWrite2fileEvent());
             return fc;
         }
@@ -58,6 +62,7 @@ public class DiskBlock implements Closeable {
             root = chainParams.settings.getBlocksDirectory();
             logger.info("Block directory: {}", root.getCanonicalPath());
             indexBlock = new IndexBlock(chainParams);
+            indexTransaction = new IndexTransaction(chainParams);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -290,7 +295,12 @@ public class DiskBlock implements Closeable {
                 break;
             }
             // 回退高度, 这样即使中途出错, 仍然可以运行在新的高度
-            indexBlock.removeTail(1);// 第一个可以不回退, 为了简单忽略
+            List<ChainBlock> blocks = indexBlock.removeTail(1);// 第一个可以不回退, 为了简单忽略
+            for (ChainBlock block : blocks) {
+                for (RawTransaction tx : block.getTxs()) {
+                    indexTransaction.removeTransaction(tx.hash());
+                }
+            }
             indexBlock.setHeight(pre, i);
             // TODO:: 回退交易列表
             next = preHeight.getTarget();
@@ -300,14 +310,30 @@ public class DiskBlock implements Closeable {
         return true;
     }
 
-    public IndexBlock getIndexBlock() {
+    public void verifyTransactions(ChainBlock cb) {
+        this.indexTransaction.verifyTransactions(cb);
+    }
+
+    public Optional<RawTransaction> getTransaction(Uint256 hash) {
+        return this.indexTransaction.getTransaction(hash);
+    }
+
+    IndexBlock getIndexBlock() {
         return indexBlock;
+    }
+
+    IndexTransaction getIndexTransaction() {
+        return indexTransaction;
     }
 
     @Override
     public void close() throws IOException {
         try {
-            indexBlock.close();
+            try {
+                indexTransaction.close();
+            } finally {
+                indexBlock.close();
+            }
         } finally {
             fileAccess.close();
         }

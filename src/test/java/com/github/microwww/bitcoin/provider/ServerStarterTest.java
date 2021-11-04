@@ -21,7 +21,7 @@ class ServerStarterTest extends AbstractEnv {
 
     @Test
     void onApplicationEvent() throws InterruptedException, IOException {
-        ServerStarter start = new ServerStarter(chainParams, new PeerChannelServerProtocol(chainParams), localBlockChain);
+        ServerStarter start = new ServerStarter(chainParams, new PeerChannelServerProtocol(localBlockChain, null), localBlockChain);
         CountDownLatch latch = new CountDownLatch(1);
         CountDownLatch d2 = new CountDownLatch(1);
         start.newThreadSTART(e -> {

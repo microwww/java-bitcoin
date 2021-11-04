@@ -24,8 +24,8 @@ class IndexTransactionTest extends AbstractEnv {
     @Test
     void serializationTransaction() throws IOException {
         ChainBlock gn = chainParams.env.G;
-        IndexTransaction tx = this.indexTransaction;
-        FileChainBlock block = tx.getDiskBlock().writeBlock(gn, 0, true);
+        IndexTransaction tx = this.diskBlock.getIndexTransaction();
+        FileChainBlock block = diskBlock.writeBlock(gn, 0, true);
         tx.indexTransaction(block);
         Uint256 hash = block.getTarget().getTxs()[0].hash();
         RawTransaction rt = tx.findTransaction(hash).get().load(true);
@@ -34,12 +34,12 @@ class IndexTransactionTest extends AbstractEnv {
 
     @Test
     void serializationLevelDB() {
-        IndexTransaction tx = this.indexTransaction;
+        IndexTransaction tx = this.diskBlock.getIndexTransaction();
         ByteBuf buffer = Unpooled.buffer();
         String x = ClassPath.readClassPathFile("/data/online.data.txt").get(43);
         buffer.writeBytes(ByteUtil.hex(x));
         ChainBlock gn = new ChainBlock().reset(buffer);
-        FileChainBlock fc = tx.getDiskBlock().writeBlock(gn, 0, true);
+        FileChainBlock fc = diskBlock.writeBlock(gn, 0, true);
         FileTransaction[] fts = tx.transactionPosition(fc, 8 + fc.getPosition());
 
         FileTransaction ft = fts[0];

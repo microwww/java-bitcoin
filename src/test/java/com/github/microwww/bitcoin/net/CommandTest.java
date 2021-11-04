@@ -59,7 +59,7 @@ public class CommandTest extends AbstractEnv {
         executors.shutdownGracefully();
     }
 
-    public static class PrintInputChannel extends SimpleChannelInboundHandler<MessageHeader> {
+    public class PrintInputChannel extends SimpleChannelInboundHandler<MessageHeader> {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -77,7 +77,7 @@ public class CommandTest extends AbstractEnv {
                 AbstractProtocol parse = netProtocol.parse(peer, header.getPayload());
                 logger.info("Parse data to : {}", parse.getClass().getSimpleName());
                 ctx.executor().execute(() -> {
-                    new PeerChannelClientProtocol().doAction(ctx, parse);
+                    new PeerChannelClientProtocol(null, null).doAction(ctx, parse);
                 });
             } catch (UnsupportedOperationException ex) {
                 logger.warn("UnsupportedOperationException : {}", header.getCommand());

@@ -14,7 +14,6 @@ import com.github.microwww.bitcoin.util.Tools;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
@@ -39,14 +38,14 @@ public class PeerChannelClientProtocol implements Closeable {
     public static final Logger verify = LoggerFactory.getLogger("mode.test");
     public static final String CACHE_HEADERS = "cache_headers";
 
-    @Autowired
-    LocalBlockChain chain;
-    @Autowired
-    ApplicationEventPublisher publisher;
+    protected LocalBlockChain chain;
+    protected ApplicationEventPublisher publisher;
     private final TimeoutTaskManager<ChannelHandlerContext> taskManager;
     // private LoadingHeaderManager loadingHeaderManager = new LoadingHeaderManager();
 
-    public PeerChannelClientProtocol() {
+    public PeerChannelClientProtocol(LocalBlockChain localBlockChain, ApplicationEventPublisher publisher) {
+        this.chain = localBlockChain;
+        this.publisher = publisher;
         this.taskManager = new TimeoutTaskManager<>(e -> {
             this.sendGetHeader(e);
         }, 10, TimeUnit.SECONDS);
@@ -229,7 +228,7 @@ public class PeerChannelClientProtocol implements Closeable {
         disk.verifyNBits(cb);
         cb.header.assertDifficulty();
 
-        chain.getTransactionStore().verifyTransactions(cb);
+        chain.getDiskBlock().verifyTransactions(cb);
 
         OptionalInt hc = disk.writeBlock(cb, true);
         if (log5seconds.isInfoEnabled()) {
@@ -246,7 +245,7 @@ public class PeerChannelClientProtocol implements Closeable {
 
     public void service(ChannelHandlerContext ctx, Tx request) {
         logger.debug("Get new tx: {}, add to pool", request.getTransaction().hash());
-        chain.getTransactionStore().add(request.getTransaction());
+        chain.getTxPool().put(request.getTransaction());
         publisher.publishEvent(new AddTxEvent(request));
     }
 

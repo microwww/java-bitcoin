@@ -7,15 +7,12 @@ import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.script.Interpreter;
 import com.github.microwww.bitcoin.script.ex.TransactionInvalidException;
 import com.github.microwww.bitcoin.util.ByteUtil;
-import com.github.microwww.bitcoin.wallet.Wallet;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.iq80.leveldb.DB;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationListener;
-import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
 import java.io.Closeable;
@@ -23,20 +20,15 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
-@Component
-public class IndexTransaction implements ApplicationListener<FileChainBlock.BlockWrite2fileEvent>, Closeable {
+public class IndexTransaction implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(IndexTransaction.class);
     private final Map<Uint256, RawTransaction> transactions;
     private final int maxCount;
     private final Optional<DB> levelDB;
-    private final DiskBlock diskBlock;
-    private final Wallet wallet;
     private final CChainParams chainParams;
 
     @Autowired
-    public IndexTransaction(CChainParams chainParams, Wallet wallet, DiskBlock diskBlock) {
-        this.diskBlock = diskBlock;
-        this.wallet = wallet;
+    public IndexTransaction(CChainParams chainParams) {
         this.chainParams = chainParams;
         transactions = Collections.synchronizedMap(new LinkedHashMap<>());
         maxCount = chainParams.settings.getTxPoolMax();
@@ -52,11 +44,6 @@ public class IndexTransaction implements ApplicationListener<FileChainBlock.Bloc
         } else {
             levelDB = Optional.empty();
         }
-    }
-
-    @Override
-    public void onApplicationEvent(FileChainBlock.BlockWrite2fileEvent event) {
-        indexTransaction(event.getBitcoinSource());
     }
 
     public void add(RawTransaction request) {
@@ -113,7 +100,6 @@ public class IndexTransaction implements ApplicationListener<FileChainBlock.Bloc
                 }
             });
             buffer.clear();
-            wallet.localTransaction(tr);
         }
     }
 
@@ -131,12 +117,19 @@ public class IndexTransaction implements ApplicationListener<FileChainBlock.Bloc
     }
 
     public synchronized Optional<FileTransaction> findTransaction(Uint256 hash) {
+        return levelDB
+                .flatMap(e -> Optional.ofNullable(e.get(hash.fill256bit()))
+                        .map(this::deserializationLevelDB));
+    }
+
+    public synchronized Optional<FileTransaction> removeTransaction(Uint256 hash) {
         return levelDB.flatMap(e -> {
-            byte[] bytes = e.get(hash.fill256bit());
+            byte[] key = hash.fill256bit();
+            byte[] bytes = e.get(key);
             if (bytes != null) {
-                return Optional.of(deserializationLevelDB(bytes));
+                e.delete(key);
             }
-            return Optional.empty();
+            return Optional.ofNullable(bytes).map(this::deserializationLevelDB);
         });
     }
 
@@ -162,10 +155,6 @@ public class IndexTransaction implements ApplicationListener<FileChainBlock.Bloc
         return ft;
     }
 
-    public DiskBlock getDiskBlock() {
-        return diskBlock;
-    }
-
     @Override
     public void close() throws IOException {
         if (levelDB.isPresent()) {
@@ -174,10 +163,7 @@ public class IndexTransaction implements ApplicationListener<FileChainBlock.Bloc
     }
 
     public void verifyTransactions(ChainBlock chainBlock) {
-        if (chainBlock.header.getHeight().isPresent()) {
-            ChainBlock hb = diskBlock.readBlock(chainBlock.header.getPreHash()).get();
-            chainBlock.header.setHeight(hb.getHeight() + 1);
-        }
+        Assert.isTrue(chainBlock.header.getHeight().isPresent(), "Set height for ChainBlock");
         verifyTransactionsWithHeight(chainBlock);
     }
 

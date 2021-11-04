@@ -19,13 +19,13 @@ public class BlockCache<U, T> {
         cache = new LinkedHashMap<>(max + 10);
     }
 
-    public synchronized Optional<T> get(U key, Supplier<Optional<T>> supplier) {
+    public synchronized Optional<T> get(U key, Supplier<T> supplier) {
         int v = count.incrementAndGet();
         if (logger.isDebugEnabled() && v % 100 == 0)
             logger.debug("Cache HIT {}/{} ", hit.intValue(), v);
         T h = cache.get(key);
         if (h == null) {
-            return supplier.get();
+            return Optional.ofNullable(supplier.get());
         }
         hit.incrementAndGet();
         return Optional.of(h);
@@ -55,5 +55,9 @@ public class BlockCache<U, T> {
             list.add(u);
         }
         return list;
+    }
+
+    public void clear() {
+        cache.clear();
     }
 }

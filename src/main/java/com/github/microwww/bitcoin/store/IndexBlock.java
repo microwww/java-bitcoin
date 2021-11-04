@@ -17,6 +17,8 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public class IndexBlock implements Closeable {
@@ -68,11 +70,11 @@ public class IndexBlock implements Closeable {
     public Optional<FileChainBlock> findChainBlockInLevelDB(Uint256 hash) {
         return cache.get(hash, () -> {
             byte[] key = ByteUtil.concat(LevelDBPrefix.DB_BLOCK_INDEX.prefixBytes, hash.fill256bit());
-            return this.findChainBlockInLevelDB(key);
+            return this.findChainBlockInLevelDB(key).orElse(null);
         });
     }
 
-    public synchronized Optional<FileChainBlock> findChainBlockInLevelDB(byte[] key) {
+    private synchronized Optional<FileChainBlock> findChainBlockInLevelDB(byte[] key) {
         byte[] bytes = levelDB.get(key);
         if (bytes != null) {
             return Optional.of(FileChainBlock.deserialization(root, bytes));
@@ -152,6 +154,10 @@ public class IndexBlock implements Closeable {
         levelDB.put(key, hash.toByteArray());
     }
 
+    public synchronized Optional<ChainBlock> getBlock(int height) {
+        return this.get(height).flatMap(this::findChainBlock);
+    }
+
     public synchronized Optional<Uint256> get(int height) {
         Optional<Height> last = this.findLatest();
         if (last.isPresent()) {
@@ -171,9 +177,17 @@ public class IndexBlock implements Closeable {
         return this.findChainBlockInLevelDB(hash).map(e -> e.getTarget().getHeight()).orElse(-1);
     }
 
-    public synchronized void removeTail(int count) {
-        int height = this.getLast().height - count;
+    public synchronized List<ChainBlock> removeTail(int count) {
+        int max = this.getLast().height;
+        List<ChainBlock> rs = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            Optional<ChainBlock> ck = this.getBlock(max - i);
+            ck.ifPresent(rs::add);
+        }
+        int height = max - count;
+
         this.setLastBlock(this.get(height).get(), height);
+        return rs;
     }
     //////----------------
 
