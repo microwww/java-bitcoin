@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 /**
  * struct CDiskTxPos : public FlatFilePos
@@ -129,8 +130,8 @@ public class DiskBlock implements Closeable {
             }
         }
 
-        Height opt = indexBlock.getLastHeight();
-        if (opt.getHeight() <= 0) { // 如果没有最新的块, 需要初始化创世块
+        int last = indexBlock.getLastHeight();
+        if (last <= 0) { // 如果没有最新的块, 需要初始化创世块
             this.writeBlock(generate, 0, true);
         }
         logger.info("Init block-chain TO : {}, {}", indexBlock.getLastHeight());
@@ -151,14 +152,14 @@ public class DiskBlock implements Closeable {
     }
 
     public ChainBlock getLastBlock() {
-        int height = indexBlock.getLastHeight().getHeight();
-        return this.getHash(height).flatMap(hash -> {
-            return this.getChinBlock(hash);
-        }).orElseThrow(() -> new IllegalStateException("Not find height Block : " + height));
+        int height = indexBlock.getLastHeight();
+        return this.getHash(height)
+                .flatMap(this::getChinBlock)
+                .orElseThrow(() -> new IllegalStateException("Not find height Block : " + height));
     }
 
     public ChainBlock getBestBlock() {
-        int height = indexBlock.getLastHeight().getHeight();
+        int height = indexBlock.getLastHeight();
         if (height > bestConfirmHeight) {
             height -= bestConfirmHeight;
         } else {
@@ -175,7 +176,7 @@ public class DiskBlock implements Closeable {
         return this.readBlock(hash);
     }
 
-    public Optional<Height> writeBlock(ChainBlock block, boolean ifExistSkip) {
+    public OptionalInt writeBlock(ChainBlock block, boolean ifExistSkip) {
         Uint256 pre = block.header.getPreHash();
         Optional<ChainBlock> hc = this.readBlock(pre);
         if (hc.isPresent()) {
@@ -186,9 +187,9 @@ public class DiskBlock implements Closeable {
             } else {
                 block.header.setHeight(h);
             }
-            return Optional.of(new Height(block.hash(), h));
+            return OptionalInt.of(h);
         }
-        return Optional.empty();
+        return OptionalInt.empty();
     }
 
     /**
@@ -251,7 +252,7 @@ public class DiskBlock implements Closeable {
      * @return
      */
     public int getLatestHeight() {
-        return indexBlock.getLastHeight().getHeight();
+        return indexBlock.getLastHeight();
     }
 
     /**
@@ -262,23 +263,24 @@ public class DiskBlock implements Closeable {
         return indexBlock.getHeight(hash);
     }
 
-    public synchronized boolean resetLatest(ChainBlock newBlock) {
+    private synchronized boolean resetLatest(ChainBlock newBlock) {
         int height = newBlock.getHeight();
-        Height ht = indexBlock.getLastHeight();
-        int latest = ht.getHeight();
-        if (latest >= height) {
+        ChainBlock latest = indexBlock.getLastBlock();
+        int last = latest.getHeight();
+        if (last >= height) {
             return false;
         }
-        Assert.isTrue(latest + 1 == height, "Only one by one !");
+        Assert.isTrue(last + 1 == height, "Only one by one !");
         int h = indexBlock.tryPush(newBlock);
         if (h >= 0) {// 大部分情况走这里
             return true;
         }
+        Uint256 hash = latest.header.hash();
         logger.debug("需要截断, 然后新增, 例如: 出现分叉的时候的回滚, 也许数据量会很大, 不在内存中计算, 可能是个长时间的任务");
-        logger.info("Rollback latest height: {}, {}, new height: {}, {}", latest, ht.getHash(), height, newBlock.hash());
+        logger.info("Rollback latest height: {}, {}, new height: {}, {}", latest, hash, height, newBlock.hash());
         indexBlock.setHeight(newBlock.hash(), height);
         ChainBlock next = newBlock;
-        for (int i = latest; i > 0; i--) {
+        for (int i = last; i > 0; i--) {
             Uint256 pre = next.header.getPreHash();
             Uint256 r = indexBlock.get(i).get();
             FileChainBlock preHeight = indexBlock.findChainBlockInLevelDB(pre).get();
@@ -290,6 +292,7 @@ public class DiskBlock implements Closeable {
             // 回退高度, 这样即使中途出错, 仍然可以运行在新的高度
             indexBlock.removeTail(1);// 第一个可以不回退, 为了简单忽略
             indexBlock.setHeight(pre, i);
+            // TODO:: 回退交易列表
             next = preHeight.getTarget();
         }
         indexBlock.setLastBlock(newBlock.hash(), newBlock.getHeight());

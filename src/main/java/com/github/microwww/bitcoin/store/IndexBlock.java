@@ -90,33 +90,38 @@ public class IndexBlock implements Closeable {
 
     //////----------------
     public void setLastBlock(Uint256 hash, int height) {
-        this.setLastBlock(new Height(hash, height));
-    }
-
-    private synchronized void setLastBlock(Height height) {
-        levelDB.put(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes, height.serialization());
+        byte[] srz = serialization(height, hash);
+        levelDB.put(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes, srz);
         logger.debug("Add LAST_BLOCK: {}", height);
     }
 
-    public synchronized Height getLastHeight() {
+    public synchronized int getLastHeight() {
+        return this.findLatest().orElseThrow(() -> new RuntimeException("Not init DB_LAST_BLOCK")).height;
+    }
+
+    private synchronized Height getLast() {
+        return this.findLatest().orElseThrow(() -> new RuntimeException("Not init DB_LAST_BLOCK"));
+    }
+
+    private synchronized Optional<Height> findLatest() {
         byte[] bytes = levelDB.get(LevelDBPrefix.DB_LAST_BLOCK.prefixBytes);
         if (bytes != null) {
-            return Height.deserialization(bytes);
+            return Optional.of(deserialization(bytes));
         }
-        return null;
+        return Optional.empty();
     }
 
     public ChainBlock getLastBlock() {
-        Height lastHeight = this.getLastHeight();
-        return this.findChainBlock(lastHeight.getHash()).get();
+        Height lastHeight = this.getLast();
+        return this.findChainBlock(lastHeight.hash).get();
     }
 
     //////----------------
     public synchronized int tryPush(ChainBlock block) {
         Uint256 preHash = block.header.getPreHash();
-        Height last = this.getLastHeight();
-        if (last.getHash().equals(preHash)) {
-            int h = last.getHeight() + 1;
+        Height last = this.getLast();
+        if (last.hash.equals(preHash)) {
+            int h = last.height + 1;
             this.putResetLatest(block.hash(), h);
             return h;
         }
@@ -128,7 +133,7 @@ public class IndexBlock implements Closeable {
     }
 
     private synchronized void putResetLatest(Uint256 hash, int height) {
-        int h = this.getLastHeight().getHeight();
+        int h = this.getLast().height;
         Assert.isTrue(h + 1 == height, "Only add to HEADER : " + h);
         setHeight(hash, height);
         this.setLastBlock(hash, height);
@@ -148,9 +153,9 @@ public class IndexBlock implements Closeable {
     }
 
     public synchronized Optional<Uint256> get(int height) {
-        Height last = this.getLastHeight();
-        if (last != null) {
-            int max = last.getHeight();
+        Optional<Height> last = this.findLatest();
+        if (last.isPresent()) {
+            int max = last.get().height;
             if (height <= max) {
                 byte[] key = ByteUtil.concat(new byte[]{LevelDBPrefix.DB_HEAD_BLOCKS.prefixByte}, new Uint32(height).toBytes());
                 byte[] bytes = levelDB.get(key);
@@ -167,10 +172,33 @@ public class IndexBlock implements Closeable {
     }
 
     public synchronized void removeTail(int count) {
-        int height = this.getLastHeight().getHeight() - count;
-        this.setLastBlock(new Height(this.get(height).get(), height));
+        int height = this.getLast().height - count;
+        this.setLastBlock(this.get(height).get(), height);
     }
     //////----------------
+
+    public static byte[] serialization(int height, Uint256 hash) {
+        ByteBuf pool = Unpooled.buffer(4 + 32); // 4 + 32
+        pool.writeIntLE(height).writeBytes(hash.fill256bit());
+        return ByteUtil.readAll(pool);
+    }
+
+    public static Height deserialization(byte[] bytes) {
+        ByteBuf pool = Unpooled.copiedBuffer(bytes); // 4 + 32
+        int h = pool.readIntLE();//(block.getHeight()).writeBytes(block.getChainBlock().hash().reverse256bit());
+        byte[] hash = ByteUtil.readLength(pool, 32);
+        return new Height(h, new Uint256(hash));
+    }
+
+    private static class Height {
+        public final int height;
+        public final Uint256 hash;
+
+        public Height(int height, Uint256 hash) {
+            this.height = height;
+            this.hash = hash;
+        }
+    }
 
     @Override
     public void close() throws IOException {

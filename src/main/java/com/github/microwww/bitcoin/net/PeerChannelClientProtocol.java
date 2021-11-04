@@ -10,7 +10,6 @@ import com.github.microwww.bitcoin.provider.LocalBlockChain;
 import com.github.microwww.bitcoin.provider.Peer;
 import com.github.microwww.bitcoin.provider.TimeoutTaskManager;
 import com.github.microwww.bitcoin.store.DiskBlock;
-import com.github.microwww.bitcoin.store.Height;
 import com.github.microwww.bitcoin.util.Tools;
 import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
@@ -232,9 +231,9 @@ public class PeerChannelClientProtocol implements Closeable {
 
         chain.getTransactionStore().verifyTransactions(cb);
 
-        Optional<Height> hc = disk.writeBlock(cb, true);
+        OptionalInt hc = disk.writeBlock(cb, true);
         if (log5seconds.isInfoEnabled()) {
-            log5seconds.info("Get blocks {}, height: {}, {}", request.getPeer().getURI(), hc.map(Height::getHeight).orElse(-1), cb.hash());
+            log5seconds.info("Get blocks {}, height: {}, {}", request.getPeer().getURI(), hc.orElse(-1), cb.hash());
         }
         if (hc.isPresent()) {
             this.sendLoadOneChainBlock(ctx);

@@ -35,9 +35,9 @@ class MemBlockHeightTest extends AbstractEnv {
             ChainBlock chainBlock = block.get(i);
             mh.tryPush(chainBlock);
         }
-        assertEquals(100, mh.getLastHeight().getHeight());
+        assertEquals(100, mh.getLastHeight());
         assertEquals(mh.get(start.getHeight()).get(), start.hash());
-        assertEquals(mh.get(mh.getLastHeight().getHeight()).get(), block.get(block.size() - 1).hash());
+        assertEquals(mh.get(mh.getLastHeight()).get(), block.get(block.size() - 1).hash());
     }
 
     @Test
