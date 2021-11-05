@@ -73,7 +73,7 @@ public class PeerChannelClientProtocol implements Closeable {
     }
 
     public void service(ChannelHandlerContext ctx, AbstractProtocol protocol) {
-        throw new UnsupportedOperationException("Unsupported protocol : " + protocol.support().cmd());
+        throw new UnsupportedOperationException("Unsupported protocol : " + protocol.support().command());
     }
 
     public void service(ChannelHandlerContext ctx, Version version) {

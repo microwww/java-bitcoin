@@ -7,7 +7,6 @@ import com.github.microwww.bitcoin.util.ByteUtil;
 
 import org.junit.jupiter.api.Test;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,7 +24,7 @@ class GenTransactionTest {
         list.add(new Constants.PushCode(ScriptNames._4.ordinal()));
         //GenTransaction.G.genCoinbaseTransaction(str);
         String str = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
-        list.add(Constants.pushValue(str.getBytes(StandardCharsets.UTF_8)));
+        list.add(Constants.pushValue(ByteUtil.UTF8(str)));
 
         byte[] bt = ByteUtil.hex("04" + "ffff001d" +
                 "01" +

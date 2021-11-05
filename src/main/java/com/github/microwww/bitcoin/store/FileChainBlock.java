@@ -13,7 +13,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.charset.StandardCharsets;
 
 class FileChainBlock extends AbstractFilePosition<ChainBlock> {
     private static final Logger logger = LoggerFactory.getLogger(FileChainBlock.class);
@@ -117,7 +116,7 @@ class FileChainBlock extends AbstractFilePosition<ChainBlock> {
         ByteBuf pool = Unpooled.buffer();
         pool.writeIntLE(this.target.getHeight());
         pool.writeIntLE((int) position);
-        byte[] name = this.file.getName().getBytes(StandardCharsets.UTF_8);
+        byte[] name = ByteUtil.UTF8(this.file.getName());
         Assert.isTrue(name.length < 0xFF, "name length > 255");
         pool.writeByte(name.length);
         pool.writeBytes(name);
@@ -130,7 +129,7 @@ class FileChainBlock extends AbstractFilePosition<ChainBlock> {
         int position = pool.readIntLE();
         int len = pool.readByte();
         byte[] name = ByteUtil.readLength(pool, len);
-        FileChainBlock fc = new FileChainBlock(new File(root, new String(name, StandardCharsets.UTF_8)), position);
+        FileChainBlock fc = new FileChainBlock(new File(root, ByteUtil.UTF8(name)), position);
         fc.height = height;
         return fc;
     }

@@ -2,26 +2,17 @@ package com.github.microwww.bitcoin.net;
 
 import com.github.microwww.bitcoin.AbstractEnv;
 import com.github.microwww.bitcoin.conf.CChainParams;
-import com.github.microwww.bitcoin.conf.Settings;
 import com.github.microwww.bitcoin.net.protocol.AbstractProtocol;
 import com.github.microwww.bitcoin.net.protocol.Version;
 import com.github.microwww.bitcoin.provider.Peer;
-import com.github.microwww.bitcoin.store.DiskBlock;
-import com.github.microwww.bitcoin.provider.LocalBlockChain;
-import com.github.microwww.bitcoin.store.IndexTransaction;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.UUID;
 
 public class CommandTest extends AbstractEnv {
     private static final Logger logger = LoggerFactory.getLogger(CommandTest.class);
@@ -73,7 +64,7 @@ public class CommandTest extends AbstractEnv {
             logger.info("Parse data to : {}", header.getClass().getSimpleName());
             try {
                 NetProtocol netProtocol = header.getNetProtocol();
-                logger.debug("Get a command : {}", netProtocol.cmd());
+                logger.debug("Get a command : {}", netProtocol.command());
                 AbstractProtocol parse = netProtocol.parse(peer, header.getPayload());
                 logger.info("Parse data to : {}", parse.getClass().getSimpleName());
                 ctx.executor().execute(() -> {

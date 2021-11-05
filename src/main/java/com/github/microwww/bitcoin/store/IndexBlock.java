@@ -16,7 +16,6 @@ import org.springframework.util.Assert;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -85,7 +84,7 @@ public class IndexBlock implements Closeable {
     // height + position + <name-len> + name
     private byte[] serializationLevelDB(FileChainBlock block) {
         ByteBuf pool = Unpooled.buffer(32); // 4 + 4 + 1 + 12
-        byte[] name = block.getFile().getName().getBytes(StandardCharsets.UTF_8);
+        byte[] name = ByteUtil.UTF8(block.getFile().getName());
         pool.clear().writeIntLE(block.getTarget().getHeight()).writeIntLE((int) block.getPosition()).writeByte(name.length).writeBytes(name);
         return ByteUtil.readAll(pool);
     }
@@ -206,7 +205,7 @@ public class IndexBlock implements Closeable {
 
     public void setReindex(File reindex) {
         String r = reindex.getName();
-        levelDB.put(LevelDBPrefix.DB_REINDEX_FLAG.prefixBytes, r.getBytes(StandardCharsets.UTF_8));
+        levelDB.put(LevelDBPrefix.DB_REINDEX_FLAG.prefixBytes, ByteUtil.UTF8(r));
     }
 
     public void clearReindex() {

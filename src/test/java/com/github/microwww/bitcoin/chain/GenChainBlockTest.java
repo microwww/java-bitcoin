@@ -29,7 +29,7 @@ class GenChainBlockTest extends AbstractEnv {
         GenChainBlock gen = new GenChainBlock(wallet, this.diskBlock, this.txPool);
         ChainBlock pre = chainParams.env.G;
         long coin = Generating.getBlockSubsidy(pre.getHeight(), chainParams.env);
-        byte[] s = "JAVA-agent".getBytes(StandardCharsets.UTF_8);
+        byte[] s = "JAVA-agent".getBytes(StandardCharsets.ISO_8859_1);
         Uint256 mk = null;
         {
             buffer.clear().writeByte(ScriptNames.OP_RETURN.opcode()).writeByte(s.length).writeBytes(s);

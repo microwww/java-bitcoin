@@ -34,7 +34,7 @@ public class MessageHeader {
 
     public MessageHeader(int magic, NetProtocol command) {
         this.magic = magic;
-        this.command = command.cmd();
+        this.command = command.command();
     }
 
     public int getMagic() {

@@ -39,13 +39,13 @@ public class PeerChannelClientHandler extends SimpleChannelInboundHandler<Messag
         try {
             NetProtocol netProtocol = header.getNetProtocol();
             if (logger.isDebugEnabled()) {
-                logger.debug("Get a command : {} \n 0x{}", netProtocol.cmd(), ByteUtil.hex(header.getPayload()));
+                logger.debug("Get a command : {} \n 0x{}", netProtocol.command(), ByteUtil.hex(header.getPayload()));
             }
             AbstractProtocol parse = netProtocol.parse(peer, header.getPayload());
             if (parse instanceof AbstractProtocolAdapter) {
                 ((AbstractProtocolAdapter<?>) parse).setPayload(header.getPayload());
             }
-            logger.debug("Command: {}, parse to : {}", netProtocol.cmd(), parse.getClass().getSimpleName());
+            logger.debug("Command: {}, parse to : {}", netProtocol.command(), parse.getClass().getSimpleName());
 
             peerChannelClientProtocol.doAction(ctx, parse);
 

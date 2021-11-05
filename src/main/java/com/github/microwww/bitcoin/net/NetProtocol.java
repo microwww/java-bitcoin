@@ -2,10 +2,9 @@ package com.github.microwww.bitcoin.net;
 
 import com.github.microwww.bitcoin.net.protocol.*;
 import com.github.microwww.bitcoin.provider.Peer;
+import com.github.microwww.bitcoin.util.ByteUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.charset.StandardCharsets;
 
 public enum NetProtocol {
 
@@ -323,15 +322,15 @@ public enum NetProtocol {
     };
 
     private static final Logger logger = LoggerFactory.getLogger(NetProtocol.class);
-    private final String cmd = this.name().toLowerCase();
+    private final String command = this.name().toLowerCase();
 
     public AbstractProtocol parse(Peer peer, byte[] buf) throws IgnoreNetProtocolException {
-        logger.warn("Net protocol parse is not support : {}", this.cmd);
-        throw new IgnoreNetProtocolException(this.cmd);
+        logger.warn("Net protocol parse is not support : {}", this.command);
+        throw new IgnoreNetProtocolException(this.command);
     }
 
-    public String cmd() {
-        return cmd;
+    public String command() {
+        return command;
     }
 
     public static NetProtocol select(String cmd) throws UnsupportedNetProtocolException {
@@ -344,7 +343,7 @@ public enum NetProtocol {
 
     public byte[] toByte(int size) {
         byte[] bt = new byte[size];
-        byte[] ch = this.cmd().getBytes(StandardCharsets.UTF_8);
+        byte[] ch = ByteUtil.UTF8(this.command());
         System.arraycopy(ch, 0, bt, 0, ch.length);
         return bt;
     }

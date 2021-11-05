@@ -34,6 +34,10 @@ public class ByteUtil {
         return new String(bytes, StandardCharsets.UTF_8);
     }
 
+    public static byte[] UTF8(String name) {
+        return name.getBytes(StandardCharsets.UTF_8);
+    }
+
     public static byte[] sha256sha256(byte[] val) {
         return DigestUtil.sha256(DigestUtil.sha256(val));
     }

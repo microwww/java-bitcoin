@@ -5,8 +5,6 @@ import com.github.microwww.bitcoin.provider.Peer;
 import com.github.microwww.bitcoin.util.ByteUtil;
 import io.netty.buffer.ByteBuf;
 
-import java.nio.charset.StandardCharsets;
-
 public class Reject extends AbstractProtocolAdapter<Reject> {
     private String message;
     private byte code;
@@ -30,11 +28,11 @@ public class Reject extends AbstractProtocolAdapter<Reject> {
 
     @Override
     protected void write0(ByteBuf buf) {
-        byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = ByteUtil.UTF8(message);
         UintVar.writeData(buf, bytes);
         buf.writeBytes(bytes);
         buf.writeByte(code);
-        bytes = reason.getBytes(StandardCharsets.UTF_8);
+        bytes = ByteUtil.UTF8(reason);
         UintVar.writeData(buf, bytes);
         buf.writeBytes(data);
     }
