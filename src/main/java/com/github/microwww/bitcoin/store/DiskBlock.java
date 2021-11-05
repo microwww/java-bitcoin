@@ -6,6 +6,7 @@ import com.github.microwww.bitcoin.chain.RawTransaction;
 import com.github.microwww.bitcoin.conf.CChainParams;
 import com.github.microwww.bitcoin.math.Uint256;
 import com.github.microwww.bitcoin.math.Uint32;
+import com.github.microwww.bitcoin.util.Tools;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ import java.util.OptionalInt;
  **/
 public class DiskBlock implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(DiskBlock.class);
+    private static final Logger log5sec = Tools.timeLogger(logger, 5);
 
     private final int bestConfirmHeight;
     private final CChainParams chainParams;
@@ -78,14 +80,26 @@ public class DiskBlock implements Closeable {
     public synchronized void reindex() throws IOException {
         ByteBuf bf = Unpooled.buffer(1024 * 1024);
         File[] files = this.fileAccess.listFile();
-        long time = 0;
+        Optional<String> reindex = indexBlock.getReindex();
         for (File file : files) {
+            if (reindex.isPresent()) {
+                if (file.getName().equals(reindex.get())) {
+                    reindex = Optional.empty();
+                } else {
+                    continue;
+                }
+            }
+            indexBlock.setReindex(file);
+            logger.info("Reindex file {}", file.getCanonicalPath());
             long length = file.length();
             FileChannel channel = new RandomAccessFile(file, "r").getChannel();
             channel.position(0);
             while (channel.position() < length) {
                 FileChainBlock fc = new FileChainBlock(file, channel.position());
-                fc.readBlock(bf, channel);
+                ChainBlock block = fc.readBlock(bf.clear(), channel);
+                channel.position(fc.position + bf.readerIndex());
+                int h = indexBlock.loadHeight(block);
+                fc.setHeight(h);
                 int magic = chainParams.getEnvParams().getMagic();
                 Assert.isTrue(fc.getMagic() == chainParams.getEnvParams().getMagic(), "Env is not match , need : " + magic);
                 Uint256 preHash = fc.getTarget().header.getPreHash();
@@ -104,13 +118,11 @@ public class DiskBlock implements Closeable {
                 }
                 Assert.isTrue(fc.getTarget().header.getHeight().isPresent(), "Set block height");
                 this.indexBlock(fc);
-                long next = System.currentTimeMillis();
-                if (next - time > 5000) {
-                    logger.info("Re-index Height: {}, Hash: {}, PreHash: {}", height + 1, hash.toHexReverse256(), preHash.toHexReverse256());
-                    time = next;
-                }
+                log5sec.info("Re-index Height: {}, Hash: {}, PreHash: {}",
+                        height + 1, hash.toHexReverse256(), preHash.toHexReverse256());
             }
         }
+        indexBlock.clearReindex();
     }
 
     /**
@@ -124,11 +136,15 @@ public class DiskBlock implements Closeable {
         ChainBlock generate = chainParams.env.G;
         logger.info("Generate block hash : {}", generate.hash().toHexReverse256());
 
-        if (chainParams.settings.isReIndex()) {
+        /**
+         * reindex, or reindex not over ! will go-on !
+         */
+        Optional<String> reindex = indexBlock.getReindex();
+        if (chainParams.settings.isReIndex() || reindex.isPresent()) {
             try {
                 logger.info("Reindex BLOCK, long time");
                 reindex();
-                logger.info("Reindex BLOCK OVER : {}", indexBlock.getLastHeight());
+                logger.info("Reindex BLOCK OVER max-height: {}", indexBlock.getLastHeight());
                 return this;
             } catch (IOException e) {
                 throw new RuntimeException(e);

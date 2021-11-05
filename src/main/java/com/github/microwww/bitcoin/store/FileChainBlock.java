@@ -40,19 +40,19 @@ class FileChainBlock extends AbstractFilePosition<ChainBlock> {
         return this.target;
     }
 
-    public FileChainBlock readBlock(FileChannel channel) throws IOException {
+    public ChainBlock readBlock(FileChannel channel) throws IOException {
         return this.readBlock(Unpooled.buffer(), channel);
     }
 
-    public FileChainBlock readBlock(ByteBuf buffer, FileChannel channel) throws IOException {
+    public ChainBlock readBlock(ByteBuf buffer, FileChannel channel) throws IOException {
         try {
             tryReadBlock(buffer, channel);
+            return this.target;
         } catch (RuntimeException ex) {
             int i = buffer.readerIndex();
             logger.error("Read block error : {}[{}] bytes-index {}", this.file.getAbsolutePath(), this.position, i);
             throw ex;
         }
-        return this;
     }
 
     private void tryReadBlock(ByteBuf cache, FileChannel channel) throws IOException {
@@ -71,8 +71,10 @@ class FileChainBlock extends AbstractFilePosition<ChainBlock> {
 
         this.target = new ChainBlock().reset(cache);
         Assert.isTrue(cache.readerIndex() == len + magicAndLengthBytes, "Fill block bytes.length != block read length");
-        Assert.isTrue(this.height != null, "Not init `height` in FileChainBlock");
-        this.target.header.setHeight(this.height);
+        if (this.height != null) {
+            // Assert.isTrue(this.height != null, "Not init `height` in FileChainBlock");
+            this.target.header.setHeight(this.height);
+        }
         logger.debug("Read File : {}, Position: {}", file.getName(), this.position);
     }
 

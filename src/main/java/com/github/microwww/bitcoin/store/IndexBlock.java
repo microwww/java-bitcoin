@@ -204,6 +204,26 @@ public class IndexBlock implements Closeable {
         return new Height(h, new Uint256(hash));
     }
 
+    public void setReindex(File reindex) {
+        String r = reindex.getName();
+        levelDB.put(LevelDBPrefix.DB_REINDEX_FLAG.prefixBytes, r.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public void clearReindex() {
+        levelDB.delete(LevelDBPrefix.DB_REINDEX_FLAG.prefixBytes);
+    }
+
+    public Optional<String> getReindex() {
+        byte[] bytes = levelDB.get(LevelDBPrefix.DB_REINDEX_FLAG.prefixBytes);
+        return Optional.ofNullable(bytes).map(ByteUtil::UTF8);
+    }
+
+    public int loadHeight(ChainBlock block) {
+        int pre = this.getHeight(block.header.getPreHash());
+        block.header.setHeight(pre + 1);
+        return block.getHeight();
+    }
+
     private static class Height {
         public final int height;
         public final Uint256 hash;

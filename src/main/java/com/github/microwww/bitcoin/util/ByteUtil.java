@@ -7,6 +7,8 @@ import io.netty.buffer.ByteBuf;
 import org.bouncycastle.crypto.digests.RIPEMD160Digest;
 import org.springframework.util.Assert;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * 外部的工具方法放到一个地方, 方便之后更换
  */
@@ -26,6 +28,10 @@ public class ByteUtil {
         }
         buf.readBytes(bytes);
         return bytes;
+    }
+
+    public static String UTF8(byte[] bytes) {
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     public static byte[] sha256sha256(byte[] val) {
